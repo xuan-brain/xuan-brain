@@ -1,7 +1,34 @@
 <script lang="ts">
+    // 从 localStorage 加载保存的列宽，如果没有则使用默认值
+    const STORAGE_KEY = "xuan-brain-layout-widths";
+
+    function loadWidths(): { left: number; right: number } {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const widths = JSON.parse(saved);
+                return {
+                    left: Math.max(
+                        MIN_WIDTH_PERCENT,
+                        Math.min(MAX_WIDTH_PERCENT, widths.left),
+                    ),
+                    right: Math.max(
+                        MIN_WIDTH_PERCENT,
+                        Math.min(MAX_WIDTH_PERCENT, widths.right),
+                    ),
+                };
+            }
+        } catch (e) {
+            console.error("Failed to load layout widths:", e);
+        }
+        return { left: 15, right: 15 };
+    }
+
+    const savedWidths = loadWidths();
+
     // 列宽状态（百分比）
-    let leftWidth = $state(15);
-    let rightWidth = $state(15);
+    let leftWidth = $state(savedWidths.left);
+    let rightWidth = $state(savedWidths.right);
     let middleWidth = $derived(100 - leftWidth - rightWidth);
 
     // 拖动状态
@@ -14,6 +41,20 @@
     // 最小宽度（百分比）
     const MIN_WIDTH_PERCENT = 10;
     const MAX_WIDTH_PERCENT = 40;
+
+    // 监听列宽变化并保存到 localStorage
+    $effect(() => {
+        // 只在列宽实际变化时保存
+        try {
+            const widthsToSave = JSON.stringify({
+                left: leftWidth,
+                right: rightWidth,
+            });
+            localStorage.setItem(STORAGE_KEY, widthsToSave);
+        } catch (e) {
+            console.error("Failed to save layout widths:", e);
+        }
+    });
 
     // 左侧拖动手柄
     function handleLeftResizerMouseDown(event: MouseEvent) {

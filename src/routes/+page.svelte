@@ -2,6 +2,10 @@
     // 从 localStorage 加载保存的列宽，如果没有则使用默认值
     const STORAGE_KEY = "xuan-brain-layout-widths";
 
+    // 最小宽度（百分比）
+    const MIN_WIDTH_PERCENT = 10;
+    const MAX_WIDTH_PERCENT = 40;
+
     function loadWidths(): { left: number; right: number } {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -37,10 +41,6 @@
     let startX = $state(0);
     let startLeftWidth = $state(0);
     let startRightWidth = $state(0);
-
-    // 最小宽度（百分比）
-    const MIN_WIDTH_PERCENT = 10;
-    const MAX_WIDTH_PERCENT = 40;
 
     // 监听列宽变化并保存到 localStorage
     $effect(() => {

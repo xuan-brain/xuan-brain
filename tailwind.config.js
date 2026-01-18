@@ -6,6 +6,10 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [],
-  darkMode: 'class', // 或 'media'，根据需求选择
+  darkMode: 'class',
+  plugins: [
+    require('@skeletonlabs/skeleton')({
+      themes: { preset: [ "skeleton" ] } // 加载预设主题
+    })
+  ]
 }

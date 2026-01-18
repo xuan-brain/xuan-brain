@@ -186,6 +186,7 @@
     </aside>
 
     <!-- 左侧拖动手柄 -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         role="separator"
         aria-orientation="vertical"
@@ -236,6 +237,7 @@
     </main>
 
     <!-- 右侧拖动手柄 -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         role="separator"
         aria-orientation="vertical"

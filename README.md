@@ -71,7 +71,7 @@
 
 ### 环境要求
 - Node.js 18+
-- pnpm 8+
+- yarn 1.22+
 - Rust 1.70+
 - 系统 WebView2 (Windows) / WebKit (macOS/Linux)
 
@@ -82,19 +82,19 @@ git clone https://github.com/your-org/xuan-brain.git
 cd xuan-brain
 
 # 安装依赖
-pnpm install
+yarn install
 ```
 
 ### 开发
 ```bash
 # 启动开发模式
-pnpm tauri dev
+yarn tauri dev
 ```
 
 ### 构建
 ```bash
 # 构建生产版本
-pnpm tauri build
+yarn tauri build
 ```
 
 构建产物位于 `src-tauri/target/release/bundle/`
@@ -122,7 +122,7 @@ pnpm tauri build
 ### 代码规范
 - Rust: 遵循 `rustfmt` 格式化,通过 `clippy` 检查
 - TypeScript: 遵循 ESLint 规则
-- 提交前运行 `pnpm check` 和 `cargo test`
+- 提交前运行 `yarn check` 和 `cargo test`
 
 ## 🛣️ 路线图
 

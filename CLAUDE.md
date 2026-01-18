@@ -233,20 +233,20 @@ src-tauri/src/api/
 
 ### 开发模式
 ```bash
-pnpm dev
+yarn dev
 ```
 启动 Vite 开发服务器(端口 1420)。配合 Tauri 使用:
 ```bash
-pnpm tauri dev
+yarn tauri dev
 ```
 
 ### 构建
 ```bash
 # 构建前端
-pnpm build
+yarn build
 
 # 构建 Tauri 应用
-pnpm tauri build
+yarn tauri build
 ```
 
 **跨平台构建产物**:
@@ -257,10 +257,10 @@ pnpm tauri build
 ### 类型检查
 ```bash
 # 单次检查
-pnpm check
+yarn check
 
 # 监听模式
-pnpm check:watch
+yarn check:watch
 ```
 
 ### Rust 后端命令
@@ -561,13 +561,13 @@ cd src-tauri && cargo test --test integration
 1. Fork 项目仓库
 2. 创建特性分支
 3. 编写测试用例
-4. 确保通过所有检查(`cargo test`, `cargo clippy`, `pnpm check`)
+4. 确保通过所有检查(`cargo test`, `cargo clippy`, `yarn check`)
 5. 提交 Pull Request
 
 **代码规范**:
 - Rust: 遵循 `rustfmt` 格式化，通过 `clippy` 检查
 - TypeScript: 遵循 ESLint 规则
-- 提交前运行 `pnpm check` 和 `cargo test`
+- 提交前运行 `yarn check` 和 `cargo test`
 
 **开源许可**: MIT / Apache 2.0(待定)
 

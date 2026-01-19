@@ -3,13 +3,9 @@ export default {
   content: [
     "./src/**/*.{html,js,svelte,ts}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {},
   },
-  darkMode: 'class',
-  plugins: [
-    require('@skeletonlabs/skeleton')({
-      themes: { preset: [ "skeleton" ] }
-    })
-  ]
+  plugins: []
 }

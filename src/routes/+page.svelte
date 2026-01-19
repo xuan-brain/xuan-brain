@@ -143,7 +143,7 @@
 >
     <!-- 左侧侧边栏 -->
     <aside
-        class="bg-white dark:bg-gray-800 overflow-y-auto min-w-[150px] border-r border-gray-200 dark:border-gray-700 flex-shrink-0"
+        class="bg-white dark:bg-gray-800 overflow-y-auto min-w-[9.375rem] border-r border-gray-200 dark:border-gray-700 shrink-0"
         style="width: {leftWidth}%;"
     >
         <div class="p-5">
@@ -194,7 +194,7 @@
         aria-valuemin={MIN_WIDTH_PERCENT}
         aria-valuemax={MAX_WIDTH_PERCENT}
         aria-label="调整左侧栏宽度"
-        class="w-0.5 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize flex-shrink-0 transition-colors duration-150 z-10"
+        class="w-0.5 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize shrink-0 transition-colors duration-150 z-10"
         class:bg-blue-500={isDraggingLeft}
         class:dark:bg-blue-500={isDraggingLeft}
         onmousedown={handleLeftResizerMouseDown}
@@ -205,7 +205,7 @@
         class="bg-gray-50 dark:bg-gray-900 overflow-y-auto flex flex-col flex-1 min-w-0"
     >
         <div
-            class="bg-white dark:bg-gray-800 p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-shrink-0"
+            class="bg-white dark:bg-gray-800 p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shrink-0"
         >
             <h1
                 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 m-0"
@@ -245,7 +245,7 @@
         aria-valuemin={MIN_WIDTH_PERCENT}
         aria-valuemax={MAX_WIDTH_PERCENT}
         aria-label="调整右侧栏宽度"
-        class="w-0.5 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize flex-shrink-0 transition-colors duration-150 z-10"
+        class="w-0.5 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize shrink-0 transition-colors duration-150 z-10"
         class:bg-blue-500={isDraggingRight}
         class:dark:bg-blue-500={isDraggingRight}
         onmousedown={handleRightResizerMouseDown}
@@ -253,7 +253,7 @@
 
     <!-- 右侧侧边栏 -->
     <aside
-        class="bg-white dark:bg-gray-800 overflow-y-auto min-w-[150px] border-l border-gray-200 dark:border-gray-700 flex-shrink-0"
+        class="bg-white dark:bg-gray-800 overflow-y-auto min-w-[9.375rem] border-l border-gray-200 dark:border-gray-700 shrink-0"
         style="width: {rightWidth}%;"
     >
         <div class="p-5">

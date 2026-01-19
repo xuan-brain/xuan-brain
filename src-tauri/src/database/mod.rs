@@ -1,8 +1,8 @@
 mod entities;
-mod migrations;
 
 use std::{path::PathBuf, time::Duration};
 
+use migration::{Migrator, MigratorTrait};
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use tracing::info;
 
@@ -27,5 +27,9 @@ pub async fn init_database_connection(data_dir: PathBuf) -> Result<DatabaseConne
         .await
         .map_err(|e| AppError::database(e.to_string()))?;
     info!("Database connection initialized");
+    Migrator::up(&db, None)
+        .await
+        .map_err(|e| AppError::database(e.to_string()))?;
+    info!("Database migration completed");
     Ok(db)
 }

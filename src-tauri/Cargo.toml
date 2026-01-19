@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "A Tauri App"
 
+[workspace]
+members = [".", "migration"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
@@ -15,6 +18,7 @@ name = "xuan_brain_lib"
 
 [dependencies]
 dirs = "5"
+migration = { path = "migration" }
 sea-orm = { version = "=2.0.0-rc.28", features = [
   "macros",
   "runtime-tokio-rustls",

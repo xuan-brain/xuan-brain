@@ -4,5 +4,5 @@
 // See: https://v2.tauri.app/start/frontend/sveltekit/ for more info
 export const ssr = false;
 
-// 导入 Tailwind CSS 样式
+// Import Tailwind CSS styles
 import "../lib/css/app.css";

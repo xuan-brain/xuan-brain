@@ -2,5 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    xuan_brain_lib::run()
+    let run_result = xuan_brain_lib::run();
+    run_result.expect("Failed to run application");
 }

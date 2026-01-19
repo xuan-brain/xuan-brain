@@ -1,8 +1,8 @@
 <script lang="ts">
-  // 从 localStorage 加载保存的列宽，如果没有则使用默认值
+  // Load saved column widths from localStorage, use defaults if not present
   const STORAGE_KEY = "xuan-brain-layout-widths";
 
-  // 最小宽度（百分比）
+  // Minimum width (percentage)
   const MIN_WIDTH_PERCENT = 10;
   const MAX_WIDTH_PERCENT = 40;
 
@@ -30,21 +30,21 @@
 
   const savedWidths = loadWidths();
 
-  // 列宽状态（百分比）
+  // Column width states (percentage)
   let leftWidth = $state(savedWidths.left);
   let rightWidth = $state(savedWidths.right);
   let middleWidth = $derived(100 - leftWidth - rightWidth);
 
-  // 拖动状态
+  // Drag states
   let isDraggingLeft = $state(false);
   let isDraggingRight = $state(false);
   let startX = $state(0);
   let startLeftWidth = $state(0);
   let startRightWidth = $state(0);
 
-  // 监听列宽变化并保存到 localStorage
+  // Listen for column width changes and save to localStorage
   $effect(() => {
-    // 只在列宽实际变化时保存
+    // Only save when column widths actually change
     try {
       const widthsToSave = JSON.stringify({
         left: leftWidth,
@@ -56,51 +56,51 @@
     }
   });
 
-  // 状态栏状态
+  // Status bar states
   let currentTime = $state(new Date());
   let documentCount = $state(0);
-  let syncStatus = $state("已同步");
+  let syncStatus = $state("Synced");
   let isSyncing = $state(false);
-  let searchStatus = $state("就绪");
+  let searchStatus = $state("Ready");
   let memoryUsage = $state("0 MB");
 
-  // 每秒更新时间和内存使用
+  // Update time and memory usage every second
   setInterval(() => {
     currentTime = new Date();
-    // 模拟内存使用（实际项目中可以使用 performance.memory 或 Tauri API）
+    // Simulate memory usage (in actual projects, use performance.memory or Tauri API)
     const memory = Math.floor(Math.random() * 100 + 50);
     memoryUsage = `${memory} MB`;
   }, 1000);
 
-  // 左侧拖动手柄
+  // Left drag handle
   function handleLeftResizerMouseDown(event: MouseEvent) {
     isDraggingLeft = true;
     startX = event.clientX;
     startLeftWidth = leftWidth;
 
-    // 添加全局事件监听
+    // Add global event listeners
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
 
-    // 防止选中文本
+    // Prevent text selection
     event.preventDefault();
   }
 
-  // 右侧拖动手柄
+  // Right drag handle
   function handleRightResizerMouseDown(event: MouseEvent) {
     isDraggingRight = true;
     startX = event.clientX;
     startRightWidth = rightWidth;
 
-    // 添加全局事件监听
+    // Add global event listeners
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
 
-    // 防止选中文本
+    // Prevent text selection
     event.preventDefault();
   }
 
-  // 鼠标移动
+  // Mouse move
   function handleMouseMove(event: MouseEvent) {
     if (!isDraggingLeft && !isDraggingRight) return;
 
@@ -125,12 +125,12 @@
     }
   }
 
-  // 鼠标释放
+  // Mouse up
   function handleMouseUp() {
     isDraggingLeft = false;
     isDraggingRight = false;
 
-    // 移除全局事件监听
+    // Remove global event listeners
     document.removeEventListener("mousemove", handleMouseMove);
     document.removeEventListener("mouseup", handleMouseUp);
   }
@@ -141,7 +141,7 @@
 <div
   class="h-[calc(100vh-36px)] w-screen overflow-hidden bg-gray-200 dark:bg-gray-800 flex"
 >
-  <!-- 左侧侧边栏 -->
+  <!-- Left sidebar -->
   <aside
     class="bg-white dark:bg-gray-800 overflow-y-auto min-w-37.5 border-r border-gray-200 dark:border-gray-700 shrink-0"
     style="width: {leftWidth}%;"
@@ -150,42 +150,41 @@
       <h2
         class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b-2 border-gray-200 dark:border-gray-700"
       >
-        导航
+        Navigation
       </h2>
       <nav>
         <ul class="list-none p-0 m-0">
           <li
             class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
-            文献库
+            Library
           </li>
           <li
             class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
-            分类
-          </li>
-          <li
-            class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100
- dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
-          >
-            标签
+            Categories
           </li>
           <li
             class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
-            收藏
+            Tags
           </li>
           <li
             class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
-            回收站
+            Favorites
+          </li>
+          <li
+            class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+          >
+            Trash
           </li>
         </ul>
       </nav>
     </div>
   </aside>
 
-  <!-- 左侧拖动手柄 -->
+  <!-- Left drag handle -->
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     role="separator"
@@ -193,14 +192,14 @@
     aria-valuenow={leftWidth}
     aria-valuemin={MIN_WIDTH_PERCENT}
     aria-valuemax={MAX_WIDTH_PERCENT}
-    aria-label="调整左侧栏宽度"
+    aria-label="Adjust left sidebar width"
     class="w-0.5 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize shrink-0 transition-colors duration-150 z-10"
     class:bg-blue-500={isDraggingLeft}
     class:dark:bg-blue-500={isDraggingLeft}
     onmousedown={handleLeftResizerMouseDown}
   ></div>
 
-  <!-- 中间主内容区 -->
+  <!-- Main content area -->
   <main
     class="bg-gray-50 dark:bg-gray-900 overflow-y-auto flex flex-col flex-1 min-w-0"
   >
@@ -208,31 +207,30 @@
       class="bg-white dark:bg-gray-800 p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shrink-0"
     >
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 m-0">
-        文献库
+        Library
       </h1>
       <div class="flex gap-2.5">
         <button
-          class="px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg border border-transparent cursor-pointer transition-all duration-200 shadow-[0_2px_4px_rgba(0,0,0,0.1)] hover:bg-blue-500 hover:text-white hover:-translate-y-0.5 hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] active:translate-y-0 active:shadow-[0_2px_4px_rgba(0,0
-,0,0.1)]"
+          class="px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg border border-transparent cursor-pointer transition-all duration-200 shadow-[0_2px_4px_rgba(0,0,0,0.1)] hover:bg-blue-500 hover:text-white hover:-translate-y-0.5 hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] active:translate-y-0 active:shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
         >
-          导入文献
+          Import Documents
         </button>
         <button
           class="px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg border border-transparent cursor-pointer transition-all duration-200 shadow-[0_2px_4px_rgba(0,0,0,0.1)] hover:bg-blue-500 hover:text-white hover:-translate-y-0.5 hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] active:translate-y-0 active:shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
         >
-          搜索
+          Search
         </button>
       </div>
     </div>
     <div class="flex-1 p-5 overflow-y-auto min-h-0">
-      <!-- 文献列表将在这里渲染 -->
+      <!-- Document list will be rendered here -->
       <p class="text-gray-400 dark:text-gray-600 text-center italic mt-10">
-        暂无文献
+        No documents yet
       </p>
     </div>
   </main>
 
-  <!-- 右侧拖动手柄 -->
+  <!-- Right drag handle -->
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     role="separator"
@@ -240,14 +238,14 @@
     aria-valuenow={rightWidth}
     aria-valuemin={MIN_WIDTH_PERCENT}
     aria-valuemax={MAX_WIDTH_PERCENT}
-    aria-label="调整右侧栏宽度"
+    aria-label="Adjust right sidebar width"
     class="w-0.5 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize shrink-0 transition-colors duration-150 z-10"
     class:bg-blue-500={isDraggingRight}
     class:dark:bg-blue-500={isDraggingRight}
     onmousedown={handleRightResizerMouseDown}
   ></div>
 
-  <!-- 右侧侧边栏 -->
+  <!-- Right sidebar -->
   <aside
     class="bg-white dark:bg-gray-800 overflow-y-auto min-w-37.5 border-l border-gray-200 dark:border-gray-700 shrink-0"
     style="width: {rightWidth}%;"
@@ -256,18 +254,18 @@
       <h2
         class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b-2 border-gray-200 dark:border-gray-700"
       >
-        详情
+        Details
       </h2>
       <div class="detail-panel">
         <p class="text-gray-400 dark:text-gray-600 text-center italic mt-10">
-          选择一篇文献查看详情
+          Select a document to view details
         </p>
       </div>
     </div>
   </aside>
 </div>
 
-<!-- 状态栏 -->
+<!-- Status bar -->
 <footer
   class="h-9 bg-gray-800 dark:bg-gray-950 border-t border-gray-700 dark:border-gray-800 flex items-center justify-between px-4 text-xs text-gray-300 dark:text-gray-400 select-none"
 >
@@ -278,18 +276,18 @@
       disabled={isSyncing}
       onclick={() => {
         isSyncing = true;
-        syncStatus = "同步中...";
+        syncStatus = "Syncing...";
         setTimeout(() => {
           isSyncing = false;
-          syncStatus = "已同步";
+          syncStatus = "Synced";
         }, 2000);
       }}
     >
       <span
         class="w-2 h-2 rounded-full"
-        class:bg-green-500={syncStatus === "已同步"}
-        class:bg-yellow-500={syncStatus === "同步中..."}
-        class:bg-gray-500={syncStatus === "未同步"}
+        class:bg-green-500={syncStatus === "Synced"}
+        class:bg-yellow-500={syncStatus === "Syncing..."}
+        class:bg-gray-500={syncStatus === "Unsynced"}
       ></span>
       {syncStatus}
     </button>
@@ -304,7 +302,7 @@
           d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"
         />
       </svg>
-      文献数量: {documentCount}
+      Documents: {documentCount}
     </span>
     <span class="hidden md:flex items-center gap-1">
       <svg
@@ -338,7 +336,7 @@
     </span>
   </div>
   <div class="flex items-center gap-4">
-    <span class="hidden sm:inline">版本 0.1.0</span>
+    <span class="hidden sm:inline">Version 0.1.0</span>
     <span class="font-mono bg-gray-700 dark:bg-gray-900 px-2 py-0.5 rounded">
       {currentTime.toLocaleTimeString()}
     </span>
@@ -346,7 +344,7 @@
 </footer>
 
 <style>
-  /* 防止拖动时选中文字 */
+  /* Prevent text selection during dragging */
   :global(.cursor-col-resize) {
     user-select: none;
     -webkit-user-select: none;

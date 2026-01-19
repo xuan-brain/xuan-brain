@@ -568,6 +568,7 @@ cd src-tauri && cargo test --test integration
 - Rust: 遵循 `rustfmt` 格式化，通过 `clippy` 检查
 - TypeScript: 遵循 ESLint 规则
 - 提交前运行 `yarn check` 和 `cargo test`
+- 所有的日志内容均为英文
 
 **开源许可**: MIT / Apache 2.0(待定)
 

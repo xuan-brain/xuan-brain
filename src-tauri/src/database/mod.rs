@@ -1,4 +1,4 @@
-mod entities;
+pub mod entities;
 
 use std::{path::PathBuf, time::Duration};
 
@@ -23,13 +23,9 @@ pub async fn init_database_connection(data_dir: PathBuf) -> Result<DatabaseConne
         .sqlx_logging(false) // disable SQLx logging
         .set_schema_search_path("my_schema"); // set default Postgres schema
 
-    let db = Database::connect(opt)
-        .await
-        .map_err(|e| AppError::database(e.to_string()))?;
+    let db = Database::connect(opt).await.map_err(AppError::from)?;
     info!("Database connection initialized");
-    Migrator::up(&db, None)
-        .await
-        .map_err(|e| AppError::database(e.to_string()))?;
+    Migrator::up(&db, None).await.map_err(AppError::from)?;
     info!("Database migration completed");
     Ok(db)
 }

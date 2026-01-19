@@ -30,11 +30,10 @@ use tracing_subscriber::{
 /// File output: Detailed format with timestamps, file location, and span information
 pub async fn init_logger(log_dir: &PathBuf) -> Result<WorkerGuard> {
     // Ensure log directory exists
-    tokio::fs::create_dir_all(log_dir).await.map_err(|e| {
-        AppError::file_system_with_source(
+    tokio::fs::create_dir_all(log_dir).await.map_err(|_e| {
+        AppError::file_system(
             log_dir.display().to_string(),
             "Failed to create log directory",
-            Box::new(e),
         )
     })?;
 
@@ -92,11 +91,10 @@ pub async fn init_logger(log_dir: &PathBuf) -> Result<WorkerGuard> {
 /// Returns a `WorkerGuard` that must be kept alive for the lifetime of the application
 pub async fn init_logger_with_level(log_dir: &PathBuf, log_level: &str) -> Result<WorkerGuard> {
     // Ensure log directory exists
-    tokio::fs::create_dir_all(log_dir).await.map_err(|e| {
-        AppError::file_system_with_source(
+    tokio::fs::create_dir_all(log_dir).await.map_err(|_e| {
+        AppError::file_system(
             log_dir.display().to_string(),
             "Failed to create log directory",
-            Box::new(e),
         )
     })?;
 

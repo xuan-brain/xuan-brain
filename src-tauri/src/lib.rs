@@ -1,13 +1,14 @@
+mod command;
 mod database;
 mod sys;
 
 use std::path::PathBuf;
 
+use crate::command::label_command::get_all_labels;
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
 use tauri::Manager;
 use tracing::{error, info};
-use tracing_appender::non_blocking::WorkerGuard;
 
 use crate::sys::dirs::init_app_dirs;
 use crate::sys::log::init_logger;
@@ -54,6 +55,8 @@ pub fn run() -> Result<()> {
 
             Ok(())
         })
+        // TODO: Uncomment after fixing Tauri 2.x error type compatibility
+        // .invoke_handler(tauri::generate_handler![get_all_labels])
         .invoke_handler(tauri::generate_handler![])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

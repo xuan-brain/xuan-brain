@@ -57,10 +57,9 @@ pub async fn init_app_dirs() -> Result<AppDirs> {
                 info!("Creating {} directory: {:?}", description, dir_path);
                 tokio::fs::create_dir_all(&dir_path).await.map_err(|e| {
                     error!("Failed to create directory: {} ({})", dir_path.display(), e);
-                    AppError::file_system_with_source(
+                    AppError::file_system(
                         dir_path.display().to_string(),
                         format!("Failed to create {} directory", description),
-                        Box::new(e),
                     )
                 })?;
                 info!(

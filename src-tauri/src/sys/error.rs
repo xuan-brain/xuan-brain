@@ -1,59 +1,34 @@
+use serde::{Serialize, Serializer};
 use thiserror::Error;
 
-/// Main error type for the xuan-brain application
+/// Main error type for xuan-brain application
 #[derive(Error, Debug)]
 pub enum AppError {
     /// Document parsing errors
     #[error("Document parsing failed: {message}")]
-    DocumentParseError {
-        message: String,
-        #[source]
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    DocumentParseError { message: String },
 
     /// File system errors
     #[error("File system error: {path} - {message}")]
-    FileSystemError {
-        path: String,
-        message: String,
-        #[source]
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    FileSystemError { path: String, message: String },
 
     /// Database errors
-    #[error("Database error: {message}")]
-    #[from(sea_orm::DbErr)]
-    DatabaseError {
-        message: String,
-        #[source]
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    #[error(transparent)]
+    SeaOrmError(#[from] sea_orm::DbErr),
 
     /// AI engine errors
     #[error("AI engine error: {operation} - {message}")]
-    AIError {
-        operation: String,
-        message: String,
-        #[source]
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    AIError { operation: String, message: String },
 
     /// Sync errors
     #[error("Sync error: {service} - {message}")]
-    SyncError {
-        service: String,
-        message: String,
-        #[source]
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    SyncError { service: String, message: String },
 
     /// Plugin errors
     #[error("Plugin error: {plugin_name} - {message}")]
     PluginError {
         plugin_name: String,
         message: String,
-        #[source]
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
     },
 
     /// Configuration errors
@@ -89,18 +64,14 @@ pub enum AppError {
 
     /// OCR errors
     #[error("OCR failed: {message}")]
-    OCRError {
-        message: String,
-        #[source]
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    OCRError { message: String },
 
     /// PDF specific errors
     #[error("PDF error: {operation} - {message}")]
     PDFError { operation: String, message: String },
 
     /// IO error wrapper
-    #[error("IO error: {0}")]
+    #[error(transparent)]
     IoError(#[from] std::io::Error),
 
     /// Generic error with message
@@ -108,23 +79,284 @@ pub enum AppError {
     Generic(String),
 }
 
+/// Custom serialization for AppError to handle non-serializable types
+impl Serialize for AppError {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[derive(Serialize)]
+        struct ErrorResponse<'a> {
+            error_type: &'a str,
+            message: Option<&'a String>,
+            path: Option<&'a String>,
+            operation: Option<&'a String>,
+            service: Option<&'a String>,
+            plugin_name: Option<&'a String>,
+            key: Option<&'a String>,
+            url: Option<&'a String>,
+            field: Option<&'a String>,
+            resource: Option<&'a String>,
+            resource_type: Option<&'a String>,
+            resource_id: Option<&'a String>,
+        }
+
+        let response = match self {
+            AppError::DocumentParseError { message } => ErrorResponse {
+                error_type: "DocumentParseError",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::FileSystemError { path, message } => ErrorResponse {
+                error_type: "FileSystemError",
+                message: Some(message),
+                path: Some(path),
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::SeaOrmError(err) => ErrorResponse {
+                error_type: "SeaOrmError",
+                message: Some(&err.to_string()),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::AIError { operation, message } => ErrorResponse {
+                error_type: "AIError",
+                message: Some(message),
+                path: None,
+                operation: Some(operation),
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::SyncError { service, message } => ErrorResponse {
+                error_type: "SyncError",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: Some(service),
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::PluginError {
+                plugin_name,
+                message,
+            } => ErrorResponse {
+                error_type: "PluginError",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: Some(plugin_name),
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::ConfigError { key, message } => ErrorResponse {
+                error_type: "ConfigError",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: Some(key),
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::AuthenticationError { message } => ErrorResponse {
+                error_type: "AuthenticationError",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::NetworkError { url, message } => ErrorResponse {
+                error_type: "NetworkError",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: Some(url),
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::ValidationError { field, message } => ErrorResponse {
+                error_type: "ValidationError",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: Some(field),
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::PermissionError { resource } => ErrorResponse {
+                error_type: "PermissionError",
+                message: None,
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: Some(resource),
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::NotFound {
+                resource_type,
+                resource_id,
+            } => ErrorResponse {
+                error_type: "NotFound",
+                message: None,
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: Some(resource_type),
+                resource_id: Some(resource_id),
+            },
+            AppError::InvalidInput { message } => ErrorResponse {
+                error_type: "InvalidInput",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::OCRError { message } => ErrorResponse {
+                error_type: "OCRError",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::PDFError { operation, message } => ErrorResponse {
+                error_type: "PDFError",
+                message: Some(message),
+                path: None,
+                operation: Some(operation),
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::IoError(err) => ErrorResponse {
+                error_type: "IoError",
+                message: Some(&err.to_string()),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+            AppError::Generic(message) => ErrorResponse {
+                error_type: "Generic",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+            },
+        };
+
+        response.serialize(serializer)
+    }
+}
+
 impl AppError {
     /// Create a document parse error
     pub fn document_parse(message: impl Into<String>) -> Self {
         AppError::DocumentParseError {
             message: message.into(),
-            source: None,
-        }
-    }
-
-    /// Create a document parse error with source
-    pub fn document_parse_with_source(
-        message: impl Into<String>,
-        source: Box<dyn std::error::Error + Send + Sync>,
-    ) -> Self {
-        AppError::DocumentParseError {
-            message: message.into(),
-            source: Some(source),
         }
     }
 
@@ -133,39 +365,6 @@ impl AppError {
         AppError::FileSystemError {
             path: path.into(),
             message: message.into(),
-            source: None,
-        }
-    }
-
-    /// Create a file system error with source
-    pub fn file_system_with_source(
-        path: impl Into<String>,
-        message: impl Into<String>,
-        source: Box<dyn std::error::Error + Send + Sync>,
-    ) -> Self {
-        AppError::FileSystemError {
-            path: path.into(),
-            message: message.into(),
-            source: Some(source),
-        }
-    }
-
-    /// Create a database error
-    pub fn database(message: impl Into<String>) -> Self {
-        AppError::DatabaseError {
-            message: message.into(),
-            source: None,
-        }
-    }
-
-    /// Create a database error with source
-    pub fn database_with_source(
-        message: impl Into<String>,
-        source: Box<dyn std::error::Error + Send + Sync>,
-    ) -> Self {
-        AppError::DatabaseError {
-            message: message.into(),
-            source: Some(source),
         }
     }
 
@@ -174,7 +373,6 @@ impl AppError {
         AppError::AIError {
             operation: operation.into(),
             message: message.into(),
-            source: None,
         }
     }
 
@@ -183,7 +381,6 @@ impl AppError {
         AppError::SyncError {
             service: service.into(),
             message: message.into(),
-            source: None,
         }
     }
 
@@ -192,7 +389,6 @@ impl AppError {
         AppError::PluginError {
             plugin_name: plugin_name.into(),
             message: message.into(),
-            source: None,
         }
     }
 
@@ -253,7 +449,6 @@ impl AppError {
     pub fn ocr_error(message: impl Into<String>) -> Self {
         AppError::OCRError {
             message: message.into(),
-            source: None,
         }
     }
 
@@ -265,6 +460,8 @@ impl AppError {
         }
     }
 }
+
+// Implement IpcResponse for AppError to make it compatible with Tauri 2.x IPC
 
 // Result type alias for convenience
 pub type Result<T> = std::result::Result<T, AppError>;

@@ -9,7 +9,7 @@ export default {
   darkMode: 'class',
   plugins: [
     require('@skeletonlabs/skeleton')({
-      themes: { preset: [ "skeleton" ] } // 加载预设主题
+      themes: { preset: [ "skeleton" ] }
     })
   ]
 }

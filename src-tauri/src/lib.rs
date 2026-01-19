@@ -1,8 +1,10 @@
 use tauri::Manager;
+use tracing::{debug, error, info};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
+    info!("greet 命令被调用，参数: {}", name);
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
@@ -31,12 +33,12 @@ pub struct AppDirs {
 #[tauri::command]
 async fn init_app_dirs(app_handle: tauri::AppHandle) -> Result<AppDirs, String> {
     // 获取应用数据目录
-    let data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("无法获取应用数据目录: {}", e))?;
+    let data_dir = app_handle.path().app_data_dir().map_err(|e| {
+        error!("无法获取应用数据目录: {}", e);
+        format!("无法获取应用数据目录: {}", e)
+    })?;
 
-    println!("应用数据目录: {:?}", data_dir);
+    info!("应用数据目录: {:?}", data_dir);
 
     // 定义子目录结构
     let dirs = vec![
@@ -52,14 +54,15 @@ async fn init_app_dirs(app_handle: tauri::AppHandle) -> Result<AppDirs, String> 
 
         match tokio::fs::metadata(&dir_path).await {
             Ok(_) => {
-                println!("{} 目录已存在: {:?}", description, dir_path);
+                debug!("{} 目录已存在: {:?}", description, dir_path);
             }
             Err(_) => {
-                println!("创建 {} 目录: {:?}", description, dir_path);
-                tokio::fs::create_dir_all(&dir_path)
-                    .await
-                    .map_err(|e| format!("创建目录失败: {} ({})", dir_path.display(), e))?;
-                println!("{} 目录创建成功: {:?}", description, dir_path);
+                info!("创建 {} 目录: {:?}", description, dir_path);
+                tokio::fs::create_dir_all(&dir_path).await.map_err(|e| {
+                    error!("创建目录失败: {} ({})", dir_path.display(), e);
+                    format!("创建目录失败: {} ({})", dir_path.display(), e)
+                })?;
+                info!("{} 目录创建成功: {:?}", description, dir_path);
             }
         }
     }
@@ -75,23 +78,34 @@ async fn init_app_dirs(app_handle: tauri::AppHandle) -> Result<AppDirs, String> 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 初始化 tracing subscriber
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                tracing_subscriber::EnvFilter::new("xuan_brain=debug,tauri=debug")
+            }),
+        )
+        .init();
+
+    info!("应用启动中...");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             // 在应用启动时初始化数据目录
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                println!("正在初始化应用数据目录...");
+                info!("正在初始化应用数据目录...");
                 match init_app_dirs(app_handle).await {
                     Ok(dirs) => {
-                        println!("应用数据目录初始化成功:");
-                        println!("  配置目录: {}", dirs.config);
-                        println!("  数据目录: {}", dirs.data);
-                        println!("  缓存目录: {}", dirs.cache);
-                        println!("  日志目录: {}", dirs.logs);
+                        info!("应用数据目录初始化成功:");
+                        info!("  配置目录: {}", dirs.config);
+                        info!("  数据目录: {}", dirs.data);
+                        info!("  缓存目录: {}", dirs.cache);
+                        info!("  日志目录: {}", dirs.logs);
                     }
                     Err(e) => {
-                        eprintln!("初始化数据目录失败: {}", e);
+                        error!("初始化数据目录失败: {}", e);
                     }
                 }
             });

@@ -3,6 +3,7 @@ mod sys;
 
 use std::path::PathBuf;
 
+use crate::database::init_database_connection;
 use crate::sys::error::Result;
 use tauri::Manager;
 use tracing::{error, info};
@@ -43,6 +44,12 @@ pub fn run() -> Result<()> {
                     .expect("Failed to initialize logger");
                 info!("Logger initialized");
                 app_handle.manage(log_guard);
+
+                let db = init_database_connection(PathBuf::from(&app_dirs.data))
+                    .await
+                    .expect("Failed to initialize database connection");
+                app_handle.manage(db);
+                info!("Database connection initialized");
             });
 
             Ok(())

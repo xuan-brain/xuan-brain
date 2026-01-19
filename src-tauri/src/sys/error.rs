@@ -22,6 +22,7 @@ pub enum AppError {
 
     /// Database errors
     #[error("Database error: {message}")]
+    #[from(sea_orm::DbErr)]
     DatabaseError {
         message: String,
         #[source]

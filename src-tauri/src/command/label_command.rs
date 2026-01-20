@@ -31,7 +31,7 @@ pub async fn get_all_labels(
             id: l.id,
             name: l.name,
             color: l.color,
-            document_count: 0, // Placeholder
+            document_count: l.document_count,
         })
         .collect();
 

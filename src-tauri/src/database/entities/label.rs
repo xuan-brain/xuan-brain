@@ -9,6 +9,7 @@ pub struct Model {
     pub id: i64,
     pub name: String,
     pub color: String,
+    pub document_count: i64,
     pub created_at: DateTime,
     pub updated_at: DateTime,
 }

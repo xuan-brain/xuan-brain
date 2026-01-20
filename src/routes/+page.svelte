@@ -1,6 +1,7 @@
 <script lang="ts">
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import { onDestroy } from "svelte";
+  import { t } from "$lib/i18n";
 
   // Load saved column widths from localStorage, use defaults if not present
   const STORAGE_KEY = "xuan-brain-layout-widths";
@@ -170,34 +171,34 @@
       <h2
         class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b-2 border-gray-200 dark:border-gray-700"
       >
-        Navigation
+        {$t('navigation.title')}
       </h2>
       <nav>
         <ul class="list-none p-0 m-0">
           <li
             class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
-            Library
+            {$t('navigation.library')}
           </li>
           <li
             class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
-            Categories
+            {$t('navigation.categories')}
           </li>
           <li
             class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
-            Tags
+            {$t('navigation.tags')}
           </li>
           <li
             class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
-            Favorites
+            {$t('navigation.favorites')}
           </li>
           <li
             class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
-            Trash
+            {$t('navigation.trash')}
           </li>
         </ul>
       </nav>
@@ -232,25 +233,25 @@
       class="bg-white dark:bg-gray-800 p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shrink-0"
     >
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 m-0">
-        Library
+        {$t('main.title')}
       </h1>
       <div class="flex gap-2.5">
         <button
           class="px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg border border-transparent cursor-pointer transition-all duration-200 shadow-[0_2px_4px_rgba(0,0,0,0.1)] hover:bg-blue-500 hover:text-white hover:-translate-y-0.5 hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] active:translate-y-0 active:shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
         >
-          Import Documents
+          {$t('main.importDocuments')}
         </button>
         <button
           class="px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg border border-transparent cursor-pointer transition-all duration-200 shadow-[0_2px_4px_rgba(0,0,0,0.1)] hover:bg-blue-500 hover:text-white hover:-translate-y-0.5 hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] active:translate-y-0 active:shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
         >
-          Search
+          {$t('main.search')}
         </button>
       </div>
     </div>
     <div class="flex-1 p-5 overflow-y-auto min-h-0">
       <!-- Document list will be rendered here -->
       <p class="text-gray-400 dark:text-gray-600 text-center italic mt-10">
-        No documents yet
+        {$t('main.noDocuments')}
       </p>
     </div>
   </main>
@@ -279,11 +280,11 @@
       <h2
         class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b-2 border-gray-200 dark:border-gray-700"
       >
-        Details
+        {$t('details.title')}
       </h2>
       <div class="detail-panel">
         <p class="text-gray-400 dark:text-gray-600 text-center italic mt-10">
-          Select a document to view details
+          {$t('details.noSelection')}
         </p>
       </div>
     </div>
@@ -320,7 +321,7 @@
           d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"
         />
       </svg>
-      Documents: {documentCount}
+      {$t('status.documents')}: {documentCount}
     </span>
     <span class="hidden md:flex items-center gap-1">
       <svg
@@ -354,7 +355,7 @@
     </span>
   </div>
   <div class="flex items-center gap-4">
-    <span class="hidden sm:inline">Version 0.1.0</span>
+    <span class="hidden sm:inline">{$t('status.version')} 0.1.0</span>
     <span class="font-mono bg-gray-700 dark:bg-gray-900 px-2 py-0.5 rounded">
       {currentTime.toLocaleTimeString()}
     </span>

@@ -26,7 +26,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 技术选型理由
 - **Tauri**: 相比 Electron 更轻量(体积小 80%)、更安全(Rust 内存安全)、性能更好
-- **SvelteKit 5**: 编译时框架、运行时开销小、runes 响应式系统
+- **SvelteKit 5 + Svelte 5**: 编译时框架、运行时开销小、runes 响应式系统，提供现代开发体验
+- **Skeleton 4.x**: 基于 Tailwind CSS 的自适应设计系统，提供统一的 UI 组件和主题系统
+  - **依赖要求**: Svelte 5 + Vite 6 + Tailwind CSS 4
+  - **特点**: 丰富的 UI 组件、可定制主题、暗色模式支持、无障碍访问
+  - **注意**: Skeleton 4.x 不支持 Svelte 4，必须使用 Svelte 5
+- **Tailwind CSS 4**: 最新版本的实用优先 CSS 框架，性能优化和配置简化
 - **Rust 后端**: 高性能 PDF 处理、文件 I/O、AI 模型推理
 - **SQLite**: 嵌入式数据库、零配置、单文件备份
 
@@ -320,6 +325,39 @@ const result = await invoke("my_command", { param: "value" });
 - 所有页面布局必须设置 `export const ssr = false;`
 - 这已在 `src/routes/+layout.ts` 中配置
 
+### Skeleton 4.x 配置
+- **主题系统**: Skeleton 4.x 提供了完整的主题系统，包括:
+  - **颜色主题**: 21 个预设主题 (cerberus, catppuccin, modern 等)
+  - **暗色模式**: 通过 `data-mode` 属性控制
+  - **主题切换**: 使用 `data-theme` 属性切换颜色主题
+- **全局样式**: 在 `src/lib/css/app.css` 中导入所有主题:
+  ```css
+  @import "tailwindcss";
+  /* 导入所有预设主题 */
+  @import "@skeletonlabs/skeleton/themes/catppuccin";
+  @import "@skeletonlabs/skeleton/themes/cerberus";
+  /* ... 其他 19 个主题 */
+  
+  /* 定义 dark mode 变体 */
+  @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+  @custom-variant light (&:where([data-mode="light"], [data-mode="light"] *));
+  ```
+- **HTML 属性**:
+  - `data-theme="cerberus"` - 设置颜色主题
+  - `data-mode="dark"` - 设置暗色/明亮模式
+- **注意**: Skeleton 4.x 要求 Svelte 5，不支持 Svelte 4
+- **主题切换组件**: 使用 `src/lib/components/ThemeSwitcher.svelte` 提供主题切换功能
+  - 颜色主题选择器（下拉菜单）
+  - Dark Mode 开关
+  - 自动持久化到 localStorage
+  - 防止主题闪烁（在 hydration 前设置）
+
+### Tailwind CSS 4 配置
+- **Vite 插件**: 在 `vite.config.js` 中使用 `@tailwindcss/vite` 插件
+- **PostCSS**: 使用 `@tailwindcss/postcss` 而非传统 PostCSS 配置
+- **配置文件**: `tailwind.config.js` 使用新格式
+- **优先级**: Tailwind 插件必须在 Vite 配置中的 Svelte 插件之前
+
 ### 文件监听
 - Vite 配置忽略监听 `src-tauri/**` 目录
 - Rust 代码更改会自动触发 Tauri 重新编译
@@ -377,8 +415,18 @@ src/                         # SvelteKit 前端
 │   ├── reader/            # PDF 阅读器
 │   └── settings/          # 设置页面
 ├── lib/                   # 前端工具库
+│   ├── components/        # 自定义组件和 Skeleton 组件封装
+│   ├── css/               # 全局样式文件
+│   │   └── app.css       # Tailwind + Skeleton 样式导入
+│   ├── stores/            # Svelte stores (状态管理)
+│   │   └── theme.ts      # 主题切换 store
 │   └── types.ts          # TypeScript 类型定义
 ├── app.html               # HTML 模板
+vite.config.js             # Vite 配置
+svelte.config.js           # Svelte 配置
+tailwind.config.js         # Tailwind CSS 配置
+postcss.config.js          # PostCSS 配置
+package.json               # Node.js 依赖
 static/                     # 静态资源
 src-tauri/                  # Rust 后端
 ├── src/
@@ -600,4 +648,8 @@ cd src-tauri && cargo test --test integration
 
 ---
 
-**最后更新**: 2025-01-18
+**其他注意事项**
+
+- 不要主动提交代码
+
+**最后更新**: 2025-01-20

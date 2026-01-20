@@ -1,4 +1,7 @@
 <script lang="ts">
+  import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
+  import { onDestroy } from "svelte";
+
   // Load saved column widths from localStorage, use defaults if not present
   const STORAGE_KEY = "xuan-brain-layout-widths";
 
@@ -30,21 +33,20 @@
 
   const savedWidths = loadWidths();
 
-  // Column width states (percentage)
+  // Column width states (percentage) - using Svelte 5 runes
   let leftWidth = $state(savedWidths.left);
   let rightWidth = $state(savedWidths.right);
   let middleWidth = $derived(100 - leftWidth - rightWidth);
 
-  // Drag states
+  // Drag states - using Svelte 5 runes
   let isDraggingLeft = $state(false);
   let isDraggingRight = $state(false);
   let startX = $state(0);
   let startLeftWidth = $state(0);
   let startRightWidth = $state(0);
 
-  // Listen for column width changes and save to localStorage
+  // Save column widths to localStorage when they change
   $effect(() => {
-    // Only save when column widths actually change
     try {
       const widthsToSave = JSON.stringify({
         left: leftWidth,
@@ -56,7 +58,7 @@
     }
   });
 
-  // Status bar states
+  // Status bar states - using Svelte 5 runes
   let currentTime = $state(new Date());
   let documentCount = $state(0);
   let syncStatus = $state("Synced");
@@ -65,12 +67,20 @@
   let memoryUsage = $state("0 MB");
 
   // Update time and memory usage every second
-  setInterval(() => {
+  let intervalId: ReturnType<typeof setInterval>;
+
+  // Initialize timer on mount
+  intervalId = setInterval(() => {
     currentTime = new Date();
     // Simulate memory usage (in actual projects, use performance.memory or Tauri API)
     const memory = Math.floor(Math.random() * 100 + 50);
     memoryUsage = `${memory} MB`;
   }, 1000);
+
+  // Cleanup on unmount
+  onDestroy(() => {
+    clearInterval(intervalId);
+  });
 
   // Left drag handle
   function handleLeftResizerMouseDown(event: MouseEvent) {
@@ -134,6 +144,16 @@
     document.removeEventListener("mousemove", handleMouseMove);
     document.removeEventListener("mouseup", handleMouseUp);
   }
+
+  // Handle sync button click
+  function handleSync() {
+    isSyncing = true;
+    syncStatus = "Syncing...";
+    setTimeout(() => {
+      isSyncing = false;
+      syncStatus = "Synced";
+    }, 2000);
+  }
 </script>
 
 <svelte:window />
@@ -143,10 +163,10 @@
 >
   <!-- Left sidebar -->
   <aside
-    class="bg-white dark:bg-gray-800 overflow-y-auto min-w-37.5 border-r border-gray-200 dark:border-gray-700 shrink-0"
+    class="bg-white dark:bg-gray-800 overflow-y-auto min-w-37.5 border-r border-gray-200 dark:border-gray-700 shrink-0 flex flex-col"
     style="width: {leftWidth}%;"
   >
-    <div class="p-5">
+    <div class="p-5 flex-1">
       <h2
         class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b-2 border-gray-200 dark:border-gray-700"
       >
@@ -181,6 +201,11 @@
           </li>
         </ul>
       </nav>
+    </div>
+
+    <!-- Theme switcher at bottom of left sidebar -->
+    <div class="p-5 border-t border-gray-200 dark:border-gray-700">
+      <ThemeSwitcher />
     </div>
   </aside>
 
@@ -274,14 +299,7 @@
       class="flex items-center gap-1.5 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       class:animate-pulse={isSyncing}
       disabled={isSyncing}
-      onclick={() => {
-        isSyncing = true;
-        syncStatus = "Syncing...";
-        setTimeout(() => {
-          isSyncing = false;
-          syncStatus = "Synced";
-        }, 2000);
-      }}
+      onclick={handleSync}
     >
       <span
         class="w-2 h-2 rounded-full"

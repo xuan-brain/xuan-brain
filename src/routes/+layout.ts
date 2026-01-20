@@ -6,3 +6,10 @@ export const ssr = false;
 
 // Import Tailwind CSS styles
 import "../lib/css/app.css";
+
+// Wait for i18n to load before rendering
+import { waitLocale } from "$lib/i18n";
+export async function load() {
+  await waitLocale();
+  return {};
+}

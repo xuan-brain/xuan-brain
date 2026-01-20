@@ -1,42 +1,41 @@
 <script lang="ts">
-  import { locale, isLoading, t, waitLocale } from '$lib/i18n';
+  import { locale, isLoading, t, waitLocale } from "$lib/i18n";
   import {
     availableLocales,
     localeList,
     changeLocale,
     getCurrentLocaleInfo,
     formatDate,
-    isRTL
-  } from '$lib/i18n';
+  } from "$lib/i18n";
 
   // Available Skeleton color themes
   const colorThemes = [
-    { name: 'Cerberus', value: 'cerberus', emoji: '🤖' },
-    { name: 'Catppuccin', value: 'catppuccin', emoji: '🐈' },
-    { name: 'Concord', value: 'concord', emoji: '🔴' },
-    { name: 'Crimson', value: 'crimson', emoji: '🦊' },
-    { name: 'Fennec', value: 'fennec', emoji: '👔' },
-    { name: 'HamlinDigo', value: 'hamlindigo', emoji: '💀' },
-    { name: 'Legacy', value: 'legacy', emoji: '🍃' },
-    { name: 'Mint', value: 'mint', emoji: '🌸' },
-    { name: 'Modern', value: 'modern', emoji: '🐙' },
-    { name: 'Mona', value: 'mona', emoji: '🥙' },
-    { name: 'Nosh', value: 'nosh', emoji: '🎑' },
-    { name: 'Nouveau', value: 'nouveau', emoji: '🌲' },
-    { name: 'Pine', value: 'pine', emoji: '📒' },
-    { name: 'Reign', value: 'reign', emoji: '🚀' },
-    { name: 'Rocket', value: 'rocket', emoji: '🌷' },
-    { name: 'Rose', value: 'rose', emoji: '🏜️' },
-    { name: 'Sahara', value: 'sahara', emoji: '🏜️' },
-    { name: 'Seafoam', value: 'seafoam', emoji: '🌑' },
-    { name: 'Terminus', value: 'terminus', emoji: '📺' },
-    { name: 'Vintage', value: 'vintage', emoji: '👾' },
-    { name: 'Vox', value: 'vox', emoji: '🌨️' },
-    { name: 'Wintry', value: 'wintry', emoji: '❄️' }
+    { name: "Cerberus", value: "cerberus", emoji: "🤖" },
+    { name: "Catppuccin", value: "catppuccin", emoji: "🐈" },
+    { name: "Concord", value: "concord", emoji: "🔴" },
+    { name: "Crimson", value: "crimson", emoji: "🦊" },
+    { name: "Fennec", value: "fennec", emoji: "👔" },
+    { name: "HamlinDigo", value: "hamlindigo", emoji: "💀" },
+    { name: "Legacy", value: "legacy", emoji: "🍃" },
+    { name: "Mint", value: "mint", emoji: "🌸" },
+    { name: "Modern", value: "modern", emoji: "🐙" },
+    { name: "Mona", value: "mona", emoji: "🥙" },
+    { name: "Nosh", value: "nosh", emoji: "🎑" },
+    { name: "Nouveau", value: "nouveau", emoji: "🌲" },
+    { name: "Pine", value: "pine", emoji: "📒" },
+    { name: "Reign", value: "reign", emoji: "🚀" },
+    { name: "Rocket", value: "rocket", emoji: "🌷" },
+    { name: "Rose", value: "rose", emoji: "🏜️" },
+    { name: "Sahara", value: "sahara", emoji: "🏜️" },
+    { name: "Seafoam", value: "seafoam", emoji: "🌑" },
+    { name: "Terminus", value: "terminus", emoji: "📺" },
+    { name: "Vintage", value: "vintage", emoji: "👾" },
+    { name: "Vox", value: "vox", emoji: "🌨️" },
+    { name: "Wintry", value: "wintry", emoji: "❄️" },
   ];
 
   // Theme state using Svelte 5 runes
-  let selectedColorTheme = $state('cerberus');
+  let selectedColorTheme = $state("cerberus");
   let isDarkMode = $state(false);
   let isColorDropdownOpen = $state(false);
   let isLanguageDropdownOpen = $state(false);
@@ -45,39 +44,37 @@
   // Reactive: Current locale from i18n
   const currentLocaleCode = $derived(() => $locale);
   const currentLocaleInfo = $derived(getCurrentLocaleInfo);
-  const isRTL = $derived(isRTL);
-
-  // Reactive: Check if i18n is loading
-  $: isI18nLoading = $isLoading;
+  const isLocaleRTL = $derived($locale === "ar" || $locale === "he");
+  const isI18nLoading = $derived($isLoading);
 
   // Apply color theme to document
   function applyColorTheme(theme: string) {
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', theme);
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", theme);
     }
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('color-theme', theme);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("color-theme", theme);
     }
   }
 
   // Apply dark mode to document
   function applyDarkMode(dark: boolean) {
-    if (typeof document !== 'undefined') {
-      const mode = dark ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-mode', mode);
+    if (typeof document !== "undefined") {
+      const mode = dark ? "dark" : "light";
+      document.documentElement.setAttribute("data-mode", mode);
     }
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('dark-mode', String(dark));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("dark-mode", String(dark));
     }
   }
 
   // Initialize themes from localStorage on mount
   function initializeThemes() {
-    if (typeof window !== 'undefined') {
-      const savedColorTheme = localStorage.getItem('color-theme');
-      const savedDarkMode = localStorage.getItem('dark-mode') === 'true';
+    if (typeof window !== "undefined") {
+      const savedColorTheme = localStorage.getItem("color-theme");
+      const savedDarkMode = localStorage.getItem("dark-mode") === "true";
 
-      selectedColorTheme = savedColorTheme || 'cerberus';
+      selectedColorTheme = savedColorTheme || "cerberus";
       isDarkMode = savedDarkMode;
 
       applyColorTheme(selectedColorTheme);
@@ -86,7 +83,7 @@
   }
 
   // Initialize immediately on client side
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     initializeThemes();
   }
 
@@ -134,7 +131,7 @@
     try {
       await changeLocale(localeCode);
     } catch (error) {
-      console.error('Failed to change language:', error);
+      console.error("Failed to change language:", error);
       // Re-open dropdown to allow retry
     } finally {
       isLocaleLoading = false;
@@ -145,7 +142,7 @@
   // Close dropdowns when clicking outside
   function handleOutsideClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.theme-switcher')) {
+    if (!target.closest(".theme-switcher")) {
       isColorDropdownOpen = false;
       isLanguageDropdownOpen = false;
     }
@@ -153,7 +150,7 @@
 
   // Handle keyboard navigation for dropdowns
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
+    if (event.key === "Escape") {
       isColorDropdownOpen = false;
       isLanguageDropdownOpen = false;
     }
@@ -165,13 +162,16 @@
   <script>
     (function () {
       // Initialize themes
-      const colorTheme = localStorage.getItem('color-theme') || 'cerberus';
-      const darkMode = localStorage.getItem('dark-mode') === 'true';
-      document.documentElement.setAttribute('data-theme', colorTheme);
-      document.documentElement.setAttribute('data-mode', darkMode ? 'dark' : 'light');
+      const colorTheme = localStorage.getItem("color-theme") || "cerberus";
+      const darkMode = localStorage.getItem("dark-mode") === "true";
+      document.documentElement.setAttribute("data-theme", colorTheme);
+      document.documentElement.setAttribute(
+        "data-mode",
+        darkMode ? "dark" : "light",
+      );
 
       // Initialize language (svelte-i18n will pick this up)
-      const savedLanguage = localStorage.getItem('xuan-brain-locale');
+      const savedLanguage = localStorage.getItem("xuan-brain-locale");
       if (savedLanguage) {
         window.__svelte_i18n_language = savedLanguage;
       }
@@ -181,7 +181,7 @@
 
 <svelte:window on:click={handleOutsideClick} on:keydown={handleKeydown} />
 
-<div class="theme-switcher" dir={isRTL ? 'rtl' : 'ltr'}>
+<div class="theme-switcher" dir={isLocaleRTL ? "rtl" : "ltr"}>
   <!-- Dark Mode Toggle -->
   <div class="flex items-center gap-3 mb-4">
     <!-- Dark Mode Switch -->
@@ -192,7 +192,7 @@
       class:dark:bg-gray-700={!isDarkMode}
       class:dark:bg-blue-600={isDarkMode}
       onclick={toggleDarkMode}
-      aria-label={$t('theme.darkMode')}
+      aria-label={$t("theme.darkMode")}
       aria-pressed={isDarkMode}
       type="button"
       disabled={isI18nLoading}
@@ -205,7 +205,7 @@
     </button>
 
     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-      {$t(isDarkMode ? 'theme.darkMode' : 'theme.lightMode')}
+      {$t(isDarkMode ? "theme.darkMode" : "theme.lightMode")}
     </span>
   </div>
 
@@ -219,19 +219,35 @@
       disabled={isI18nLoading}
     >
       <span class="flex items-center gap-2">
-        <span class="text-lg">{currentLocaleInfo?.flag || '🌐'}</span>
+        <span class="text-lg">{currentLocaleInfo?.flag || "🌐"}</span>
         <span class="flex items-center gap-1">
-          {currentLocaleInfo?.nativeName || $t('language.title')}
+          {currentLocaleInfo?.nativeName || $t("language.title")}
           {#if isI18nLoading}
-            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12c0 2.347.274 2.018 2.414 4.014.602l2.314-2.314a1 1 0 011.414 1.414l-2.314 2.314A7.994 7.994 0 0122 12z"></path>
+            <svg
+              class="animate-spin h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12c0 2.347.274 2.018 2.414 4.014.602l2.314-2.314a1 1 0 011.414 1.414l-2.314 2.314A7.994 7.994 0 0122 12z"
+              ></path>
             </svg>
           {/if}
         </span>
       </span>
       <svg
-        class={`h-5 w-5 transition-transform ${isLanguageDropdownOpen ? 'rotate-180' : ''}`}
+        class={`h-5 w-5 transition-transform ${isLanguageDropdownOpen ? "rotate-180" : ""}`}
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 20 20"
         fill="currentColor"
@@ -253,7 +269,8 @@
         <div class="p-1 space-y-1">
           {#each localeList as localeInfo}
             <button
-              class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors {currentLocaleCode === localeInfo.code
+              class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors {currentLocaleCode ===
+              localeInfo.code
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
               onclick={() => selectLanguage(localeInfo.code)}
@@ -295,12 +312,13 @@
     >
       <span class="flex items-center gap-2">
         <span class="text-lg">
-          {colorThemes.find(t => t.value === selectedColorTheme)?.emoji || '🎨'}
+          {colorThemes.find((t) => t.value === selectedColorTheme)?.emoji ||
+            "🎨"}
         </span>
-        <span>{$t('theme.selectTheme')}</span>
+        <span>{$t("theme.selectTheme")}</span>
       </span>
       <svg
-        class={`h-5 w-5 transition-transform ${isColorDropdownOpen ? 'rotate-180' : ''}`}
+        class={`h-5 w-5 transition-transform ${isColorDropdownOpen ? "rotate-180" : ""}`}
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 20 20"
         fill="currentColor"
@@ -322,7 +340,8 @@
         <div class="p-1 space-y-1">
           {#each colorThemes as theme}
             <button
-              class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors {selectedColorTheme === theme.value
+              class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors {selectedColorTheme ===
+              theme.value
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
               onclick={() => selectColorTheme(theme.value)}

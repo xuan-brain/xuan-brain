@@ -7,6 +7,7 @@
     getCurrentLocaleInfo,
     formatDate,
   } from "$lib/i18n";
+  import { Palette } from "lucide-svelte";
 
   // Available Skeleton color themes
   const colorThemes = [
@@ -39,7 +40,22 @@
   let isDarkMode = $state(false);
   let isColorDropdownOpen = $state(false);
   let isLanguageDropdownOpen = $state(false);
+  let isAccentColorDropdownOpen = $state(false);
   let isLocaleLoading = $state(false);
+
+  // Predefined accent colors
+  const accentColors = [
+    { name: "Blue", value: "#3b82f6", class: "bg-blue-500" },
+    { name: "Purple", value: "#a855f7", class: "bg-purple-500" },
+    { name: "Pink", value: "#ec4899", class: "bg-pink-500" },
+    { name: "Red", value: "#ef4444", class: "bg-red-500" },
+    { name: "Orange", value: "#f97316", class: "bg-orange-500" },
+    { name: "Green", value: "#22c55e", class: "bg-green-500" },
+    { name: "Teal", value: "#14b8a6", class: "bg-teal-500" },
+    { name: "Cyan", value: "#06b6d4", class: "bg-cyan-500" },
+  ];
+
+  let selectedAccentColor = $state(accentColors[0].value);
 
   // Reactive: Current locale from i18n
   const currentLocaleCode = $derived($locale as "en" | "zh");
@@ -73,13 +89,50 @@
     if (typeof window !== "undefined") {
       const savedColorTheme = localStorage.getItem("color-theme");
       const savedDarkMode = localStorage.getItem("dark-mode") === "true";
+      const savedAccentColor = localStorage.getItem("accent-color");
 
       selectedColorTheme = savedColorTheme || "cerberus";
       isDarkMode = savedDarkMode;
+      selectedAccentColor = savedAccentColor || accentColors[0].value;
 
       applyColorTheme(selectedColorTheme);
       applyDarkMode(isDarkMode);
+      applyAccentColor(selectedAccentColor);
     }
+  }
+
+  // Apply accent color to document
+  function applyAccentColor(color: string) {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accent-color", color);
+      document.documentElement.style.setProperty(
+        "--accent-color-hover",
+        adjustBrightness(color, -10),
+      );
+    }
+    if (typeof window !== "undefined") {
+      localStorage.setItem("accent-color", color);
+    }
+  }
+
+  // Helper function to adjust color brightness
+  function adjustBrightness(color: string, percent: number): string {
+    const num = parseInt(color.replace("#", ""), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = ((num >> 8) & 0x00ff) + amt;
+    const B = (num & 0x0000ff) + amt;
+    return (
+      "#" +
+      (
+        0x1000000 +
+        (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+        (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+        (B < 255 ? (B < 1 ? 0 : B) : 255)
+      )
+        .toString(16)
+        .slice(1)
+    );
   }
 
   // Initialize immediately on client side
@@ -97,6 +150,11 @@
     applyDarkMode(isDarkMode);
   });
 
+  // Apply accent color whenever it changes
+  $effect(() => {
+    applyAccentColor(selectedAccentColor);
+  });
+
   // Toggle color theme dropdown
   function toggleColorDropdown() {
     isColorDropdownOpen = !isColorDropdownOpen;
@@ -107,12 +165,26 @@
   function toggleLanguageDropdown() {
     isLanguageDropdownOpen = !isLanguageDropdownOpen;
     isColorDropdownOpen = false;
+    isAccentColorDropdownOpen = false;
+  }
+
+  // Toggle accent color dropdown
+  function toggleAccentColorDropdown() {
+    isAccentColorDropdownOpen = !isAccentColorDropdownOpen;
+    isColorDropdownOpen = false;
+    isLanguageDropdownOpen = false;
   }
 
   // Select a color theme
   function selectColorTheme(theme: string) {
     selectedColorTheme = theme;
     isColorDropdownOpen = false;
+  }
+
+  // Select an accent color
+  function selectAccentColor(color: string) {
+    selectedAccentColor = color;
+    isAccentColorDropdownOpen = false;
   }
 
   // Toggle dark mode
@@ -145,6 +217,7 @@
     if (!target.closest(".theme-switcher")) {
       isColorDropdownOpen = false;
       isLanguageDropdownOpen = false;
+      isAccentColorDropdownOpen = false;
     }
   }
 
@@ -153,6 +226,7 @@
     if (event.key === "Escape") {
       isColorDropdownOpen = false;
       isLanguageDropdownOpen = false;
+      isAccentColorDropdownOpen = false;
     }
   }
 </script>
@@ -164,11 +238,13 @@
       // Initialize themes
       const colorTheme = localStorage.getItem("color-theme") || "cerberus";
       const darkMode = localStorage.getItem("dark-mode") === "true";
+      const accentColor = localStorage.getItem("accent-color") || "#3b82f6";
       document.documentElement.setAttribute("data-theme", colorTheme);
       document.documentElement.setAttribute(
         "data-mode",
         darkMode ? "dark" : "light",
       );
+      document.documentElement.style.setProperty("--accent-color", accentColor);
 
       // Initialize language (svelte-i18n will pick this up)
       const savedLanguage = localStorage.getItem("xuan-brain-locale");
@@ -188,7 +264,7 @@
 >
   <!-- Dark Mode Toggle - Circular Button -->
   <button
-    class="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex-shrink-0"
+    class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex-shrink-0"
     onclick={toggleDarkMode}
     aria-label={isDarkMode ? $t("theme.lightMode") : $t("theme.darkMode")}
     aria-pressed={isDarkMode}
@@ -196,13 +272,13 @@
     disabled={isI18nLoading}
     title={isDarkMode ? $t("theme.lightMode") : $t("theme.darkMode")}
   >
-    <span class="text-sm">{isDarkMode ? "🌙" : "☀️"}</span>
+    <span class="text-base">{isDarkMode ? "🌙" : "☀️"}</span>
   </button>
 
   <!-- Language Selector - Compact Button -->
   <div class="relative">
     <button
-      class="flex items-center gap-1 text-xs font-medium rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-7"
+      class="flex items-center gap-1 text-sm font-medium rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-8"
       style="padding: 5px 8px;"
       onclick={toggleLanguageDropdown}
       aria-expanded={isLanguageDropdownOpen}
@@ -210,7 +286,7 @@
       disabled={isI18nLoading}
       title={$t("language.selectLanguage")}
     >
-      <span class="text-sm">{currentLocaleInfo?.flag || "🌐"}</span>
+      <span class="text-base">{currentLocaleInfo?.flag || "🌐"}</span>
       {#if isI18nLoading}
         <svg
           class="animate-spin h-3 w-3"
@@ -244,7 +320,7 @@
         <div class="p-1 space-y-0.5">
           {#each localeList as localeInfo}
             <button
-              class="w-full flex items-center gap-1.5 text-xs rounded transition-colors {currentLocaleCode ===
+              class="w-full flex items-center gap-1.5 text-sm rounded transition-colors {currentLocaleCode ===
               localeInfo.code
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
@@ -254,7 +330,7 @@
               aria-selected={currentLocaleCode === localeInfo.code}
               disabled={isI18nLoading}
             >
-              <span class="text-sm">{localeInfo.flag}</span>
+              <span class="text-base">{localeInfo.flag}</span>
               <span class="flex-1">{localeInfo.nativeName}</span>
               {#if currentLocaleCode === localeInfo.code}
                 <svg
@@ -280,7 +356,7 @@
   <!-- Color Theme Selector - Compact Button -->
   <div class="relative">
     <button
-      class="flex items-center gap-1 text-xs font-medium rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-7"
+      class="flex items-center gap-1 text-sm font-medium rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-8"
       style="padding: 5px 8px;"
       onclick={toggleColorDropdown}
       aria-expanded={isColorDropdownOpen}
@@ -288,7 +364,7 @@
       disabled={isI18nLoading}
       title={$t("theme.selectTheme")}
     >
-      <span class="text-sm">
+      <span class="text-base">
         {colorThemes.find((t) => t.value === selectedColorTheme)?.emoji || "🎨"}
       </span>
     </button>
@@ -302,7 +378,7 @@
         <div class="p-1 space-y-0.5">
           {#each colorThemes as theme}
             <button
-              class="w-full flex items-center gap-1.5 text-xs rounded transition-colors {selectedColorTheme ===
+              class="w-full flex items-center gap-1.5 text-sm rounded transition-colors {selectedColorTheme ===
               theme.value
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
@@ -312,7 +388,7 @@
               aria-selected={selectedColorTheme === theme.value}
               disabled={isI18nLoading}
             >
-              <span class="text-sm">{theme.emoji}</span>
+              <span class="text-base">{theme.emoji}</span>
               <span>{theme.name}</span>
               {#if selectedColorTheme === theme.value}
                 <svg
@@ -328,6 +404,48 @@
                   />
                 </svg>
               {/if}
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
+  </div>
+
+  <!-- Accent Color Selector - Compact Button -->
+  <div class="relative">
+    <button
+      class="flex items-center gap-1 text-sm font-medium rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-8"
+      style="padding: 5px 8px;"
+      onclick={toggleAccentColorDropdown}
+      aria-expanded={isAccentColorDropdownOpen}
+      aria-haspopup="listbox"
+      disabled={isI18nLoading}
+      title="主色调"
+    >
+      <span class="text-base">🎨</span>
+    </button>
+
+    <!-- Accent Color Dropdown Menu -->
+    {#if isAccentColorDropdownOpen}
+      <div
+        class="absolute bottom-full left-0 mb-2 w-32 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+        role="listbox"
+      >
+        <div class="p-2 grid grid-cols-4 gap-1.5">
+          {#each accentColors as color}
+            <button
+              class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 flex-shrink-0 {selectedAccentColor ===
+              color.value
+                ? 'border-gray-900 dark:border-gray-100 ring-2 ring-offset-1'
+                : 'border-gray-300 dark:border-gray-600'}"
+              style="background-color: {color.value};"
+              onclick={() => selectAccentColor(color.value)}
+              role="option"
+              aria-selected={selectedAccentColor === color.value}
+              aria-label={color.name}
+              disabled={isI18nLoading}
+              title={color.name}
+            >
             </button>
           {/each}
         </div>

@@ -170,45 +170,46 @@
   >
     <div class="flex-1" style="padding: 10px;">
       <h2
-        class="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700"
+        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700"
       >
         {$t("navigation.title")}
       </h2>
       <nav>
         <ul class="list-none p-0 m-0">
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
-            style="padding: 5px 8px;"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
+            style="padding: 5px 8px; --hover-bg: var(--accent-color);"
+            class:hover:bg-accent={true}
           >
-            <Library size={12} />
+            <Library size={14} class="text-accent" />
             {$t("navigation.library")}
           </li>
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
             style="padding: 5px 8px;"
           >
-            <FolderTree size={12} />
+            <FolderTree size={14} />
             {$t("navigation.categories")}
           </li>
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
             style="padding: 5px 8px;"
           >
-            <Tags size={12} />
+            <Tags size={14} />
             {$t("navigation.tags")}
           </li>
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
             style="padding: 5px 8px;"
           >
-            <Star size={12} />
+            <Star size={14} />
             {$t("navigation.favorites")}
           </li>
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
             style="padding: 5px 8px;"
           >
-            <Trash2 size={12} />
+            <Trash2 size={14} />
             {$t("navigation.trash")}
           </li>
         </ul>
@@ -233,9 +234,8 @@
     aria-valuemin={MIN_WIDTH_PERCENT}
     aria-valuemax={MAX_WIDTH_PERCENT}
     aria-label="Adjust left sidebar width"
-    class="w-0.5 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize shrink-0 transition-colors duration-150 z-10"
-    class:bg-blue-500={isDraggingLeft}
-    class:dark:bg-blue-500={isDraggingLeft}
+    class="w-0.5 bg-gray-300 dark:bg-gray-600 cursor-col-resize shrink-0 transition-colors duration-150 z-10 hover:bg-accent"
+    class:bg-accent={isDraggingLeft}
     onmousedown={handleLeftResizerMouseDown}
   ></div>
 
@@ -247,18 +247,18 @@
       class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shrink-0"
       style="padding: 10px;"
     >
-      <h1 class="text-base font-semibold text-gray-900 dark:text-gray-100 m-0">
+      <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100 m-0">
         {$t("main.title")}
       </h1>
       <div class="flex gap-1.5">
         <button
-          class="text-xs font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded border border-gray-200 dark:border-gray-600 cursor-pointer transition-colors hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white active:scale-95"
+          class="text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded border border-gray-200 dark:border-gray-600 cursor-pointer transition-colors hover:text-white active:scale-95 hover:bg-accent"
           style="padding: 5px 8px;"
         >
           {$t("main.importDocuments")}
         </button>
         <button
-          class="text-xs font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded border border-gray-200 dark:border-gray-600 cursor-pointer transition-colors hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white active:scale-95"
+          class="text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded border border-gray-200 dark:border-gray-600 cursor-pointer transition-colors hover:text-white active:scale-95 hover:bg-accent"
           style="padding: 5px 8px;"
         >
           {$t("main.search")}
@@ -282,9 +282,8 @@
     aria-valuemin={MIN_WIDTH_PERCENT}
     aria-valuemax={MAX_WIDTH_PERCENT}
     aria-label="Adjust right sidebar width"
-    class="w-0.5 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize shrink-0 transition-colors duration-150 z-10"
-    class:bg-blue-500={isDraggingRight}
-    class:dark:bg-blue-500={isDraggingRight}
+    class="w-0.5 bg-gray-300 dark:bg-gray-600 cursor-col-resize shrink-0 transition-colors duration-150 z-10 hover:bg-accent"
+    class:bg-accent={isDraggingRight}
     onmousedown={handleRightResizerMouseDown}
   ></div>
 
@@ -295,7 +294,7 @@
   >
     <div style="padding: 10px;">
       <h2
-        class="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700"
+        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700"
       >
         {$t("details.title")}
       </h2>
@@ -310,7 +309,7 @@
 
 <!-- Status bar -->
 <footer
-  class="h-7 bg-gray-800 dark:bg-gray-950 border-t border-gray-700 dark:border-gray-800 flex items-center justify-between px-2 text-[10px] text-gray-300 dark:text-gray-400 select-none"
+  class="h-8 bg-gray-800 dark:bg-gray-950 border-t border-gray-700 dark:border-gray-800 flex items-center justify-between px-2 text-xs text-gray-300 dark:text-gray-400 select-none"
 >
   <div class="flex items-center gap-2">
     <button

@@ -4,7 +4,8 @@
       "mcp__acp__Bash",
       "mcp__acp__Write",
       "mcp__web-reader__webReader",
-      "mcp__web-search-prime__webSearchPrime"
+      "mcp__web-search-prime__webSearchPrime",
+      "mcp__acp__Edit"
     ]
   }
 }

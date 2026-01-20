@@ -32,9 +32,40 @@
   --font-sans: "Inter", system-ui, sans-serif;
 }
 
+/* Custom accent color - will be set dynamically via JavaScript */
+:root {
+  --accent-color: #3b82f6;
+  --accent-color-hover: #2563eb;
+}
+
 /* Dark mode variant */
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 @custom-variant light (&:where([data-mode="light"], [data-mode="light"] *));
+
+/* Utility classes for accent color */
+.bg-accent {
+  background-color: var(--accent-color) !important;
+}
+
+.bg-accent-hover {
+  background-color: var(--accent-color-hover) !important;
+}
+
+.text-accent {
+  color: var(--accent-color) !important;
+}
+
+.border-accent {
+  border-color: var(--accent-color) !important;
+}
+
+.hover\:bg-accent:hover {
+  background-color: var(--accent-color) !important;
+}
+
+.hover\:bg-accent-hover:hover {
+  background-color: var(--accent-color-hover) !important;
+}
 
 /* Base styles */
 * {

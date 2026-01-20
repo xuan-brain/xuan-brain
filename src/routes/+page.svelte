@@ -1,5 +1,6 @@
 <script lang="ts">
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
+  import TagsSection from "$lib/components/TagsSection.svelte";
   import { onDestroy } from "svelte";
   import { t } from "$lib/i18n";
   import { Library, FolderTree, Tags, Star, Trash2 } from "lucide-svelte";
@@ -165,10 +166,10 @@
 >
   <!-- Left sidebar -->
   <aside
-    class="bg-white dark:bg-gray-800 overflow-y-auto min-w-37.5 border-r border-gray-200 dark:border-gray-700 shrink-0 flex flex-col"
+    class="bg-white dark:bg-gray-800 overflow-hidden min-w-37.5 border-r border-gray-200 dark:border-gray-700 shrink-0 flex flex-col"
     style="width: {leftWidth}%;"
   >
-    <div class="flex-1" style="padding: 10px;">
+    <div class="flex-1 overflow-y-auto" style="padding: 10px;">
       <h2
         class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700"
       >
@@ -214,6 +215,14 @@
           </li>
         </ul>
       </nav>
+    </div>
+
+    <!-- Tags Section at bottom -->
+    <div
+      class="border-t border-gray-200 dark:border-gray-700"
+      style="padding: 10px;"
+    >
+      <TagsSection />
     </div>
 
     <!-- Theme switcher at bottom of left sidebar -->
@@ -387,5 +396,43 @@
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+  }
+
+  /* Custom scrollbar for tags section */
+  .overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  /* Dark mode scrollbar */
+  @media (prefers-color-scheme: dark) {
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+      background: #4b5563;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+      background: #6b7280;
+    }
+  }
+
+  /* Dark mode specific scrollbar */
+  :global(.dark) .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #4b5563;
+  }
+
+  :global(.dark) .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
   }
 </style>

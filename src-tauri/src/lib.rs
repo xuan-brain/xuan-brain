@@ -57,7 +57,7 @@ pub fn run() -> Result<()> {
         })
         // TODO: Uncomment after fixing Tauri 2.x error type compatibility
         // .invoke_handler(tauri::generate_handler![get_all_labels])
-        .invoke_handler(tauri::generate_handler![])
+        .invoke_handler(tauri::generate_handler![get_all_labels])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 

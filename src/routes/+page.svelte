@@ -2,6 +2,7 @@
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import { onDestroy } from "svelte";
   import { t } from "$lib/i18n";
+  import { Library, FolderTree, Tags, Star, Trash2 } from "lucide-svelte";
 
   // Load saved column widths from localStorage, use defaults if not present
   const STORAGE_KEY = "xuan-brain-layout-widths";
@@ -176,33 +177,38 @@
       <nav>
         <ul class="list-none p-0 m-0">
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
             style="padding: 5px 8px;"
           >
+            <Library size={12} />
             {$t("navigation.library")}
           </li>
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
             style="padding: 5px 8px;"
           >
+            <FolderTree size={12} />
             {$t("navigation.categories")}
           </li>
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
             style="padding: 5px 8px;"
           >
+            <Tags size={12} />
             {$t("navigation.tags")}
           </li>
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
             style="padding: 5px 8px;"
           >
+            <Star size={12} />
             {$t("navigation.favorites")}
           </li>
           <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1.5"
             style="padding: 5px 8px;"
           >
+            <Trash2 size={12} />
             {$t("navigation.trash")}
           </li>
         </ul>
@@ -212,7 +218,7 @@
     <!-- Theme switcher at bottom of left sidebar -->
     <div
       class="border-t border-gray-200 dark:border-gray-700"
-      style="padding: 0;"
+      style="padding: 5px;"
     >
       <ThemeSwitcher />
     </div>

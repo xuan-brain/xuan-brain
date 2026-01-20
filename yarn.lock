@@ -1764,6 +1764,11 @@ lru-queue@^0.1.0:
   dependencies:
     es5-ext "~0.10.2"
 
+lucide-svelte@^0.562.0:
+  version "0.562.0"
+  resolved "https://registry.npmmirror.com/lucide-svelte/-/lucide-svelte-0.562.0.tgz#00d982cbf0139d4c2e0dd7df164ba8c663521591"
+  integrity sha512-kSJDH/55lf0mun/o4nqWBXOcq0fWYzPeIjbTD97ywoeumAB9kWxtM06gC7oynqjtK3XhAljWSz5RafIzPEYIQA==
+
 magic-string@^0.30.11, magic-string@^0.30.17, magic-string@^0.30.21, magic-string@^0.30.5:
   version "0.30.21"
   resolved "https://registry.npmmirror.com/magic-string/-/magic-string-0.30.21.tgz"

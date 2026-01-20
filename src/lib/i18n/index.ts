@@ -1,5 +1,5 @@
 import { init, register, waitLocale, locale, isLoading, _ } from "svelte-i18n";
-import { derived } from "svelte/store";
+import { derived, get } from "svelte/store";
 import en from "./en";
 import zh from "./zh";
 
@@ -86,13 +86,13 @@ export function getLocaleInfo(code: LocaleCode): LocaleInfo | undefined {
 
 // Helper: Get current locale info
 export function getCurrentLocaleInfo(): LocaleInfo {
-  const currentCode = $locale as LocaleCode;
+  const currentCode = get(locale) as LocaleCode;
   return availableLocales[currentCode];
 }
 
 // Helper: Check if locale is RTL
 export function isRTL(code?: LocaleCode): boolean {
-  const localeCode = code || ($locale as LocaleCode);
+  const localeCode = code || (get(locale) as LocaleCode);
   return availableLocales[localeCode]?.direction === "rtl";
 }
 
@@ -137,7 +137,7 @@ export function formatDate(
   date: Date,
   options?: Intl.DateTimeFormatOptions,
 ): string {
-  const currentLocale = $locale;
+  const currentLocale = get(locale) || FALLBACK_LOCALE;
   return new Intl.DateTimeFormat(currentLocale, options).format(date);
 }
 
@@ -146,14 +146,15 @@ export function formatNumber(
   number: number,
   options?: Intl.NumberFormatOptions,
 ): string {
-  const currentLocale = $locale;
+  const currentLocale = get(locale) || FALLBACK_LOCALE;
   return new Intl.NumberFormat(currentLocale, options).format(number);
 }
 
 // Helper: Translate with fallback
 export function safeTranslate(key: TranslationKey, fallback?: string): string {
   try {
-    const translation = t(key);
+    const tFn = get(_);
+    const translation = tFn(key);
     // If translation equals key, it means it's missing
     if (translation === key && fallback) {
       return fallback;
@@ -168,9 +169,10 @@ export function safeTranslate(key: TranslationKey, fallback?: string): string {
 export function translateBatch<K extends TranslationKey>(
   keys: K[],
 ): Record<K, string> {
+  const tFn = get(_);
   return keys.reduce(
     (acc, key) => {
-      acc[key] = t(key);
+      acc[key] = tFn(key);
       return acc;
     },
     {} as Record<K, string>,
@@ -196,4 +198,4 @@ export type I18nStores = {
 };
 
 // Export type for translation function
-export type TranslateFunction = typeof t;
+export type TranslateFunction = typeof _;

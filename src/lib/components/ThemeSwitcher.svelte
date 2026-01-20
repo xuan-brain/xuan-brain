@@ -42,8 +42,8 @@
   let isLocaleLoading = $state(false);
 
   // Reactive: Current locale from i18n
-  const currentLocaleCode = $derived(() => $locale);
-  const currentLocaleInfo = $derived(getCurrentLocaleInfo);
+  const currentLocaleCode = $derived($locale as "en" | "zh");
+  const currentLocaleInfo = $derived(availableLocales[currentLocaleCode]);
   const isLocaleRTL = $derived($locale === "ar" || $locale === "he");
   const isI18nLoading = $derived($isLoading);
 
@@ -129,7 +129,7 @@
 
     isLocaleLoading = true;
     try {
-      await changeLocale(localeCode);
+      await changeLocale(localeCode as "en" | "zh");
     } catch (error) {
       console.error("Failed to change language:", error);
       // Re-open dropdown to allow retry

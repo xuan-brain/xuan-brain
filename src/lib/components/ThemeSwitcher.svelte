@@ -181,108 +181,84 @@
 
 <svelte:window on:click={handleOutsideClick} on:keydown={handleKeydown} />
 
-<div class="theme-switcher" dir={isLocaleRTL ? "rtl" : "ltr"}>
-  <!-- Dark Mode Toggle -->
-  <div class="flex items-center gap-3 mb-4">
-    <!-- Dark Mode Switch -->
-    <button
-      class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-      class:bg-gray-200={!isDarkMode}
-      class:bg-blue-600={isDarkMode}
-      class:dark:bg-gray-700={!isDarkMode}
-      class:dark:bg-blue-600={isDarkMode}
-      onclick={toggleDarkMode}
-      aria-label={$t("theme.darkMode")}
-      aria-pressed={isDarkMode}
-      type="button"
-      disabled={isI18nLoading}
-    >
-      <span
-        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-        class:translate-x-0={!isDarkMode}
-        class:translate-x-5={isDarkMode}
-      ></span>
-    </button>
+<!-- Compact horizontal layout for desktop app style -->
+<div
+  class="theme-switcher flex flex-row items-center gap-2"
+  dir={isLocaleRTL ? "rtl" : "ltr"}
+>
+  <!-- Dark Mode Toggle - Circular Button -->
+  <button
+    class="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex-shrink-0"
+    onclick={toggleDarkMode}
+    aria-label={isDarkMode ? $t("theme.lightMode") : $t("theme.darkMode")}
+    aria-pressed={isDarkMode}
+    type="button"
+    disabled={isI18nLoading}
+    title={isDarkMode ? $t("theme.lightMode") : $t("theme.darkMode")}
+  >
+    <span class="text-sm">{isDarkMode ? "🌙" : "☀️"}</span>
+  </button>
 
-    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-      {$t(isDarkMode ? "theme.darkMode" : "theme.lightMode")}
-    </span>
-  </div>
-
-  <!-- Language Selector -->
-  <div class="relative mb-3">
+  <!-- Language Selector - Compact Button -->
+  <div class="relative">
     <button
-      class="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      class="flex items-center gap-1 text-xs font-medium rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-7"
+      style="padding: 5px 8px;"
       onclick={toggleLanguageDropdown}
       aria-expanded={isLanguageDropdownOpen}
       aria-haspopup="listbox"
       disabled={isI18nLoading}
+      title={$t("language.selectLanguage")}
     >
-      <span class="flex items-center gap-2">
-        <span class="text-lg">{currentLocaleInfo?.flag || "🌐"}</span>
-        <span class="flex items-center gap-1">
-          {currentLocaleInfo?.nativeName || $t("language.title")}
-          {#if isI18nLoading}
-            <svg
-              class="animate-spin h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12c0 2.347.274 2.018 2.414 4.014.602l2.314-2.314a1 1 0 011.414 1.414l-2.314 2.314A7.994 7.994 0 0122 12z"
-              ></path>
-            </svg>
-          {/if}
-        </span>
-      </span>
-      <svg
-        class={`h-5 w-5 transition-transform ${isLanguageDropdownOpen ? "rotate-180" : ""}`}
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path
-          fill-rule="evenodd"
-          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.02l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-          clip-rule="evenodd"
-        />
-      </svg>
+      <span class="text-sm">{currentLocaleInfo?.flag || "🌐"}</span>
+      {#if isI18nLoading}
+        <svg
+          class="animate-spin h-3 w-3"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12c0 2.347.274 2.018 2.414 4.014.602l2.314-2.314a1 1 0 011.414 1.414l-2.314 2.314A7.994 7.994 0 0122 12z"
+          ></path>
+        </svg>
+      {/if}
     </button>
 
     <!-- Language Dropdown Menu -->
     {#if isLanguageDropdownOpen}
       <div
-        class="absolute bottom-full left-0 mb-2 w-full max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+        class="absolute bottom-full left-0 mb-2 w-36 max-h-60 overflow-y-auto rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
         role="listbox"
       >
-        <div class="p-1 space-y-1">
+        <div class="p-1 space-y-0.5">
           {#each localeList as localeInfo}
             <button
-              class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors {currentLocaleCode ===
+              class="w-full flex items-center gap-1.5 text-xs rounded transition-colors {currentLocaleCode ===
               localeInfo.code
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+              style="padding: 4px 6px;"
               onclick={() => selectLanguage(localeInfo.code)}
               role="option"
               aria-selected={currentLocaleCode === localeInfo.code}
               disabled={isI18nLoading}
             >
-              <span class="text-lg">{localeInfo.flag}</span>
+              <span class="text-sm">{localeInfo.flag}</span>
               <span class="flex-1">{localeInfo.nativeName}</span>
               {#if currentLocaleCode === localeInfo.code}
                 <svg
-                  class="ml-auto h-4 w-4"
+                  class="ml-auto h-3 w-3"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 20 20"
                   fill="currentColor"
@@ -301,59 +277,46 @@
     {/if}
   </div>
 
-  <!-- Color Theme Selector -->
+  <!-- Color Theme Selector - Compact Button -->
   <div class="relative">
     <button
-      class="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      class="flex items-center gap-1 text-xs font-medium rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-7"
+      style="padding: 5px 8px;"
       onclick={toggleColorDropdown}
       aria-expanded={isColorDropdownOpen}
       aria-haspopup="listbox"
       disabled={isI18nLoading}
+      title={$t("theme.selectTheme")}
     >
-      <span class="flex items-center gap-2">
-        <span class="text-lg">
-          {colorThemes.find((t) => t.value === selectedColorTheme)?.emoji ||
-            "🎨"}
-        </span>
-        <span>{$t("theme.selectTheme")}</span>
+      <span class="text-sm">
+        {colorThemes.find((t) => t.value === selectedColorTheme)?.emoji || "🎨"}
       </span>
-      <svg
-        class={`h-5 w-5 transition-transform ${isColorDropdownOpen ? "rotate-180" : ""}`}
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path
-          fill-rule="evenodd"
-          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.02l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-          clip-rule="evenodd"
-        />
-      </svg>
     </button>
 
     <!-- Color Theme Dropdown Menu -->
     {#if isColorDropdownOpen}
       <div
-        class="absolute bottom-full left-0 mb-2 w-full max-h-80 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+        class="absolute bottom-full left-0 mb-2 w-40 max-h-80 overflow-y-auto rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
         role="listbox"
       >
-        <div class="p-1 space-y-1">
+        <div class="p-1 space-y-0.5">
           {#each colorThemes as theme}
             <button
-              class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors {selectedColorTheme ===
+              class="w-full flex items-center gap-1.5 text-xs rounded transition-colors {selectedColorTheme ===
               theme.value
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+              style="padding: 4px 6px;"
               onclick={() => selectColorTheme(theme.value)}
               role="option"
               aria-selected={selectedColorTheme === theme.value}
               disabled={isI18nLoading}
             >
-              <span class="text-lg">{theme.emoji}</span>
+              <span class="text-sm">{theme.emoji}</span>
               <span>{theme.name}</span>
               {#if selectedColorTheme === theme.value}
                 <svg
-                  class="ml-auto h-4 w-4"
+                  class="ml-auto h-3 w-3"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 20 20"
                   fill="currentColor"

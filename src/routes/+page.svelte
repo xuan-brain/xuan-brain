@@ -167,45 +167,53 @@
     class="bg-white dark:bg-gray-800 overflow-y-auto min-w-37.5 border-r border-gray-200 dark:border-gray-700 shrink-0 flex flex-col"
     style="width: {leftWidth}%;"
   >
-    <div class="p-5 flex-1">
+    <div class="flex-1" style="padding: 10px;">
       <h2
-        class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b-2 border-gray-200 dark:border-gray-700"
+        class="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700"
       >
-        {$t('navigation.title')}
+        {$t("navigation.title")}
       </h2>
       <nav>
         <ul class="list-none p-0 m-0">
           <li
-            class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            style="padding: 5px 8px;"
           >
-            {$t('navigation.library')}
+            {$t("navigation.library")}
           </li>
           <li
-            class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            style="padding: 5px 8px;"
           >
-            {$t('navigation.categories')}
+            {$t("navigation.categories")}
           </li>
           <li
-            class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            style="padding: 5px 8px;"
           >
-            {$t('navigation.tags')}
+            {$t("navigation.tags")}
           </li>
           <li
-            class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            style="padding: 5px 8px;"
           >
-            {$t('navigation.favorites')}
+            {$t("navigation.favorites")}
           </li>
           <li
-            class="px-3 py-2.5 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs"
+            style="padding: 5px 8px;"
           >
-            {$t('navigation.trash')}
+            {$t("navigation.trash")}
           </li>
         </ul>
       </nav>
     </div>
 
     <!-- Theme switcher at bottom of left sidebar -->
-    <div class="p-5 border-t border-gray-200 dark:border-gray-700">
+    <div
+      class="border-t border-gray-200 dark:border-gray-700"
+      style="padding: 0;"
+    >
       <ThemeSwitcher />
     </div>
   </aside>
@@ -230,28 +238,31 @@
     class="bg-gray-50 dark:bg-gray-900 overflow-y-auto flex flex-col flex-1 min-w-0"
   >
     <div
-      class="bg-white dark:bg-gray-800 p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shrink-0"
+      class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shrink-0"
+      style="padding: 10px;"
     >
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 m-0">
-        {$t('main.title')}
+      <h1 class="text-base font-semibold text-gray-900 dark:text-gray-100 m-0">
+        {$t("main.title")}
       </h1>
-      <div class="flex gap-2.5">
+      <div class="flex gap-1.5">
         <button
-          class="px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg border border-transparent cursor-pointer transition-all duration-200 shadow-[0_2px_4px_rgba(0,0,0,0.1)] hover:bg-blue-500 hover:text-white hover:-translate-y-0.5 hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] active:translate-y-0 active:shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
+          class="text-xs font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded border border-gray-200 dark:border-gray-600 cursor-pointer transition-colors hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white active:scale-95"
+          style="padding: 5px 8px;"
         >
-          {$t('main.importDocuments')}
+          {$t("main.importDocuments")}
         </button>
         <button
-          class="px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg border border-transparent cursor-pointer transition-all duration-200 shadow-[0_2px_4px_rgba(0,0,0,0.1)] hover:bg-blue-500 hover:text-white hover:-translate-y-0.5 hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] active:translate-y-0 active:shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
+          class="text-xs font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded border border-gray-200 dark:border-gray-600 cursor-pointer transition-colors hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white active:scale-95"
+          style="padding: 5px 8px;"
         >
-          {$t('main.search')}
+          {$t("main.search")}
         </button>
       </div>
     </div>
-    <div class="flex-1 p-5 overflow-y-auto min-h-0">
+    <div class="flex-1 overflow-y-auto min-h-0" style="padding: 10px;">
       <!-- Document list will be rendered here -->
       <p class="text-gray-400 dark:text-gray-600 text-center italic mt-10">
-        {$t('main.noDocuments')}
+        {$t("main.noDocuments")}
       </p>
     </div>
   </main>
@@ -276,15 +287,15 @@
     class="bg-white dark:bg-gray-800 overflow-y-auto min-w-37.5 border-l border-gray-200 dark:border-gray-700 shrink-0"
     style="width: {rightWidth}%;"
   >
-    <div class="p-5">
+    <div style="padding: 10px;">
       <h2
-        class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b-2 border-gray-200 dark:border-gray-700"
+        class="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700"
       >
-        {$t('details.title')}
+        {$t("details.title")}
       </h2>
       <div class="detail-panel">
         <p class="text-gray-400 dark:text-gray-600 text-center italic mt-10">
-          {$t('details.noSelection')}
+          {$t("details.noSelection")}
         </p>
       </div>
     </div>
@@ -293,27 +304,27 @@
 
 <!-- Status bar -->
 <footer
-  class="h-9 bg-gray-800 dark:bg-gray-950 border-t border-gray-700 dark:border-gray-800 flex items-center justify-between px-4 text-xs text-gray-300 dark:text-gray-400 select-none"
+  class="h-7 bg-gray-800 dark:bg-gray-950 border-t border-gray-700 dark:border-gray-800 flex items-center justify-between px-2 text-[10px] text-gray-300 dark:text-gray-400 select-none"
 >
-  <div class="flex items-center gap-4">
+  <div class="flex items-center gap-2">
     <button
-      class="flex items-center gap-1.5 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      class="flex items-center gap-1 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       class:animate-pulse={isSyncing}
       disabled={isSyncing}
       onclick={handleSync}
     >
       <span
-        class="w-2 h-2 rounded-full"
+        class="w-1.5 h-1.5 rounded-full"
         class:bg-green-500={syncStatus === "Synced"}
         class:bg-yellow-500={syncStatus === "Syncing..."}
         class:bg-gray-500={syncStatus === "Unsynced"}
       ></span>
       {syncStatus}
     </button>
-    <span class="flex items-center gap-1">
+    <span class="flex items-center gap-0.5">
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="w-3.5 h-3.5"
+        class="w-2.5 h-2.5"
         viewBox="0 0 20 20"
         fill="currentColor"
       >
@@ -321,12 +332,12 @@
           d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"
         />
       </svg>
-      {$t('status.documents')}: {documentCount}
+      {$t("status.documents")}: {documentCount}
     </span>
-    <span class="hidden md:flex items-center gap-1">
+    <span class="hidden md:flex items-center gap-0.5">
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="w-3.5 h-3.5"
+        class="w-2.5 h-2.5"
         viewBox="0 0 20 20"
         fill="currentColor"
       >
@@ -338,10 +349,10 @@
       </svg>
       {searchStatus}
     </span>
-    <span class="hidden lg:flex items-center gap-1">
+    <span class="hidden lg:flex items-center gap-0.5">
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="w-3.5 h-3.5"
+        class="w-2.5 h-2.5"
         viewBox="0 0 20 20"
         fill="currentColor"
       >
@@ -354,9 +365,11 @@
       {memoryUsage}
     </span>
   </div>
-  <div class="flex items-center gap-4">
-    <span class="hidden sm:inline">{$t('status.version')} 0.1.0</span>
-    <span class="font-mono bg-gray-700 dark:bg-gray-900 px-2 py-0.5 rounded">
+  <div class="flex items-center gap-2">
+    <span class="hidden sm:inline">{$t("status.version")} 0.1.0</span>
+    <span
+      class="font-mono bg-gray-700 dark:bg-gray-900 px-1.5 py-0.5 rounded text-[10px]"
+    >
       {currentTime.toLocaleTimeString()}
     </span>
   </div>

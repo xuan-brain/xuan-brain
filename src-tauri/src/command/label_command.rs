@@ -70,10 +70,17 @@ pub async fn delete_label(
     connection: State<'_, DatabaseConnection>,
     id: i64,
 ) -> Result<(), String> {
+    tracing::info!("Deleting label with id: {}", id);
+
     let delete_result = Label::delete_by_id(id)
         .exec(connection.inner())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            tracing::error!("Failed to delete label: {}", e);
+            e.to_string()
+        })?;
+
+    tracing::info!("Delete affected {} rows", delete_result.rows_affected);
 
     if delete_result.rows_affected == 0 {
         return Err("Label not found".to_string());

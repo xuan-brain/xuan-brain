@@ -2,9 +2,9 @@
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
   import TagsSection from "$lib/components/TagsSection.svelte";
   import StatusBar from "$lib/components/StatusBar.svelte";
+  import Navigation from "$lib/components/Navigation.svelte";
   import { onDestroy } from "svelte";
   import { t } from "$lib/i18n";
-  import { Library, FolderTree, Tags, Star, Trash2 } from "lucide-svelte";
 
   // Load saved column widths from localStorage, use defaults if not present
   const STORAGE_KEY = "xuan-brain-layout-widths";
@@ -136,53 +136,7 @@
     class="bg-white dark:bg-gray-800 overflow-hidden min-w-37.5 border-r border-gray-200 dark:border-gray-700 shrink-0 flex flex-col"
     style="width: {leftWidth}%;"
   >
-    <div class="flex-1 overflow-y-auto" style="padding: 10px;">
-      <h2
-        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700"
-      >
-        {$t("navigation.title")}
-      </h2>
-      <nav>
-        <ul class="list-none p-0 m-0">
-          <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
-            style="padding: 5px 8px; --hover-bg: var(--accent-color);"
-            class:hover:bg-accent={true}
-          >
-            <Library size={14} class="text-accent" />
-            {$t("navigation.library")}
-          </li>
-          <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
-            style="padding: 5px 8px;"
-          >
-            <FolderTree size={14} />
-            {$t("navigation.categories")}
-          </li>
-          <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
-            style="padding: 5px 8px;"
-          >
-            <Tags size={14} />
-            {$t("navigation.tags")}
-          </li>
-          <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
-            style="padding: 5px 8px;"
-          >
-            <Star size={14} />
-            {$t("navigation.favorites")}
-          </li>
-          <li
-            class="mb-0.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5"
-            style="padding: 5px 8px;"
-          >
-            <Trash2 size={14} />
-            {$t("navigation.trash")}
-          </li>
-        </ul>
-      </nav>
-    </div>
+    <Navigation />
 
     <!-- Tags Section at bottom -->
     <div

@@ -2,7 +2,8 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { t } from "$lib/i18n";
-  import { Tags } from "lucide-svelte";
+  import { Tags, Plus } from "lucide-svelte";
+  import AddTagDialog from "./AddTagDialog.svelte";
 
   // Predefined color palette for tags
   const TAG_COLORS: Record<string, string> = {
@@ -30,8 +31,16 @@
     [],
   );
 
+  // Dialog state
+  let showDialog = $state(false);
+
+  // Close dialog handler
+  function closeDialog() {
+    showDialog = false;
+  }
+
   // Load labels from backend on mount
-  onMount(async () => {
+  async function loadTags() {
     try {
       console.log("Loading labels from backend...");
       const labels = await invoke<Record<string, any>[]>("get_all_labels");
@@ -57,15 +66,30 @@
         { name: "Computer Vision", count: 4, color: TAG_COLORS["orange"] },
       ];
     }
+  }
+
+  // Load labels from backend on mount
+  onMount(() => {
+    loadTags();
   });
 </script>
 
 <div class="tags-section">
   <h3
-    class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700 flex items-center gap-1"
+    class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
   >
-    <Tags size={14} />
-    {$t("navigation.tags")}
+    <div class="flex items-center gap-1">
+      <Tags size={14} />
+      {$t("navigation.tags")}
+    </div>
+    <button
+      onclick={() => (showDialog = true)}
+      class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+      aria-label="添加标签"
+      title="添加标签"
+    >
+      <Plus size={14} />
+    </button>
   </h3>
   <div class="overflow-y-auto pr-1" style="max-height: 200px;">
     <div class="flex flex-wrap gap-1.5">
@@ -82,6 +106,12 @@
     </div>
   </div>
 </div>
+
+<!-- Add Tag Dialog -->
+<AddTagDialog open={showDialog} onTagCreated={loadTags} />
+
+<!-- Add Tag Dialog -->
+<AddTagDialog open={showDialog} onTagCreated={loadTags} onClose={closeDialog} />
 
 <style>
   /* Custom scrollbar for tags section */

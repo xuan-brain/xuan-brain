@@ -1,7 +1,5 @@
 use chrono::prelude::*;
-use sea_orm::{
-    prelude::DateTimeLocal, ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait,
-};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait};
 use serde::Serialize;
 use tauri::State;
 use tracing::debug;
@@ -51,9 +49,9 @@ pub async fn create_label(
         name: Set(name),
         color: Set(color),
         document_count: Set(0),
-        id: Set(0),
         created_at: Set(Local::now().naive_local()),
         updated_at: Set(Local::now().naive_local()),
+        ..Default::default()
     };
     let label = new_label
         .insert(connection.inner())
@@ -66,4 +64,20 @@ pub async fn create_label(
         color: label.color,
         document_count: label.document_count,
     })
+}
+#[tauri::command]
+pub async fn delete_label(
+    connection: State<'_, DatabaseConnection>,
+    id: i64,
+) -> Result<(), String> {
+    let delete_result = Label::delete_by_id(id)
+        .exec(connection.inner())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if delete_result.rows_affected == 0 {
+        return Err("Label not found".to_string());
+    }
+
+    Ok(())
 }

@@ -1,4 +1,7 @@
-use sea_orm::{DatabaseConnection, EntityTrait};
+use chrono::prelude::*;
+use sea_orm::{
+    prelude::DateTimeLocal, ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait,
+};
 use serde::Serialize;
 use tauri::State;
 use tracing::debug;
@@ -36,4 +39,31 @@ pub async fn get_all_labels(
         .collect();
 
     Ok(result)
+}
+
+#[tauri::command]
+pub async fn create_label(
+    connection: State<'_, DatabaseConnection>,
+    name: String,
+    color: String,
+) -> Result<LabelResponse, String> {
+    let new_label = label::ActiveModel {
+        name: Set(name),
+        color: Set(color),
+        document_count: Set(0),
+        id: Set(0),
+        created_at: Set(Local::now().naive_local()),
+        updated_at: Set(Local::now().naive_local()),
+    };
+    let label = new_label
+        .insert(connection.inner())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(LabelResponse {
+        id: label.id,
+        name: label.name,
+        color: label.color,
+        document_count: label.document_count,
+    })
 }

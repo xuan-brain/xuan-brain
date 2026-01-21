@@ -4,50 +4,57 @@
   import { t } from "$lib/i18n";
   import { Tags } from "lucide-svelte";
 
+  // Predefined color palette for tags
+  const TAG_COLORS: Record<string, string> = {
+    red: "#ef4444",
+    orange: "#f97316",
+    amber: "#f59e0b",
+    yellow: "#eab308",
+    lime: "#84cc16",
+    green: "#22c55e",
+    emerald: "#10b981",
+    teal: "#14b8a6",
+    cyan: "#06b6d4",
+    sky: "#0ea5e9",
+    blue: "#3b82f6",
+    indigo: "#6366f1",
+    violet: "#8b5cf6",
+    purple: "#a855f7",
+    fuchsia: "#d946ef",
+    pink: "#ec4899",
+    rose: "#f43f5e",
+  };
+
   // Tags state - using Svelte 5 runes
-  let allTags = $state<Array<{ name: string; count: number }>>([]);
+  let allTags = $state<Array<{ name: string; count: number; color: string }>>(
+    [],
+  );
 
   // Load labels from backend on mount
   onMount(async () => {
     try {
-      console.log('Loading labels from backend...');
+      console.log("Loading labels from backend...");
       const labels = await invoke<Record<string, any>[]>("get_all_labels");
-      console.log('Received labels:', labels);
+      console.log("Received labels:", labels);
 
       allTags = labels.map((label) => ({
         name: label.name,
         count: label.document_count || 0,
+        // Use the color name from database to get the color code
+        color: TAG_COLORS[label.color] || TAG_COLORS["blue"],
       }));
 
-      console.log('Processed tags:', allTags);
-
-      // If no labels returned, try to initialize test data
-      if (allTags.length === 0) {
-        console.log('No labels found, initializing test data...');
-        try {
-          await invoke('init_test_labels');
-          console.log('Test labels initialized, reloading...');
-          // Reload labels
-          const labels2 = await invoke<Record<string, any>[]>("get_all_labels");
-          allTags = labels2.map((label) => ({
-            name: label.name,
-            count: label.document_count || 0,
-          }));
-          console.log('Tags after initialization:', allTags);
-        } catch (initError) {
-          console.error('Failed to initialize test labels:', initError);
-        }
-      }
+      console.log("Processed tags:", allTags);
     } catch (error) {
       console.error("Failed to load labels:", error);
       // Use demo data as fallback if running in browser (not Tauri)
-      console.log('Using demo data as fallback');
+      console.log("Using demo data as fallback");
       allTags = [
-        { name: "AI", count: 12 },
-        { name: "Machine Learning", count: 8 },
-        { name: "Deep Learning", count: 6 },
-        { name: "NLP", count: 5 },
-        { name: "Computer Vision", count: 4 }
+        { name: "AI", count: 12, color: TAG_COLORS["blue"] },
+        { name: "Machine Learning", count: 8, color: TAG_COLORS["indigo"] },
+        { name: "Deep Learning", count: 6, color: TAG_COLORS["purple"] },
+        { name: "NLP", count: 5, color: TAG_COLORS["red"] },
+        { name: "Computer Vision", count: 4, color: TAG_COLORS["orange"] },
       ];
     }
   });
@@ -60,14 +67,12 @@
     <Tags size={14} />
     {$t("navigation.tags")}
   </h3>
-  <div
-    class="overflow-y-auto pr-1"
-    style="max-height: 200px;"
-  >
+  <div class="overflow-y-auto pr-1" style="max-height: 200px;">
     <div class="flex flex-wrap gap-1.5">
       {#each allTags as tag}
         <span
-          class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-accent hover:text-white cursor-pointer transition-colors"
+          class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full text-white hover:opacity-80 cursor-pointer transition-opacity"
+          style="background-color: {tag.color};"
           title="{tag.count} documents"
         >
           {tag.name}

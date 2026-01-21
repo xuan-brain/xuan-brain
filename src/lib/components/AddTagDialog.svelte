@@ -102,10 +102,12 @@
 {#if open}
   <div
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+    role="presentation"
     onmousedown={(e) => {
       if (e.target === e.currentTarget) closeDialog();
     }}
   >
+    <!-- svelte-ignore a11y_interactive_supports_focus -->
     <div
       class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-96 max-w-[90vw]"
       onkeydown={handleKeydown}
@@ -153,6 +155,7 @@
             bind:value={tagName}
             placeholder="输入标签名称..."
             class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            autocomplete="off"
             autofocus
           />
         </div>

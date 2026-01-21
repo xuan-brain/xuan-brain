@@ -69,7 +69,7 @@
         color: TAG_COLORS[label.color] || TAG_COLORS["blue"],
       }));
 
-      console.log("Processed tags:", allTags);
+      console.log("Processed tags count:", allTags.length);
     } catch (error) {
       console.error("Failed to load labels:", error);
       // Use demo data as fallback if running in browser (not Tauri)

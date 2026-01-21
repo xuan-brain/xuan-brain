@@ -116,26 +116,24 @@
     >
       <!-- Header -->
       <div
-        class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+        class="flex items-center justify-between dialog-header-padding border-b border-gray-200 dark:border-gray-700"
       >
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          添加标签
-        </h2>
+        <h2 class="dialog-title text-gray-900 dark:text-gray-100">添加标签</h2>
         <button
           onclick={closeDialog}
-          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors dialog-close-button"
           aria-label="关闭"
         >
-          <X size={20} />
+          <X size={16} />
         </button>
       </div>
 
       <!-- Body -->
-      <div class="p-4 space-y-4">
+      <div class="dialog-padding dialog-section-gap">
         <!-- Error message -->
         {#if errorMessage}
           <div
-            class="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md"
+            class="dialog-body-text text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md"
           >
             {errorMessage}
           </div>
@@ -145,7 +143,7 @@
         <div>
           <label
             for="tag-name"
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            class="block dialog-label text-gray-700 dark:text-gray-300"
           >
             标签名称
           </label>
@@ -154,7 +152,7 @@
             type="text"
             bind:value={tagName}
             placeholder="输入标签名称..."
-            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            class="w-full dialog-input border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             autocomplete="off"
             autofocus
           />
@@ -162,9 +160,7 @@
 
         <!-- Color picker -->
         <div>
-          <label
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
+          <label class="block dialog-label text-gray-700 dark:text-gray-300">
             选择颜色
           </label>
           <div class="flex flex-wrap gap-2">
@@ -202,17 +198,17 @@
 
       <!-- Footer -->
       <div
-        class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700"
+        class="flex justify-end dialog-gap dialog-padding border-t border-gray-200 dark:border-gray-700"
       >
         <button
           onclick={closeDialog}
-          class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          class="dialog-button text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
         >
           取消
         </button>
         <button
           onclick={handleCreateTag}
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+          class="dialog-button text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
         >
           创建
         </button>

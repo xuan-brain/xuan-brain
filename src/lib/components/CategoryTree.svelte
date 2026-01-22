@@ -359,7 +359,7 @@
           }
         }}
       >
-        <!-- {#snippet nodeTemplate(node: any)}
+        {#snippet nodeTemplate(node: any)}
           <div
             class="flex items-center gap-1 py-0.5 px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-move"
             class:ltree-dragging={isDragging && draggedPath === node.data.path}
@@ -379,7 +379,7 @@
               {node.data.name}
             </span>
           </div>
-        {/snippet} -->
+        {/snippet}
       </Tree>
     </div>
   {:else}

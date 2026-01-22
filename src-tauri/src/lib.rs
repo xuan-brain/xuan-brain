@@ -1,5 +1,7 @@
+#![allow(dead_code)]
 mod command;
 mod database;
+mod service;
 mod sys;
 
 use std::path::PathBuf;

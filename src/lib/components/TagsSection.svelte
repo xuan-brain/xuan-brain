@@ -192,7 +192,7 @@
 <!-- Context Menu -->
 {#if contextMenu.visible}
   <div
-    class="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[150px]"
+    class="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-37.5"
     style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
     onmousedown={(e) => e.stopPropagation()}
     role="menu"

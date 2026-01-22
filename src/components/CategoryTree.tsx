@@ -20,7 +20,6 @@ import {
   CircularProgress,
 } from "@mui/material";
 import {
-  Folder,
   FolderOpen,
   MoreVert,
   Edit,
@@ -278,16 +277,16 @@ export default function CategoryTree() {
       const extendedNode = node as ExtendedNodeModel;
       const nodePath = extendedNode.path;
       const isEditing = extendedNode.isEditing || false;
-      const { depth, isOpen, onToggle } = params;
+      const { depth, hasChild } = params;
 
       return (
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            py: 0.5,
-            px: depth === 0 ? 0 : 1,
-            mx: depth === 0 ? 0 : -1,
+            py: 0.25,
+            pl: depth * 0.5,
+            pr: 0.5,
             borderRadius: 1,
             cursor: "pointer",
             "&:hover": {
@@ -302,33 +301,27 @@ export default function CategoryTree() {
           onDoubleClick={() => handleDoubleClick(node.id as number)}
           onClick={() => handleSelect(node.id)}
         >
-          {/* Expand/Collapse Icon */}
-          {depth > 0 && (
+          {/* Expand/Collapse Icon - Fixed expanded mode */}
+          {hasChild ? (
             <Box
               sx={{
-                width: 24,
-                height: 24,
+                width: 20,
+                height: 20,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                mr: 0.5,
-              }}
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                onToggle();
+                mr: 0.3,
               }}
             >
-              {isOpen ? <ExpandMoreIcon /> : <ExpandLessIcon />}
+              <ExpandMoreIcon />
             </Box>
+          ) : (
+            <Box sx={{ width: 20, mr: 0.3 }} />
           )}
 
           {/* Folder Icon */}
-          <Box sx={{ mr: 1, minWidth: 20 }}>
-            {isOpen ? (
-              <FolderOpen fontSize="small" />
-            ) : (
-              <Folder fontSize="small" />
-            )}
+          <Box sx={{ mr: 0.5, minWidth: 16 }}>
+            <FolderOpen sx={{ fontSize: 16 }} />
           </Box>
 
           {/* Node Text or Edit Input */}
@@ -351,8 +344,8 @@ export default function CategoryTree() {
                 sx={{
                   flex: 1,
                   "& .MuiInputBase-root": {
-                    height: 28,
-                    fontSize: "0.875rem",
+                    height: 24,
+                    fontSize: "0.8125rem",
                   },
                 }}
                 onFocus={(e: React.FocusEvent<HTMLInputElement>) =>
@@ -384,7 +377,7 @@ export default function CategoryTree() {
               </IconButton>
             </Box>
           ) : (
-            <Typography variant="body2" sx={{ flex: 1 }}>
+            <Typography variant="body2" sx={{ flex: 1, fontSize: "0.8125rem" }}>
               {node.text}
             </Typography>
           )}
@@ -450,7 +443,7 @@ export default function CategoryTree() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <Box sx={{ position: "relative" }}>
+      <Box sx={{ position: "relative", overflow: "hidden" }}>
         <Tree
           tree={treeData}
           rootId={0}
@@ -463,6 +456,7 @@ export default function CategoryTree() {
           }}
           sort={false}
           render={renderNode}
+          initialOpen={true}
         />
 
         {/* Context Menu */}
@@ -520,8 +514,8 @@ export default function CategoryTree() {
 const ExpandMoreIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -530,21 +524,5 @@ const ExpandMoreIcon = () => (
     strokeLinejoin="round"
   >
     <polyline points="6 9 12 15 18 9"></polyline>
-  </svg>
-);
-
-const ExpandLessIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="18 15 12 9 6 15"></polyline>
   </svg>
 );

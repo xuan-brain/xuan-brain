@@ -9,7 +9,6 @@ import {
   ListItemText,
   IconButton,
   Divider,
-  Collapse,
 } from "@mui/material";
 import {
   MenuBook as LibraryIcon,
@@ -17,8 +16,6 @@ import {
   Delete,
   LocalOffer as TagIcon,
   Add,
-  ExpandLess,
-  ExpandMore,
 } from "@mui/icons-material";
 import { useI18n } from "../lib/i18n";
 import CategoryTree from "./CategoryTree";
@@ -32,8 +29,7 @@ export default function Navigation() {
   const [activeItem, setActiveItem] = useState("library");
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
   const [showAddTagDialog, setShowAddTagDialog] = useState(false);
-  const [categoriesExpanded, setCategoriesExpanded] = useState(true);
-  const [tagsExpanded, setTagsExpanded] = useState(true);
+  const [categoryTreeKey, setCategoryTreeKey] = useState(0);
 
   const handleNavClick = (itemId: string) => {
     setActiveItem(itemId);
@@ -55,7 +51,7 @@ export default function Navigation() {
   return (
     <Box
       sx={{
-        width: 280,
+        width: 240,
         bgcolor: "background.paper",
         borderRight: 1,
         borderColor: "divider",
@@ -64,13 +60,13 @@ export default function Navigation() {
       }}
     >
       {/* 导航列表 */}
-      <List sx={{ flex: 1, overflow: "auto", py: 1 }}>
+      <List sx={{ flex: 1, overflow: "auto", py: 0.5 }}>
         {/* 文献库 */}
         <ListItem disablePadding>
           <ListItemButton
             selected={isActive("library")}
             onClick={() => handleNavClick("library")}
-            sx={{ pl: 2 }}
+            sx={{ pl: 1.5, py: 0.5 }}
           >
             <ListItemIcon sx={{ minWidth: 32 }}>
               <LibraryIcon fontSize="small" />
@@ -91,59 +87,43 @@ export default function Navigation() {
         </ListItem>
 
         {/* 分类树 */}
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => setCategoriesExpanded(!categoriesExpanded)}
-            sx={{ pl: 2 }}
-          >
-            <ListItemIcon sx={{ minWidth: 32 }}>
-              {categoriesExpanded ? (
-                <ExpandMore fontSize="small" />
-              ) : (
-                <ExpandLess fontSize="small" />
-              )}
-            </ListItemIcon>
-            <ListItemText primary={t("navigation.categories")} />
-          </ListItemButton>
-        </ListItem>
-        <Collapse in={categoriesExpanded} timeout="auto" unmountOnExit>
-          <Box sx={{ pl: 3 }}>
-            <CategoryTree />
-          </Box>
-        </Collapse>
+        <Box sx={{ pl: 0.5, py: 0.5, pr: 0.5 }}>
+          <CategoryTree key={categoryTreeKey} />
+        </Box>
 
-        <Divider sx={{ my: 1 }} />
+        <Divider sx={{ my: 0.5 }} />
 
         {/* 标签 */}
         <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => setTagsExpanded(!tagsExpanded)}
-            sx={{ pl: 2 }}
-          >
+          <ListItemButton sx={{ pl: 1.5, py: 0.5 }}>
             <ListItemIcon sx={{ minWidth: 32 }}>
               <TagIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText primary={t("navigation.tags")} />
-            {tagsExpanded ? (
-              <ExpandMore fontSize="small" />
-            ) : (
-              <ExpandLess fontSize="small" />
-            )}
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddTag();
+              }}
+              sx={{ ml: 1 }}
+              edge="end"
+            >
+              <Add fontSize="small" />
+            </IconButton>
           </ListItemButton>
         </ListItem>
-        <Collapse in={tagsExpanded} timeout="auto" unmountOnExit>
-          <Box sx={{ pl: 2 }}>
-            <TagsSection onAddTag={handleAddTag} />
-          </Box>
-        </Collapse>
+        <Box sx={{ pl: 1, py: 0.5 }}>
+          <TagsSection onAddTag={handleAddTag} />
+        </Box>
 
-        <Divider sx={{ my: 1 }} />
+        <Divider sx={{ my: 0.5 }} />
 
         {/* 收藏夹 */}
         <ListItem disablePadding>
           <ListItemButton
             onClick={() => handleNavClick("favorites")}
-            sx={{ pl: 2 }}
+            sx={{ pl: 1.5, py: 0.5 }}
           >
             <ListItemIcon sx={{ minWidth: 32 }}>
               <Star fontSize="small" />
@@ -156,7 +136,7 @@ export default function Navigation() {
         <ListItem disablePadding>
           <ListItemButton
             onClick={() => handleNavClick("trash")}
-            sx={{ pl: 2 }}
+            sx={{ pl: 1.5, py: 0.5 }}
           >
             <ListItemIcon sx={{ minWidth: 32 }}>
               <Delete fontSize="small" />
@@ -172,7 +152,7 @@ export default function Navigation() {
         onClose={() => setShowAddCategoryDialog(false)}
         onCategoryCreated={() => {
           setShowAddCategoryDialog(false);
-          // TODO: Refresh CategoryTree
+          setCategoryTreeKey((prev) => prev + 1);
         }}
       />
 

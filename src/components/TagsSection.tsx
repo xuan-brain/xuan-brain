@@ -1,17 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Menu,
-  MenuItem,
-} from "@mui/material";
-import { Delete, MoreVert } from "@mui/icons-material";
+import { Box, Typography, Chip, Menu, MenuItem } from "@mui/material";
+import { Delete } from "@mui/icons-material";
 import AddTagDialog from "./AddTagDialog";
 
 // Lazy load invoke helper - works in both Tauri and browser
-async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+async function invokeCommand<T = unknown>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>(cmd, args);
 }
@@ -64,7 +60,8 @@ export default function TagsSection(_props: TagsSectionProps) {
   const loadTags = useCallback(async () => {
     setLoading(true);
     try {
-      const labels = await invokeCommand<Record<string, any>[]>("get_all_labels");
+      const labels =
+        await invokeCommand<Record<string, any>[]>("get_all_labels");
 
       const processedTags: Tag[] = labels.map((label) => ({
         id: label.id,
@@ -139,7 +136,7 @@ export default function TagsSection(_props: TagsSectionProps) {
   return (
     <Box sx={{ py: 1 }}>
       {/* Header */}
-      <Box
+      {/*<Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
@@ -158,7 +155,7 @@ export default function TagsSection(_props: TagsSectionProps) {
         >
           <MoreVert fontSize="small" />
         </IconButton>
-      </Box>
+      </Box>*/}
 
       {/* Tags list */}
       {loading ? (

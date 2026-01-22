@@ -30,6 +30,7 @@ export default function Navigation() {
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
   const [showAddTagDialog, setShowAddTagDialog] = useState(false);
   const [categoryTreeKey, setCategoryTreeKey] = useState(0);
+  const [tagsSectionKey, setTagsSectionKey] = useState(0);
 
   const handleNavClick = (itemId: string) => {
     setActiveItem(itemId);
@@ -114,7 +115,7 @@ export default function Navigation() {
           </ListItemButton>
         </ListItem>
         <Box sx={{ pl: 1, py: 0.5 }}>
-          <TagsSection onAddTag={handleAddTag} />
+          <TagsSection key={tagsSectionKey} onAddTag={handleAddTag} />
         </Box>
 
         <Divider sx={{ my: 0.5 }} />
@@ -161,7 +162,7 @@ export default function Navigation() {
         onClose={() => setShowAddTagDialog(false)}
         onTagCreated={() => {
           setShowAddTagDialog(false);
-          // TODO: Refresh TagsSection
+          setTagsSectionKey((prev) => prev + 1);
         }}
       />
     </Box>

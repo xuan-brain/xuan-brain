@@ -8,8 +8,9 @@ import {
   Button,
   IconButton,
   Typography,
+  Box,
 } from "@mui/material";
-import { Close } from "@mui/icons-material";
+import { Close, Check } from "@mui/icons-material";
 import { useI18n } from "../lib/i18n";
 
 // Lazy load invoke helper - works in both Tauri and browser
@@ -20,6 +21,27 @@ async function invokeCommand<T = unknown>(
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>(cmd, args);
 }
+
+// Predefined color palette (must match backend and TagsSection)
+const TAG_COLORS: Record<string, string> = {
+  red: "#ef4444",
+  orange: "#f97316",
+  amber: "#f59e0b",
+  yellow: "#eab308",
+  lime: "#84cc16",
+  green: "#22c55e",
+  emerald: "#10b981",
+  teal: "#14b8a6",
+  cyan: "#06b6d4",
+  sky: "#0ea5e9",
+  blue: "#3b82f6",
+  indigo: "#6366f1",
+  violet: "#8b5cf6",
+  purple: "#a855f7",
+  fuchsia: "#d946ef",
+  pink: "#ec4899",
+  rose: "#f43f5e",
+};
 
 interface AddTagDialogProps {
   open: boolean;
@@ -34,6 +56,7 @@ export default function AddTagDialog({
 }: AddTagDialogProps) {
   const { t } = useI18n();
   const [name, setName] = useState("");
+  const [selectedColor, setSelectedColor] = useState("blue");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +64,7 @@ export default function AddTagDialog({
   useEffect(() => {
     if (open) {
       setName("");
+      setSelectedColor("blue");
       setError("");
     }
   }, [open]);
@@ -60,8 +84,10 @@ export default function AddTagDialog({
     try {
       await invokeCommand("create_label", {
         name: name.trim(),
+        color: selectedColor,
       });
       setName("");
+      setSelectedColor("blue");
       setError("");
       onTagCreated();
       onClose();
@@ -74,6 +100,7 @@ export default function AddTagDialog({
 
   const handleClose = () => {
     setName("");
+    setSelectedColor("blue");
     setError("");
     onClose();
   };
@@ -104,6 +131,7 @@ export default function AddTagDialog({
         </IconButton>
       </DialogTitle>
       <DialogContent dividers>
+        {/* Tag name input */}
         <TextField
           autoFocus
           margin="dense"
@@ -111,7 +139,7 @@ export default function AddTagDialog({
           fullWidth
           variant="outlined"
           value={name}
-          onChange={(e) => {
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             setName(e.target.value);
             setError("");
           }}
@@ -122,10 +150,66 @@ export default function AddTagDialog({
           sx={{ mt: 2 }}
           placeholder={t("dialog.enterTagName")}
         />
+
+        {/* Color picker */}
+        <Box sx={{ mt: 3 }}>
+          <Typography
+            variant="caption"
+            component="legend"
+            sx={{ mb: 1.5, display: "block", fontWeight: 500 }}
+          >
+            {t("dialog.selectColor")}
+          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            {Object.entries(TAG_COLORS).map(([colorName, colorHex]) => (
+              <Box
+                key={colorName}
+                onClick={() => setSelectedColor(colorName)}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  bgcolor: colorHex,
+                  border: 2,
+                  borderColor:
+                    selectedColor === colorName
+                      ? "text.primary"
+                      : "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    transform: "scale(1.1)",
+                  },
+                }}
+                title={colorName}
+              >
+                {selectedColor === colorName && (
+                  <Check
+                    sx={{
+                      color: "white",
+                      fontSize: 20,
+                      filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))",
+                    }}
+                  />
+                )}
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ mt: 1, display: "block" }}
+          sx={{ mt: 2, display: "block" }}
         >
           {t("dialog.tagNameRules")}
         </Typography>

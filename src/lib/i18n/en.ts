@@ -92,6 +92,7 @@ export default {
     categoryName: "Category Name",
     tagName: "Tag Name",
     parentCategory: "Parent Category",
+    selectColor: "Select Color",
     enterCategoryName: "Enter category name",
     enterTagName: "Enter tag name",
     categoryNameRequired: "Category name is required",

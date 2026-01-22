@@ -92,6 +92,7 @@ export default {
     categoryName: "分类名称",
     tagName: "标签名称",
     parentCategory: "父分类",
+    selectColor: "选择颜色",
     enterCategoryName: "请输入分类名称",
     enterTagName: "请输入标签名称",
     categoryNameRequired: "名称不能为空",

@@ -3,12 +3,10 @@ import Navigation from './Navigation'
 import StatusBar from './StatusBar'
 
 interface LayoutProps {
-  isDark: boolean
-  onToggleTheme: () => void
-  children: React.ReactNode
+  children?: React.ReactNode
 }
 
-export default function Layout({ isDark, onToggleTheme, children }: LayoutProps) {
+export default function Layout({ children }: LayoutProps) {
   return (
     <Box
       sx={{
@@ -26,7 +24,7 @@ export default function Layout({ isDark, onToggleTheme, children }: LayoutProps)
         }}
       >
         {/* 侧边导航栏 */}
-        <Navigation isDark={isDark} onToggleTheme={onToggleTheme} />
+        <Navigation />
 
         {/* 主内容区域 */}
         <Box

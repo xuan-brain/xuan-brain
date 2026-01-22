@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import {
   Box,
   Typography,
@@ -10,6 +9,12 @@ import {
 } from "@mui/material";
 import { Delete, MoreVert } from "@mui/icons-material";
 import AddTagDialog from "./AddTagDialog";
+
+// Lazy load invoke - works in both Tauri and browser
+const invokeCommand = async <T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> => {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<T>(cmd, args);
+};
 
 // Predefined color palette for tags
 const TAG_COLORS: Record<string, string> = {
@@ -40,10 +45,10 @@ interface Tag {
 }
 
 interface TagsSectionProps {
-  onAddTag: () => void;
+  onAddTag?: () => void;
 }
 
-export default function TagsSection({ onAddTag }: TagsSectionProps) {
+export default function TagsSection(_props: TagsSectionProps) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -59,7 +64,7 @@ export default function TagsSection({ onAddTag }: TagsSectionProps) {
   const loadTags = useCallback(async () => {
     setLoading(true);
     try {
-      const labels = await invoke<Record<string, any>[]>("get_all_labels");
+      const labels = await invokeCommand<Record<string, any>[]>("get_all_labels");
 
       const processedTags: Tag[] = labels.map((label) => ({
         id: label.id,
@@ -122,7 +127,7 @@ export default function TagsSection({ onAddTag }: TagsSectionProps) {
 
     const tagId = contextMenu.tag.id;
     try {
-      await invoke("delete_label", { id: tagId });
+      await invokeCommand("delete_label", { id: tagId });
       handleCloseContextMenu();
       await loadTags();
     } catch (error) {

@@ -6,7 +6,7 @@ export default function StatusBar() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [syncStatus, setSyncStatus] = useState<'Synced' | 'Syncing...' | 'Unsynced'>('Synced')
   const [isSyncing, setIsSyncing] = useState(false)
-  const [documentCount, setDocumentCount] = useState(0)
+  const documentCount = 0 // TODO: Load from backend
 
   // Update time every second
   useEffect(() => {

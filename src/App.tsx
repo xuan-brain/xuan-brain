@@ -1,29 +1,22 @@
 import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider, CssBaseline, createTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { CssBaseline, Box } from "@mui/material";
 import { lightTheme, darkTheme } from "./theme";
 import Layout from "./components/Layout";
 import LibraryPage from "./pages/LibraryPage";
 
 function App() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark] = useState(true);
 
   const theme = createTheme(isDark ? darkTheme : lightTheme);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-  };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
         <Routes>
-          <Route
-            path="/"
-            element={<Layout isDark={isDark} onToggleTheme={toggleTheme} />}
-          >
+          <Route path="/" element={<Layout />}>
             <Route index element={<LibraryPage />} />
             <Route
               path="reader/:id"

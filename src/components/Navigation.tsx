@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   List,
@@ -9,72 +9,65 @@ import {
   ListItemText,
   IconButton,
   Divider,
-  Typography,
   Collapse,
-} from '@mui/material'
+} from "@mui/material";
 import {
   MenuBook as LibraryIcon,
   Star,
-  Trash2,
+  Delete,
   LocalOffer as TagIcon,
   Add,
   ExpandLess,
   ExpandMore,
-} from '@mui/icons-material'
-import CategoryTree from './CategoryTree'
-import TagsSection from './TagsSection'
-import AddCategoryDialog from './AddCategoryDialog'
-import AddTagDialog from './AddTagDialog'
+} from "@mui/icons-material";
+import CategoryTree from "./CategoryTree";
+import TagsSection from "./TagsSection";
+import AddCategoryDialog from "./AddCategoryDialog";
+import AddTagDialog from "./AddTagDialog";
 
-interface NavigationProps {
-  isDark: boolean
-  onToggleTheme: () => void
-}
-
-export default function Navigation({ isDark, onToggleTheme }: NavigationProps) {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [activeItem, setActiveItem] = useState('library')
-  const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false)
-  const [showAddTagDialog, setShowAddTagDialog] = useState(false)
-  const [categoriesExpanded, setCategoriesExpanded] = useState(true)
-  const [tagsExpanded, setTagsExpanded] = useState(true)
+export default function Navigation() {
+  const navigate = useNavigate();
+  const [activeItem, setActiveItem] = useState("library");
+  const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
+  const [showAddTagDialog, setShowAddTagDialog] = useState(false);
+  const [categoriesExpanded, setCategoriesExpanded] = useState(true);
+  const [tagsExpanded, setTagsExpanded] = useState(true);
 
   const handleNavClick = (itemId: string) => {
-    setActiveItem(itemId)
-    if (itemId === 'library') {
-      navigate('/')
+    setActiveItem(itemId);
+    if (itemId === "library") {
+      navigate("/");
     }
-  }
+  };
 
   const handleAddCategory = () => {
-    setShowAddCategoryDialog(true)
-  }
+    setShowAddCategoryDialog(true);
+  };
 
   const handleAddTag = () => {
-    setShowAddTagDialog(true)
-  }
+    setShowAddTagDialog(true);
+  };
 
-  const isActive = (item: string) => activeItem === item
+  const isActive = (item: string) => activeItem === item;
 
   return (
     <Box
       sx={{
         width: 280,
-        bgcolor: 'background.paper',
+        bgcolor: "background.paper",
         borderRight: 1,
-        borderColor: 'divider',
-        display: 'flex',
-        flexDirection: 'column',
+        borderColor: "divider",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       {/* 导航列表 */}
-      <List sx={{ flex: 1, overflow: 'auto', py: 1 }}>
+      <List sx={{ flex: 1, overflow: "auto", py: 1 }}>
         {/* 文献库 */}
         <ListItem disablePadding>
           <ListItemButton
-            selected={isActive('library')}
-            onClick={() => handleNavClick('library')}
+            selected={isActive("library")}
+            onClick={() => handleNavClick("library")}
             sx={{ pl: 2 }}
           >
             <ListItemIcon sx={{ minWidth: 32 }}>
@@ -84,8 +77,8 @@ export default function Navigation({ isDark, onToggleTheme }: NavigationProps) {
             <IconButton
               size="small"
               onClick={(e) => {
-                e.stopPropagation()
-                handleAddCategory()
+                e.stopPropagation();
+                handleAddCategory();
               }}
               sx={{ ml: 1 }}
               edge="end"
@@ -102,7 +95,11 @@ export default function Navigation({ isDark, onToggleTheme }: NavigationProps) {
             sx={{ pl: 2 }}
           >
             <ListItemIcon sx={{ minWidth: 32 }}>
-              {categoriesExpanded ? <ExpandMore fontSize="small" /> : <ExpandLess fontSize="small" />}
+              {categoriesExpanded ? (
+                <ExpandMore fontSize="small" />
+              ) : (
+                <ExpandLess fontSize="small" />
+              )}
             </ListItemIcon>
             <ListItemText primary="分类" />
           </ListItemButton>
@@ -125,7 +122,11 @@ export default function Navigation({ isDark, onToggleTheme }: NavigationProps) {
               <TagIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText primary="标签" />
-            {tagsExpanded ? <ExpandMore fontSize="small" /> : <ExpandLess fontSize="small" />}
+            {tagsExpanded ? (
+              <ExpandMore fontSize="small" />
+            ) : (
+              <ExpandLess fontSize="small" />
+            )}
           </ListItemButton>
         </ListItem>
         <Collapse in={tagsExpanded} timeout="auto" unmountOnExit>
@@ -138,7 +139,10 @@ export default function Navigation({ isDark, onToggleTheme }: NavigationProps) {
 
         {/* 收藏夹 */}
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavClick('favorites')} sx={{ pl: 2 }}>
+          <ListItemButton
+            onClick={() => handleNavClick("favorites")}
+            sx={{ pl: 2 }}
+          >
             <ListItemIcon sx={{ minWidth: 32 }}>
               <Star fontSize="small" />
             </ListItemIcon>
@@ -148,9 +152,12 @@ export default function Navigation({ isDark, onToggleTheme }: NavigationProps) {
 
         {/* 回收站 */}
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavClick('trash')} sx={{ pl: 2 }}>
+          <ListItemButton
+            onClick={() => handleNavClick("trash")}
+            sx={{ pl: 2 }}
+          >
             <ListItemIcon sx={{ minWidth: 32 }}>
-              <Trash2 fontSize="small" />
+              <Delete fontSize="small" />
             </ListItemIcon>
             <ListItemText primary="回收站" />
           </ListItemButton>
@@ -162,7 +169,7 @@ export default function Navigation({ isDark, onToggleTheme }: NavigationProps) {
         open={showAddCategoryDialog}
         onClose={() => setShowAddCategoryDialog(false)}
         onCategoryCreated={() => {
-          setShowAddCategoryDialog(false)
+          setShowAddCategoryDialog(false);
           // TODO: Refresh CategoryTree
         }}
       />
@@ -171,10 +178,10 @@ export default function Navigation({ isDark, onToggleTheme }: NavigationProps) {
         open={showAddTagDialog}
         onClose={() => setShowAddTagDialog(false)}
         onTagCreated={() => {
-          setShowAddTagDialog(false)
+          setShowAddTagDialog(false);
           // TODO: Refresh TagsSection
         }}
       />
     </Box>
-  )
+  );
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import {
   Dialog,
   DialogTitle,
@@ -11,6 +10,12 @@ import {
   Typography,
 } from "@mui/material";
 import { Close } from "@mui/icons-material";
+
+// Lazy load invoke - works in both Tauri and browser
+const invokeCommand = async <T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> => {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<T>(cmd, args);
+};
 
 interface AddTagDialogProps {
   open: boolean;
@@ -48,7 +53,7 @@ export default function AddTagDialog({
 
     setLoading(true);
     try {
-      await invoke("create_label", {
+      await invokeCommand("create_label", {
         name: name.trim(),
       });
       setName("");

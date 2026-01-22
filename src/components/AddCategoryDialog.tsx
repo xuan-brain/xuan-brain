@@ -12,7 +12,10 @@ import {
 import { Close } from "@mui/icons-material";
 
 // Lazy load invoke helper - works in both Tauri and browser
-async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+async function invokeCommand<T = unknown>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>(cmd, args);
 }
@@ -109,7 +112,7 @@ export default function AddCategoryDialog({
           fullWidth
           variant="outlined"
           value={name}
-          onChange={(e) => {
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             setName(e.target.value);
             setError("");
           }}

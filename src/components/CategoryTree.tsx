@@ -1,5 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Tree, type NodeModel, type DropOptions, type TreeMethods, type RenderParams } from "@minoru/react-dnd-treeview";
+import {
+  Tree,
+  type NodeModel,
+  type DropOptions,
+  type TreeMethods,
+  type RenderParams,
+} from "@minoru/react-dnd-treeview";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
@@ -27,7 +33,10 @@ import {
 import AddCategoryDialog from "./AddCategoryDialog";
 
 // Lazy load invoke helper - works in both Tauri and browser
-async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+async function invokeCommand<T = unknown>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>(cmd, args);
 }
@@ -57,7 +66,9 @@ interface ContextMenuState {
 export default function CategoryTree() {
   const [treeData, setTreeData] = useState<ExtendedNodeModel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedNode, setSelectedNode] = useState<NodeModel["id"] | null>(null);
+  const [selectedNode, setSelectedNode] = useState<NodeModel["id"] | null>(
+    null,
+  );
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     mouseX: 0,
     mouseY: 0,
@@ -112,10 +123,14 @@ export default function CategoryTree() {
         return;
       }
 
-      const draggedNode = tree.find((node) => node.id === dragSourceId) as ExtendedNodeModel;
+      const draggedNode = tree.find(
+        (node) => node.id === dragSourceId,
+      ) as ExtendedNodeModel;
       if (!draggedNode) return;
 
-      const targetNode = tree.find((node) => node.id === dropTargetId) as ExtendedNodeModel;
+      const targetNode = tree.find(
+        (node) => node.id === dropTargetId,
+      ) as ExtendedNodeModel;
       if (!targetNode) return;
 
       // Calculate position
@@ -281,7 +296,7 @@ export default function CategoryTree() {
             bgcolor:
               selectedNode === node.id ? "action.selected" : "transparent",
           }}
-          onContextMenu={(e) =>
+          onContextMenu={(e: React.MouseEvent) =>
             handleContextMenu(e, node.id as number, nodePath || "", node.text)
           }
           onDoubleClick={() => handleDoubleClick(node.id as number)}
@@ -298,7 +313,7 @@ export default function CategoryTree() {
                 justifyContent: "center",
                 mr: 0.5,
               }}
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 onToggle();
               }}
@@ -340,11 +355,13 @@ export default function CategoryTree() {
                     fontSize: "0.875rem",
                   },
                 }}
-                onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.select()}
+                onFocus={(e: React.FocusEvent<HTMLInputElement>) =>
+                  e.target.select()
+                }
               />
               <IconButton
                 size="small"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   const input = document.querySelector(
                     "input:focus",
@@ -358,7 +375,7 @@ export default function CategoryTree() {
               </IconButton>
               <IconButton
                 size="small"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   handleEditCancel(node.id as number);
                 }}
@@ -375,9 +392,14 @@ export default function CategoryTree() {
           {/* More Options Button */}
           <IconButton
             size="small"
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              handleContextMenu(e, node.id as number, nodePath || "", node.text);
+              handleContextMenu(
+                e,
+                node.id as number,
+                nodePath || "",
+                node.text,
+              );
             }}
             sx={{
               opacity: 0,

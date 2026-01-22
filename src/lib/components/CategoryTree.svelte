@@ -47,9 +47,10 @@
   // Load categories from backend
   async function loadCategories() {
     try {
-      console.log("Loading categories from backend...");
+      console.log("=== LOAD CATEGORIES START ===");
       const data = await invoke<CategoryNode[]>("load_categories");
-      console.log("Received categories:", data);
+      console.log("Received raw data from backend:", data);
+      console.log("Number of categories:", data.length);
 
       // Enable drag for all categories
       categories = data.map((cat) => ({
@@ -66,6 +67,8 @@
         "Version:",
         treeVersion,
       );
+      console.log("Category paths:", categories.map((c) => c.path).join(", "));
+      console.log("=== LOAD CATEGORIES END ===");
     } catch (error) {
       console.error("Failed to load categories:", error);
       // Use demo data as fallback
@@ -206,6 +209,19 @@
     element.classList.remove("ltree-dragover-highlight");
   }
 
+  // Calculate drop position based on mouse Y coordinate
+  function calculateDropPosition(
+    y: number,
+    height: number,
+  ): "above" | "below" | "child" {
+    const top = height * 0.25; // 上 25%
+    const bottom = height * 0.75; // 下 25%
+
+    if (y < top) return "above";
+    if (y > bottom) return "below";
+    return "child"; // 中间 50%
+  }
+
   async function handleTemplateDrop(targetPath: string, event: DragEvent) {
     console.log("=== DROP ===");
     console.log("Dragged:", draggedPath, "Target:", targetPath);
@@ -238,12 +254,22 @@
     }
 
     try {
-      console.log(`Calling move_category: ${draggedPath} -> ${targetPath}`);
+      // Calculate drop position based on mouse Y coordinate
+      const rect = target.getBoundingClientRect();
+      const y = event.clientY - rect.top;
+      const position = calculateDropPosition(y, rect.height);
+
+      console.log(
+        `Drop position: ${position} (Y: ${y}, Height: ${rect.height})`,
+      );
+      console.log(
+        `Calling move_category: ${draggedPath} -> ${targetPath}, position: ${position}`,
+      );
 
       await invoke("move_category", {
         draggedPath,
         targetPath,
-        position: "child",
+        position,
       });
 
       console.log("✅ Backend call successful, reloading...");
@@ -304,10 +330,21 @@
           }
 
           try {
+            // Calculate drop position based on mouse Y coordinate
+            const rect = (
+              event.currentTarget as HTMLElement
+            ).getBoundingClientRect();
+            const y = event.clientY - rect.top;
+            const position = calculateDropPosition(y, rect.height);
+
+            console.log(
+              `Tree drop position: ${position} (Y: ${y}, Height: ${rect.height})`,
+            );
+
             await invoke("move_category", {
               draggedPath: draggedNode.data.path,
               targetPath: dropNode.data.path,
-              position: "child",
+              position,
             });
 
             // 等待一小段时间确保后端更新完成
@@ -322,7 +359,7 @@
           }
         }}
       >
-        {#snippet nodeTemplate(node: any)}
+        <!-- {#snippet nodeTemplate(node: any)}
           <div
             class="flex items-center gap-1 py-0.5 px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-move"
             class:ltree-dragging={isDragging && draggedPath === node.data.path}
@@ -342,7 +379,7 @@
               {node.data.name}
             </span>
           </div>
-        {/snippet}
+        {/snippet} -->
       </Tree>
     </div>
   {:else}

@@ -24,6 +24,7 @@
 
   // State using Svelte 5 runes
   let categories = $state<CategoryNode[]>([]);
+  let treeVersion = $state(0); // 用于强制刷新 Tree 组件
   let selectedPath = $state<string | null>(null);
   let contextMenuNode = $state<{
     visible: boolean;
@@ -55,60 +56,19 @@
         ...cat,
         isDraggable: true,
       }));
+
+      // 增加版本号以强制刷新 Tree 组件
+      treeVersion += 1;
+
+      console.log(
+        "Categories loaded and updated:",
+        categories.length,
+        "Version:",
+        treeVersion,
+      );
     } catch (error) {
       console.error("Failed to load categories:", error);
       // Use demo data as fallback
-      categories = [
-        {
-          path: "1",
-          name: "计算机科学",
-          parent_id: undefined,
-          sort_order: 0,
-          isDraggable: true,
-        },
-        {
-          path: "1.1",
-          name: "人工智能",
-          parent_id: 1,
-          sort_order: 0,
-          isDraggable: true,
-        },
-        {
-          path: "1.1.1",
-          name: "机器学习",
-          parent_id: 2,
-          sort_order: 0,
-          isDraggable: true,
-        },
-        {
-          path: "1.1.2",
-          name: "深度学习",
-          parent_id: 2,
-          sort_order: 0,
-          isDraggable: true,
-        },
-        {
-          path: "1.2",
-          name: "数据库",
-          parent_id: 1,
-          sort_order: 0,
-          isDraggable: true,
-        },
-        {
-          path: "2",
-          name: "物理学",
-          parent_id: undefined,
-          sort_order: 0,
-          isDraggable: true,
-        },
-        {
-          path: "2.1",
-          name: "量子力学",
-          parent_id: 6,
-          sort_order: 0,
-          isDraggable: true,
-        },
-      ];
     }
   }
 
@@ -213,46 +173,80 @@
 
   // Template-level drag handlers
   let draggedPath = $state<string | null>(null);
+  let isDragging = $state(false);
 
   function handleTemplateDragStart(path: string, event: DragEvent) {
-    console.log("Template dragstart:", path);
+    console.log("=== DRAG START ===", path);
     draggedPath = path;
+    isDragging = true;
     if (event.dataTransfer) {
       event.dataTransfer.setData("text/plain", path);
       event.dataTransfer.effectAllowed = "move";
+      console.log("DataTransfer set:", path);
     }
   }
 
   function handleTemplateDragOver(event: DragEvent) {
-    console.log("Template dragover");
+    if (!isDragging) return;
     event.preventDefault();
+    event.stopPropagation();
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = "move";
     }
   }
 
+  function handleTemplateDragEnter(event: DragEvent, element: HTMLElement) {
+    if (!isDragging) return;
+    event.preventDefault();
+    element.classList.add("ltree-dragover-highlight");
+  }
+
+  function handleTemplateDragLeave(event: DragEvent, element: HTMLElement) {
+    if (!isDragging) return;
+    element.classList.remove("ltree-dragover-highlight");
+  }
+
   async function handleTemplateDrop(targetPath: string, event: DragEvent) {
-    console.log("Template drop:", { draggedPath, targetPath });
+    console.log("=== DROP ===");
+    console.log("Dragged:", draggedPath, "Target:", targetPath);
+
     event.preventDefault();
     event.stopPropagation();
 
+    // Remove highlight
+    const target = event.currentTarget as HTMLElement;
+    target.classList.remove("ltree-dragover-highlight");
+
     if (!draggedPath) {
       console.warn("No dragged path");
+      isDragging = false;
       return;
     }
 
     if (draggedPath === targetPath) {
       console.warn("Cannot drop on itself");
+      isDragging = false;
+      return;
+    }
+
+    // Prevent dropping ancestor into descendant
+    if (targetPath.startsWith(draggedPath + ".")) {
+      console.warn("Cannot drop parent into its child");
+      alert("不能将父分类拖拽到其子分类中");
+      isDragging = false;
       return;
     }
 
     try {
+      console.log(`Calling move_category: ${draggedPath} -> ${targetPath}`);
+
       await invoke("move_category", {
         draggedPath,
         targetPath,
         position: "child",
       });
 
+      console.log("✅ Backend call successful, reloading...");
       await loadCategories();
       console.log("✅ Category moved successfully");
     } catch (error) {
@@ -260,6 +254,7 @@
       alert(`移动分类失败: ${error}`);
     } finally {
       draggedPath = null;
+      isDragging = false;
     }
   }
 
@@ -285,15 +280,61 @@
     <div class="tree-container overflow-y-auto" style="max-height: 300px;">
       <Tree
         data={categories}
-        idMember="id"
+        idMember="path"
         pathMember="path"
         displayValueMember="name"
+        isDraggableMember="isDraggable"
         selectedNodeClass="ltree-selected-bold"
         dragOverNodeClass="ltree-dragover-highlight"
+        onNodeClicked={handleNodeClicked}
+        onNodeDragStart={(node, event) => {
+          console.log("=== TREE DRAG START ===", node.data);
+        }}
+        onNodeDragOver={(node, event) => {
+          console.log("=== TREE DRAG OVER ===", node?.data?.name);
+        }}
+        onNodeDrop={async (dropNode, draggedNode, event) => {
+          console.log("=== TREE DROP ===");
+          console.log("Drop target:", dropNode?.data);
+          console.log("Dragged node:", draggedNode.data);
+
+          if (!dropNode?.data || !draggedNode?.data) {
+            console.warn("Missing node data");
+            return;
+          }
+
+          try {
+            await invoke("move_category", {
+              draggedPath: draggedNode.data.path,
+              targetPath: dropNode.data.path,
+              position: "child",
+            });
+
+            // 等待一小段时间确保后端更新完成
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            // 重新加载分类数据
+            await loadCategories();
+            console.log("✅ Category moved successfully");
+          } catch (error) {
+            console.error("❌ Failed to move category:", error);
+            alert(`移动分类失败: ${error}`);
+          }
+        }}
       >
-        <!-- {#snippet nodeTemplate(node: any)}
+        {#snippet nodeTemplate(node: any)}
           <div
             class="flex items-center gap-1 py-0.5 px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-move"
+            class:ltree-dragging={isDragging && draggedPath === node.data.path}
+            oncontextmenu={(e) => handleContextMenu(e, node)}
+            draggable="true"
+            ondragstart={(e) => handleTemplateDragStart(node.data.path, e)}
+            ondragover={(e) => handleTemplateDragOver(e)}
+            ondragenter={(e) => handleTemplateDragEnter(e, e.currentTarget)}
+            ondragleave={(e) => handleTemplateDragLeave(e, e.currentTarget)}
+            ondrop={(e) => handleTemplateDrop(node.data.path, e)}
+            role="button"
+            tabindex="0"
             aria-label={node.data.name}
           >
             <Folder size={14} class="text-gray-500 dark:text-gray-400" />
@@ -301,7 +342,7 @@
               {node.data.name}
             </span>
           </div>
-        {/snippet} -->
+        {/snippet}
       </Tree>
     </div>
   {:else}
@@ -349,7 +390,6 @@
     background: #9ca3af;
   }
 
-  /* Dark mode scrollbar */
   @media (prefers-color-scheme: dark) {
     .tree-container::-webkit-scrollbar-thumb {
       background: #4b5563;
@@ -378,5 +418,11 @@
   :global(.ltree-dragover-highlight) {
     border: 2px dashed rgb(var(--color-accent-500));
     background-color: rgba(var(--color-accent-500), 0.1);
+  }
+
+  /* Dragging state style */
+  :global(.ltree-dragging) {
+    opacity: 0.5;
+    cursor: grabbing;
   }
 </style>

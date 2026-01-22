@@ -92,14 +92,19 @@ impl<'a> CategoryService<'a> {
         Ok(())
     }
 
-    // 移动节点：核心逻辑是根据 targetPath + position 重新计算 ltree_path，并更新整棵子树
+    // 移动节点:核心逻辑是根据 targetPath + position 重新计算 ltree_path,并更新整棵子树
     pub async fn move_node(
         &self,
         dragged_path: &str,
         target_path: Option<&str>,
         position: &str, // "above" | "below" | "child"
     ) -> Result<String, DbErr> {
-        // 1. 加载所有节点，内存中构建 path -> Model 映射
+        println!("=== MOVE NODE START ===");
+        println!("Dragged path: {}", dragged_path);
+        println!("Target path: {:?}", target_path);
+        println!("Position: {}", position);
+
+        // 1. 加载所有节点,内存中构建 path -> Model 映射
         let all = Category::find()
             .order_by_asc(entities::category::Column::LtreePath)
             .all(self.db)
@@ -111,34 +116,45 @@ impl<'a> CategoryService<'a> {
             .get(dragged_path)
             .ok_or_else(|| DbErr::Custom("Dragged node not found".into()))?;
 
+        println!("Current dragged node ltree_path: {}", dragged.ltree_path);
+
         let new_path =
             self.calc_new_path_after_move(&by_path, dragged_path, target_path, position)?;
 
+        println!("Calculated new path: {}", new_path);
+
         // 更新 dragged 及所有子孙的 ltree_path
-        let prefix_to_update = dragged_path.to_string() + "."; // 避免匹配到 "1.10" 这种
+        // 查找所有以 dragged_path 开头的节点(包括 dragged_path 本身)
         let all_for_update: Vec<entities::category::Model> = Category::find()
             .filter(
-                Expr::col(entities::category::Column::LtreePath)
-                    .like(format!("{}%", prefix_to_update)),
+                Expr::col(entities::category::Column::LtreePath).like(format!("{}%", dragged_path)),
             )
             .all(self.db)
             .await?;
 
+        println!(
+            "Found {} nodes to update (including dragged)",
+            all_for_update.len()
+        );
+
         for mut model in all_for_update {
+            let old_path = model.ltree_path.clone();
             let suffix = model.ltree_path.strip_prefix(dragged_path).unwrap_or("");
             let new_node_path = if suffix.is_empty() {
                 new_path.clone()
             } else {
-                format!("{}.{}", new_path, suffix)
+                format!("{}.{}", new_path, &suffix[1..]) // skip the leading dot
             };
-            model.ltree_path = new_node_path;
+            println!("Updating: {} -> {}", old_path, new_node_path);
+            model.ltree_path = new_node_path.clone();
+
             // 更新到数据库
             let mut am: entities::category::ActiveModel = model.into();
-            am.ltree_path = ActiveValue::Set(am.ltree_path.unwrap());
+            am.ltree_path = ActiveValue::Set(new_node_path);
             am.update(self.db).await?;
         }
 
-        // 重新更新 parent_id（可选，根据新 path 的前段）
+        // 重新更新 parent_id
         let segments: Vec<&str> = new_path.split('.').collect();
         let new_parent_path = if segments.len() > 1 {
             Some(segments[..segments.len() - 1].join("."))
@@ -146,21 +162,31 @@ impl<'a> CategoryService<'a> {
             None
         };
 
-        // 从数据库中查找新的父节点（因为 by_path 包含的是旧路径，新父路径可能不在其中）
+        println!("New parent path: {:?}", new_parent_path);
+
+        // 从数据库中查找新的父节点
         let new_parent_id = if let Some(ref parent_path) = new_parent_path {
             Category::find()
                 .filter(entities::category::Column::LtreePath.eq(parent_path.as_str()))
                 .one(self.db)
                 .await?
-                .map(|p| p.id)
+                .map(|p| {
+                    println!("Found parent node: {} (id: {})", p.ltree_path, p.id);
+                    p.id
+                })
         } else {
+            println!("No parent (root node)");
             None
         };
 
-        // 保存 dragged 本身（parent_id 字段）
+        // 保存 dragged 本身的 parent_id 字段
         let mut am: entities::category::ActiveModel = dragged.clone().into();
         am.parent_id = ActiveValue::Set(new_parent_id);
+        // 注意:不要更新 ltree_path,因为已经在上面更新过了
         am.update(self.db).await?;
+
+        println!("Updated parent_id to: {:?}", new_parent_id);
+        println!("=== MOVE NODE COMPLETE ===");
 
         Ok(new_path)
     }
@@ -198,7 +224,7 @@ impl<'a> CategoryService<'a> {
         }
     }
 
-    // 工具：根据拖拽位置计算新的 ltree_path（简化示例）
+    // 工具:根据拖拽位置计算新的 ltree_path
     fn calc_new_path_after_move(
         &self,
         by_path: &HashMap<String, entities::category::Model>,
@@ -206,10 +232,6 @@ impl<'a> CategoryService<'a> {
         target_path: Option<&str>,
         position: &str,
     ) -> Result<String, DbErr> {
-        // 这里给一个简化版本：
-        // - position == "child"：放到 target 之下（没有同级排序逻辑）
-        // - position == "above"/"below"：放到 target 的父节点下，同级调整（暂不精确排序）
-
         if let Some(target) = target_path {
             let target_node = by_path
                 .get(target)
@@ -217,24 +239,68 @@ impl<'a> CategoryService<'a> {
 
             match position {
                 "child" => {
-                    // 简化：作为 target 的最后一个子节点
-                    let last_child_seq = 0; // 实际应查询 target 的子节点最大 path 段
-                    Ok(format!("{}.{}", target, last_child_seq + 1))
+                    // 作为 target 的子节点,找 target 下子节点的最大序号
+                    let target_prefix = format!("{}.", target);
+                    let max_seq = by_path
+                        .keys()
+                        .filter(|k| k.starts_with(&target_prefix) && k.as_str() != target)
+                        .filter_map(|k| {
+                            k.trim_start_matches(&target_prefix)
+                                .split('.')
+                                .next()
+                                .and_then(|s| s.parse::<i64>().ok())
+                        })
+                        .max()
+                        .unwrap_or(0);
+
+                    Ok(format!("{}.{}", target, max_seq + 1))
                 }
                 "above" | "below" => {
-                    // 插入到 target 的父节点之下，同级里排在 target 之前或之后
-                    // 简化：这里直接用 target 的父路径作为前缀，再根据你自己的业务逻辑计算 seq
-                    // 真实项目中需要考虑排序字段，对同级节点做重新编号
-                    let parent_path = target_node.ltree_path.rsplit_once('.').map(|(p, _)| p);
-                    let prefix = parent_path.unwrap_or("");
-                    // 这里只是示例，实际上你要算出一个新的 seq 号，避免冲突
-                    Ok(format!("{}.{}", prefix, 999)) // 占位，仅演示结构
+                    // 获取 target 的父路径
+                    let (parent_path, target_seq) = target_node
+                        .ltree_path
+                        .rsplit_once('.')
+                        .unwrap_or(("", target_node.ltree_path.as_str()));
+
+                    // 找到同级所有节点,确定新序号
+                    let _prefix = if parent_path.is_empty() {
+                        String::new()
+                    } else {
+                        format!("{}.", parent_path)
+                    };
+
+                    // 解析 target 的序号
+                    let target_seq_num = target_seq
+                        .parse::<i64>()
+                        .map_err(|_| DbErr::Custom("Invalid target path format".into()))?;
+
+                    // position == "above" 使用 target 的序号
+                    // position == "below" 使用 target 的序号 + 1
+                    let new_seq = if position == "above" {
+                        target_seq_num
+                    } else {
+                        target_seq_num + 1
+                    };
+
+                    // 构建新路径
+                    if parent_path.is_empty() {
+                        Ok(new_seq.to_string())
+                    } else {
+                        Ok(format!("{}.{}", parent_path, new_seq))
+                    }
                 }
                 _ => Err(DbErr::Custom(format!("Unsupported position: {}", position))),
             }
         } else {
-            // 拖到根区域：作为根节点
-            Ok((by_path.len() + 1).to_string()) // 极简示例
+            // 拖到根区域:找最大根节点 id + 1
+            let max_root_id = by_path
+                .keys()
+                .filter(|k| !k.contains('.'))
+                .filter_map(|k| k.parse::<i64>().ok())
+                .max()
+                .unwrap_or(0);
+
+            Ok((max_root_id + 1).to_string())
         }
     }
 }

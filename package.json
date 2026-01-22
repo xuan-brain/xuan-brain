@@ -39,6 +39,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.0",
     "prettier": "3.8.0",
+    "sass-embedded": "^1.97.3",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "tailwindcss": "^4.0.0",

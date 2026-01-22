@@ -12,6 +12,9 @@
   let showAddCategoryDialog = $state(false);
   let showAddTagDialog = $state(false);
 
+  // Reference to CategoryTree component
+  let categoryTreeRef: CategoryTree;
+
   // Handle navigation click
   function handleNavClick(itemId: string) {
     activeItem = itemId;
@@ -48,6 +51,10 @@
 
   async function onCategoryCreated() {
     closeAddCategoryDialog();
+    // Refresh CategoryTree to show the new category
+    if (categoryTreeRef) {
+      await categoryTreeRef.refreshCategories();
+    }
   }
 
   async function onTagCreated() {
@@ -90,7 +97,7 @@
 
           <!-- Category Tree (always expanded) -->
           <div class="ml-6 mt-1">
-            <CategoryTree />
+            <CategoryTree bind:this={categoryTreeRef} />
           </div>
         </li>
       </ul>

@@ -264,7 +264,7 @@
 >
   <!-- Dark Mode Toggle - Circular Button -->
   <button
-    class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex-shrink-0"
+    class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 shrink-0"
     onclick={toggleDarkMode}
     aria-label={isDarkMode ? $t("theme.lightMode") : $t("theme.darkMode")}
     aria-pressed={isDarkMode}
@@ -434,7 +434,7 @@
         <div class="p-2 grid grid-cols-4 gap-1.5">
           {#each accentColors as color}
             <button
-              class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 flex-shrink-0 {selectedAccentColor ===
+              class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 shrink-0 {selectedAccentColor ===
               color.value
                 ? 'border-gray-900 dark:border-gray-100 ring-2 ring-offset-1'
                 : 'border-gray-300 dark:border-gray-600'}"

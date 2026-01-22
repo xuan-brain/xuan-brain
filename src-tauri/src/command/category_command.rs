@@ -68,6 +68,7 @@ pub async fn move_category(
 // 传给前端的 DTO，包含 path 字段（svelte-treeview 需要）
 #[derive(serde::Serialize)]
 pub struct CategoryDto {
+    pub id: i64,
     pub path: String,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]

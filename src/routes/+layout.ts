@@ -8,7 +8,7 @@ export const ssr = false;
 import "../lib/css/app.css";
 
 // Wait for i18n to load before rendering
-import { waitLocale } from "$lib/i18n";
+import { waitLocale } from "$lib/i18n/index";
 export async function load() {
   await waitLocale();
   return {};

@@ -2,7 +2,14 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { Tree } from "@keenmate/svelte-treeview";
-  import { Folder, FolderOpen, Plus, Edit, Trash2 } from "lucide-svelte";
+  import {
+    Folder,
+    FolderOpen,
+    Plus,
+    SquarePen,
+    Trash2,
+    Pencil,
+  } from "lucide-svelte";
   import AddCategoryDialog from "./AddCategoryDialog.svelte";
   import EditCategoryDialog from "./EditCategoryDialog.svelte";
 
@@ -12,6 +19,7 @@
     name: string;
     parent_id?: number;
     sort_order: number;
+    isDraggable?: boolean;
   }
 
   // State using Svelte 5 runes
@@ -41,18 +49,65 @@
       console.log("Loading categories from backend...");
       const data = await invoke<CategoryNode[]>("load_categories");
       console.log("Received categories:", data);
-      categories = data;
+
+      // Enable drag for all categories
+      categories = data.map((cat) => ({
+        ...cat,
+        isDraggable: true,
+      }));
     } catch (error) {
       console.error("Failed to load categories:", error);
       // Use demo data as fallback
       categories = [
-        { path: "1", name: "计算机科学", parent_id: undefined, sort_order: 0 },
-        { path: "1.1", name: "人工智能", parent_id: 1, sort_order: 0 },
-        { path: "1.1.1", name: "机器学习", parent_id: 2, sort_order: 0 },
-        { path: "1.1.2", name: "深度学习", parent_id: 2, sort_order: 0 },
-        { path: "1.2", name: "数据库", parent_id: 1, sort_order: 0 },
-        { path: "2", name: "物理学", parent_id: undefined, sort_order: 0 },
-        { path: "2.1", name: "量子力学", parent_id: 6, sort_order: 0 },
+        {
+          path: "1",
+          name: "计算机科学",
+          parent_id: undefined,
+          sort_order: 0,
+          isDraggable: true,
+        },
+        {
+          path: "1.1",
+          name: "人工智能",
+          parent_id: 1,
+          sort_order: 0,
+          isDraggable: true,
+        },
+        {
+          path: "1.1.1",
+          name: "机器学习",
+          parent_id: 2,
+          sort_order: 0,
+          isDraggable: true,
+        },
+        {
+          path: "1.1.2",
+          name: "深度学习",
+          parent_id: 2,
+          sort_order: 0,
+          isDraggable: true,
+        },
+        {
+          path: "1.2",
+          name: "数据库",
+          parent_id: 1,
+          sort_order: 0,
+          isDraggable: true,
+        },
+        {
+          path: "2",
+          name: "物理学",
+          parent_id: undefined,
+          sort_order: 0,
+          isDraggable: true,
+        },
+        {
+          path: "2.1",
+          name: "量子力学",
+          parent_id: 6,
+          sort_order: 0,
+          isDraggable: true,
+        },
       ];
     }
   }
@@ -75,9 +130,10 @@
   });
 
   // Handle node click
-  function handleNodeClicked(node: { data: CategoryNode }) {
+  function handleNodeClicked(node: any) {
+    if (!node.data) return;
     selectedPath = node.data.path;
-    console.log("Selected category:", node.data);
+    console.log("Selected category:", $state.snapshot(node.data));
     // TODO: Navigate to category page
   }
 
@@ -144,10 +200,82 @@
     await loadCategories();
   }
 
+  // Public method to refresh categories (can be called from parent)
+  export async function refreshCategories() {
+    await loadCategories();
+  }
+
   // Handle add root category button
   function handleAddRootCategory() {
     addDialogParentPath = undefined;
     showAddDialog = true;
+  }
+
+  // Template-level drag handlers
+  let draggedPath = $state<string | null>(null);
+
+  function handleTemplateDragStart(path: string, event: DragEvent) {
+    console.log("Template dragstart:", path);
+    draggedPath = path;
+    if (event.dataTransfer) {
+      event.dataTransfer.setData("text/plain", path);
+      event.dataTransfer.effectAllowed = "move";
+    }
+  }
+
+  function handleTemplateDragOver(event: DragEvent) {
+    console.log("Template dragover");
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "move";
+    }
+  }
+
+  async function handleTemplateDrop(targetPath: string, event: DragEvent) {
+    console.log("Template drop:", { draggedPath, targetPath });
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!draggedPath) {
+      console.warn("No dragged path");
+      return;
+    }
+
+    if (draggedPath === targetPath) {
+      console.warn("Cannot drop on itself");
+      return;
+    }
+
+    try {
+      await invoke("move_category", {
+        draggedPath,
+        targetPath,
+        position: "child",
+      });
+
+      await loadCategories();
+      console.log("✅ Category moved successfully");
+    } catch (error) {
+      console.error("❌ Failed to move category:", error);
+      alert(`移动分类失败: ${error}`);
+    } finally {
+      draggedPath = null;
+    }
+  }
+
+  // Sort callback for tree ordering
+  function sortCallback(items: any[]) {
+    return items.sort((a, b) => {
+      // First, sort by level (shallower levels first)
+      const aLevel = a.data.path.split(".").length;
+      const bLevel = b.data.path.split(".").length;
+      if (aLevel !== bLevel) {
+        return aLevel - bLevel;
+      }
+
+      // Then sort by sort_order
+      return a.data.sort_order - b.data.sort_order;
+    });
   }
 </script>
 
@@ -157,18 +285,15 @@
     <div class="tree-container overflow-y-auto" style="max-height: 300px;">
       <Tree
         data={categories}
-        idMember="path"
+        idMember="id"
         pathMember="path"
         displayValueMember="name"
         selectedNodeClass="ltree-selected-bold"
-        onNodeClicked={handleNodeClicked}
+        dragOverNodeClass="ltree-dragover-highlight"
       >
-        {#snippet nodeTemplate(node)}
+        <!-- {#snippet nodeTemplate(node: any)}
           <div
-            class="flex items-center gap-1 py-0.5 px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-            oncontextmenu={(e) => handleContextMenu(e, node)}
-            role="button"
-            tabindex="0"
+            class="flex items-center gap-1 py-0.5 px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-move"
             aria-label={node.data.name}
           >
             <Folder size={14} class="text-gray-500 dark:text-gray-400" />
@@ -176,40 +301,7 @@
               {node.data.name}
             </span>
           </div>
-        {/snippet}
-
-        {#snippet contextMenu(node, closeMenu)}
-          <div
-            class="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[150px]"
-            style="left: {contextMenuNode.x}px; top: {contextMenuNode.y}px;"
-            onmousedown={(e) => e.stopPropagation()}
-            role="menu"
-            tabindex="-1"
-            aria-label="Category context menu"
-          >
-            <button
-              onclick={() => handleAddSubCategory(node.data.path)}
-              class="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
-            >
-              <Plus size={14} />
-              添加子分类
-            </button>
-            <button
-              onclick={() => handleEditCategory(node.data)}
-              class="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
-            >
-              <Edit size={14} />
-              编辑
-            </button>
-            <button
-              onclick={() => handleDeleteCategory(node.data.path)}
-              class="w-full px-3 py-2 text-sm text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
-            >
-              <Trash2 size={14} />
-              删除
-            </button>
-          </div>
-        {/snippet}
+        {/snippet} -->
       </Tree>
     </div>
   {:else}

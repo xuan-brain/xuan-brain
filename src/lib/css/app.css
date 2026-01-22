@@ -26,8 +26,9 @@
 @import "@skeletonlabs/skeleton/themes/vintage";
 @import "@skeletonlabs/skeleton/themes/vox";
 @import "@skeletonlabs/skeleton/themes/wintry";
-
+@import "@keenmate/svelte-treeview/styles.scss";
 /* Tailwind CSS 4 theme configuration */
+/* eslint-disable-next-line css/unknown-at-rule */
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
 }

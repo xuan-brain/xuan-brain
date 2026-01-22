@@ -27,6 +27,7 @@ impl<'a> CategoryService<'a> {
         let dtos: Vec<CategoryDto> = all
             .into_iter()
             .map(|m| CategoryDto {
+                id: m.id,
                 path: m.ltree_path,
                 name: m.name,
                 parent_id: m.parent_id,

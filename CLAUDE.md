@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-**璇玑 (xuan-brain)** 是一个基于 **Tauri 2.x + SvelteKit 5 + TypeScript** 构建的 AI 驱动科研文献管理桌面应用。本设计借鉴 Zotero 的核心理念，通过插件机制提供功能强大且易于使用的文献管理平台。
+**璇玑 (xuan-brain)** 是一个基于 **Tauri 2.x + React 18 + TypeScript** 构建的 AI 驱动科研文献管理桌面应用。本设计借鉴 Zotero 的核心理念，通过插件机制提供功能强大且易于使用的文献管理平台。
 
 ### 核心功能
 - **文献导入与管理**: 支持 PDF、DOCX、HTML、EPUB 等多格式文献导入，自动提取元数据
@@ -26,12 +26,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 技术选型理由
 - **Tauri**: 相比 Electron 更轻量(体积小 80%)、更安全(Rust 内存安全)、性能更好
-- **SvelteKit 5 + Svelte 5**: 编译时框架、运行时开销小、runes 响应式系统，提供现代开发体验
-- **Skeleton 4.x**: 基于 Tailwind CSS 的自适应设计系统，提供统一的 UI 组件和主题系统
-  - **依赖要求**: Svelte 5 + Vite 6 + Tailwind CSS 4
-  - **特点**: 丰富的 UI 组件、可定制主题、暗色模式支持、无障碍访问
-  - **注意**: Skeleton 4.x 不支持 Svelte 4，必须使用 Svelte 5
-- **Tailwind CSS 4**: 最新版本的实用优先 CSS 框架，性能优化和配置简化
+- **React 18**: 成熟的生态系统、丰富的第三方库、强大的社区支持
+  - **组件模型**: 函数组件 + Hooks，声明式编程
+  - **虚拟 DOM**: 高效的 diff 算法和渲染优化
+  - **并发模式**: 支持后台渲染和可中断渲染
+- **Material-UI (MUI)**: 企业级 React UI 组件库
+  - **丰富的组件**: 100+ 预构建组件，涵盖所有常见 UI 需求
+  - **Material Design**: 遵循 Google Material Design 规范，界面美观一致
+  - **高质量**: 优秀的代码质量、可访问性和国际化支持
+  - **主题系统**: 强大的主题定制能力，支持暗色模式
+  - **Tree View**: 内置功能完善的树形组件 (`@mui/x-tree-view`)
+  - **Data Grid**: 高级数据表格组件 (`@mui/x-data-grid`)
+  - **生态系统**: 丰富的相关库 (DatePicker, Charts, Toast Notifications)
+- **React Router v7**: 事实标准的 React 路由库
+- **Zustand**: 轻量级状态管理库
+- **React Query (TanStack Query)**: 强大的服务端状态管理
+- **Emotion**: CSS-in-JS 库，MUI 默认样式引擎
+- **Tailwind CSS 4**: 可选的实用优先 CSS 框架，用于部分样式定制
 - **Rust 后端**: 高性能 PDF 处理、文件 I/O、AI 模型推理
 - **SQLite**: 嵌入式数据库、零配置、单文件备份
 
@@ -43,12 +54,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 核心架构
 
-### 前端 (SvelteKit)
-- **框架**: SvelteKit 5.x 使用 Svelte 5 的新 runes 语法 (`$state`, `$derived` 等)
-- **渲染模式**: SPA 模式 (禁用 SSR)，因为 Tauri 没有 Node.js 服务器
-- **适配器**: `@sveltejs/adapter-static` with fallback to `index.html"
-- **路由**: 文件系统路由位于 `src/routes/`
+### 前端 (React)
+- **框架**: React 18.x 使用函数组件和 Hooks
+- **构建工具**: Vite 6.x (快速的开发服务器和构建工具)
+- **渲染模式**: SPA (单页应用)，无需 SSR
+- **路由**: React Router v7，位于 `src/routes/` 或 `src/pages/`
 - **开发服务器**: 运行在 `http://localhost:1420`
+- **状态管理**:
+  - **客户端状态**: Zustand (轻量级全局状态)
+  - **服务端状态**: React Query (异步数据获取和缓存)
+  - **表单状态**: React Hook Form + Zod (类型安全的表单验证)
+- **UI 组件库**: Material-UI (MUI)
+  - 核心组件: `@mui/material`
+  - 树形组件: `@mui/x-tree-view`
+  - 数据表格: `@mui/x-data-grid`
+  - 日期选择: `@mui/x-date-pickers`
+  - 图标: `@mui/icons-material`
+- **样式**: Emotion (MUI 默认) + Tailwind CSS 4 (可选)
+- **图标**: Material Icons (MUI 内置) 或 Lucide React
 - **职责**:
   - 文献列表展示和 UI 交互
   - 搜索和筛选界面
@@ -261,11 +284,14 @@ yarn tauri build
 
 ### 类型检查
 ```bash
-# 单次检查
-yarn check
+# TypeScript 类型检查
+yarn tsc --noEmit
 
-# 监听模式
-yarn check:watch
+# ESLint 检查
+yarn lint
+
+# Prettier 格式化
+yarn format
 ```
 
 ### Rust 后端命令
@@ -316,53 +342,163 @@ const result = await invoke("my_command", { param: "value" });
 - 只在用户明确指示或完成功能后，才提交代码
 - 如果发现错误，可以先修复，等待用户确认后再提交
 
-### Svelte 5 Runes 语法
-- 使用 `$state()` 代替 `let` 声明响应式变量
-- 使用 `$derived()` 计算派生值
-- 使用 `$effect()` 处理副作用
-- 不要使用 Svelte 4 的 `export let` props 语法(在 `.svelte` 文件中)
+### React Hooks 最佳实践
+- **使用函数组件**: 避免类组件，使用函数组件 + Hooks
+- **自定义 Hooks**: 提取可复用的逻辑到自定义 Hooks
+- **依赖数组**: 正确使用 `useEffect`, `useMemo`, `useCallback` 的依赖数组
+- **状态管理**:
+  - 局部状态: `useState`, `useReducer`
+  - 全局状态: Zustand
+  - 服务端状态: React Query
+  - 表单状态: React Hook Form
+- **性能优化**:
+  - 使用 `React.memo` 避免不必要的重渲染
+  - 使用 `useMemo` 缓存昂贵的计算
+  - 使用 `useCallback` 缓存回调函数
+  - 使用 `React.lazy` 和 `Suspense` 进行代码分割
 
 ### 端口配置
 - Vite 开发服务器必须运行在端口 **1420**
 - `tauri.conf.json` 中的 `devUrl` 必须匹配
 - 端口被占用会导致启动失败
 
-### SSR 禁用
-- 所有页面布局必须设置 `export const ssr = false;`
-- 这已在 `src/routes/+layout.ts` 中配置
+### Material-UI (MUI) 配置
+- **组件系统**: MUI 提供完整的预构建 React 组件库
+- **安装方式**: 使用 `yarn add @mui/material @emotion/react @emotion/styled` 安装核心库
+- **组件位置**: 直接从 `@mui/material` 导入使用
+- **可定制性**: 通过主题系统深度定制组件样式
+- **主题系统**:
+  - 使用 `ThemeProvider` 包裹应用
+  - 支持暗色模式切换 (`createTheme({ palette: { mode: 'dark' } })`)
+  - 支持自定义颜色、字体、间距等
+  - 使用 `CssBaseline` 统一基础样式
+- **常用组件**:
+  - `Button`, `TextField`, `FormControl`, `Select`, `Checkbox`
+  - `Dialog`, `Menu`, `Popover`
+  - `Snackbar`, `Alert`, `Card`
+  - `Table`, `Tabs`, `Tooltip`
+- **Tree View**: `@mui/x-tree-view` 提供功能完善的树形组件
+- **数据网格**: `@mui/x-data-grid` 提供高级数据表格功能
 
-### Skeleton 4.x 配置
-- **主题系统**: Skeleton 4.x 提供了完整的主题系统，包括:
-  - **颜色主题**: 21 个预设主题 (cerberus, catppuccin, modern 等)
-  - **暗色模式**: 通过 `data-mode` 属性控制
-  - **主题切换**: 使用 `data-theme` 属性切换颜色主题
-- **全局样式**: 在 `src/lib/css/app.css` 中导入所有主题:
-  ```css
-  @import "tailwindcss";
-  /* 导入所有预设主题 */
-  @import "@skeletonlabs/skeleton/themes/catppuccin";
-  @import "@skeletonlabs/skeleton/themes/cerberus";
-  /* ... 其他 19 个主题 */
-  
-  /* 定义 dark mode 变体 */
-  @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
-  @custom-variant light (&:where([data-mode="light"], [data-mode="light"] *));
-  ```
-- **HTML 属性**:
-  - `data-theme="cerberus"` - 设置颜色主题
-  - `data-mode="dark"` - 设置暗色/明亮模式
-- **注意**: Skeleton 4.x 要求 Svelte 5，不支持 Svelte 4
-- **主题切换组件**: 使用 `src/lib/components/ThemeSwitcher.svelte` 提供主题切换功能
-  - 颜色主题选择器（下拉菜单）
-  - Dark Mode 开关
-  - 自动持久化到 localStorage
-  - 防止主题闪烁（在 hydration 前设置）
+**主题切换示例**:
+```typescript
+// src/theme.ts
+import { createTheme, ThemeOptions } from '@mui/material/styles'
+
+const lightTheme: ThemeOptions = {
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+}
+
+const darkTheme: ThemeOptions = {
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#90caf9',
+    },
+    secondary: {
+      main: '#f48fb1',
+    },
+  },
+}
+
+export { lightTheme, darkTheme }
+```
+
+```tsx
+// src/App.tsx
+import { ThemeProvider, CssBaseline } from '@mui/material'
+import { useState } from 'react'
+import { lightTheme, darkTheme } from './theme'
+
+export default function App() {
+  const [isDark, setIsDark] = useState(true)
+
+  const theme = createTheme(isDark ? darkTheme : lightTheme)
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {/* 应用内容 */}
+    </ThemeProvider>
+  )
+}
+```
+
+**Tree View 组件示例**:
+```tsx
+import { TreeView } from '@mui/x-tree-view/TreeView'
+import { TreeItem } from '@mui/x-tree-view/TreeItem'
+import { ExpandMore, ChevronRight } from '@mui/icons-material'
+
+interface CategoryNode {
+  path: string
+  name: string
+  children?: CategoryNode[]
+}
+
+export function CategoryTree({ categories }: { categories: CategoryNode[] }) {
+  const renderTree = (node: CategoryNode) => (
+    <TreeItem key={node.path} nodeId={node.path} label={node.name}>
+      {Array.isArray(node.children)
+        ? node.children.map((child) => renderTree(child))
+        : null}
+    </TreeItem>
+  )
+
+  return (
+    <TreeView
+      defaultCollapseIcon={<ExpandMore />}
+      defaultExpandIcon={<ChevronRight />}
+    >
+      {categories.map((cat) => renderTree(cat))}
+    </TreeView>
+  )
+}
+```
 
 ### Tailwind CSS 4 配置
-- **Vite 插件**: 在 `vite.config.js` 中使用 `@tailwindcss/vite` 插件
-- **PostCSS**: 使用 `@tailwindcss/postcss` 而非传统 PostCSS 配置
+- **Vite 插件**: 在 `vite.config.ts` 中使用 `@tailwindcss/vite` 插件
+- **PostCSS**: 使用 `@tailwindcss/postcss`
 - **配置文件**: `tailwind.config.js` 使用新格式
-- **优先级**: Tailwind 插件必须在 Vite 配置中的 Svelte 插件之前
+- **CSS 变量**: 在 `src/index.css` 中定义 Tailwind CSS 变量
+- **暗色模式**: 使用 `dark:` 前缀，配合 `data-mode="dark"` 属性
+
+**配置示例**:
+```javascript
+// vite.config.ts
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [tailwindcss(), react()],
+  server: {
+    port: 1420,
+    strictPort: true,
+  },
+})
+```
+
+```css
+/* src/index.css */
+@import "tailwindcss";
+
+@theme {
+  --color-primary: oklch(0.7 0.15 250);
+  --color-secondary: oklch(0.65 0.12 200);
+  /* 更多颜色定义 */
+}
+
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+```
 
 ### 文件监听
 - Vite 配置忽略监听 `src-tauri/**` 目录
@@ -413,34 +549,39 @@ const result = await invoke("my_command", { param: "value" });
 ## 项目结构
 
 ```
-src/                         # SvelteKit 前端
-├── routes/                 # 页面路由
-│   ├── +layout.ts         # 根布局(SSR disabled)
-│   ├── +page.svelte       # 主页
-│   ├── library/           # 文献库页面
-│   ├── reader/            # PDF 阅读器
-│   └── settings/          # 设置页面
-├── lib/                   # 前端工具库
-│   ├── components/        # 自定义组件和 Skeleton 组件封装
-│   │   ├── Navigation.svelte       # 导航组件（包含分类树）
-│   │   ├── CategoryTree.svelte     # 文献库分类树组件
-│   │   ├── AddCategoryDialog.svelte    # 添加分类对话框
-│   │   ├── EditCategoryDialog.svelte   # 编辑分类对话框
-│   │   ├── ThemeSwitcher.svelte    # 主题切换组件
-│   │   ├── StatusBar.svelte        # 状态栏组件
-│   │   ├── TagsSection.svelte      # 标签区域组件
-│   │   └── AddTagDialog.svelte     # 添加标签对话框
-│   ├── css/               # 全局样式文件
-│   │   └── app.css       # Tailwind + Skeleton 样式导入
-│   ├── stores/            # Svelte stores (状态管理)
-│   │   └── theme.ts      # 主题切换 store
-│   └── types.ts          # TypeScript 类型定义
-├── app.html               # HTML 模板
-vite.config.js             # Vite 配置
-svelte.config.js           # Svelte 配置
-tailwind.config.js         # Tailwind CSS 配置
-postcss.config.js          # PostCSS 配置
-package.json               # Node.js 依赖
+src/                         # React 前端
+├── main.tsx                # React 应用入口
+├── App.tsx                 # 主应用组件 (路由配置)
+├── theme.ts                # MUI 主题配置
+├── routes/                 # 页面路由 (或 src/pages/)
+│   ├── LibraryPage.tsx     # 文献库主页
+│   ├── ReaderPage.tsx      # PDF 阅读器
+│   └── SettingsPage.tsx    # 设置页面
+├── components/             # 可复用组件
+│   ├── Layout.tsx          # 主布局组件
+│   ├── Navigation.tsx      # 侧边导航栏（包含分类树）
+│   ├── CategoryTree.tsx    # 文献库分类树组件 (MUI TreeView)
+│   ├── AddCategoryDialog.tsx  # 添加分类对话框 (MUI Dialog)
+│   ├── EditCategoryDialog.tsx # 编辑分类对话框 (MUI Dialog)
+│   ├── ThemeSwitcher.tsx   # 主题切换组件
+│   ├── StatusBar.tsx       # 状态栏组件
+│   ├── TagsSection.tsx     # 标签区域组件
+│   └── AddTagDialog.tsx    # 添加标签对话框
+├── contexts/               # React Context
+│   └── ThemeContext.tsx    # 主题切换 Context (可选，MUI ThemeProvider 已足够)
+├── hooks/                  # 自定义 Hooks
+│   ├── useTheme.ts
+│   ├── useCategories.ts    # 分类管理 Hook
+│   └── useTags.ts          # 标签管理 Hook
+├── lib/                    # 工具库
+│   ├── utils.ts           # 通用工具函数
+│   └── types.ts           # TypeScript 类型定义
+├── stores/                 # Zustand 状态管理
+│   └── themeStore.ts      # 主题状态 store
+└── index.css               # 全局样式 (可选，MUI 使用 Emotion)
+vite.config.ts              # Vite 配置
+tsconfig.json               # TypeScript 配置
+package.json                # Node.js 依赖
 static/                     # 静态资源
 src-tauri/                  # Rust 后端
 ├── src/
@@ -506,12 +647,16 @@ cd src-tauri && cargo test
 
 # 运行特定测试
 cd src-tauri && cargo test test_parser_pdf
+
+# React 前端单元测试
+yarn test
 ```
 
 **覆盖范围**:
 - 各个 Rust 后端模块
 - 解析器、数据库、AI 算法
-- 使用 `cargo test` 和 `assert!` 宏
+- React 组件和 Hooks
+- 使用 Vitest + React Testing Library
 
 ### 集成测试
 ```bash
@@ -525,7 +670,7 @@ cd src-tauri && cargo test --test integration
 - 使用 Tauri 模拟运行时
 
 ### 端到端测试 (E2E)
-- 使用 WebDriver 协议(Selenium)
+- 使用 Playwright 进行 E2E 测试
 - 模拟真实用户操作
 - 跨平台测试(Windows/macOS/Linux)
 - 测试场景: 导入文献 → 搜索 → 添加笔记 → 验证保存
@@ -535,7 +680,7 @@ cd src-tauri && cargo test --test integration
 **GitHub Actions 工作流**:
 1. **编译检查**: Linux、Windows、macOS 三平台编译
 2. **运行测试**: 单元测试 + 集成测试
-3. **代码质量**: `clippy` + `rustfmt`
+3. **代码质量**: `clippy` + `rustfmt` + ESLint
 4. **安全扫描**: `cargo audit` 依赖漏洞扫描
 5. **构建发布**: 生成各平台安装包并上传到 GitHub Releases
 
@@ -561,29 +706,29 @@ cd src-tauri && cargo test --test integration
 ### 文献库分类管理
 
 **前端组件**:
-- `CategoryTree.svelte` - 文献库分类树主组件
-  - 使用 `@keenmate/svelte-treeview` 渲染层级结构
+- `CategoryTree.tsx` - 文献库分类树主组件
+  - 使用 `@dnd-kit/core` 实现拖拽功能
   - 支持右键上下文菜单（添加、编辑、删除）
   - 支持节点展开/折叠和选中
-- `AddCategoryDialog.svelte` - 添加分类对话框
-- `EditCategoryDialog.svelte` - 编辑分类对话框
+- `AddCategoryDialog.tsx` - 添加分类对话框
+- `EditCategoryDialog.tsx` - 编辑分类对话框
 
 **后端接口**:
 ```typescript
 // 加载分类树
-load_categories(): Promise<CategoryDto[]>
+loadCategories(): Promise<CategoryNode[]>
 
 // 创建分类
-create_category(name: string, parentPath?: string): Promise<void>
+createCategory(name: string, parentPath?: string): Promise<void>
 
 // 更新分类名称
-update_category(path: string, name: string): Promise<void>
+updateCategory(path: string, name: string): Promise<void>
 
 // 删除分类（级联删除子节点）
-delete_category(path: string): Promise<void>
+deleteCategory(path: string): Promise<void>
 
-// 移动分类（待完善）
-move_category(draggedPath: string, targetPath?: string, position: string): Promise<string>
+// 移动分类
+moveCategory(draggedPath: string, targetPath?: string, position: string): Promise<string>
 ```
 
 **数据结构**:
@@ -595,6 +740,130 @@ move_category(draggedPath: string, targetPath?: string, position: string): Promi
 - 分类服务位于 `src-tauri/src/service/category_service.rs`
 - Tauri commands 定义在 `src-tauri/src/command/category_command.rs`
 - 数据库实体在 `src-tauri/src/database/entities/category.rs`
+
+### React 组件开发
+- 使用函数组件 + Hooks
+- 使用 TypeScript 进行类型检查
+- 使用 Material-UI (MUI) 组件库
+- 使用 Emotion 进行样式定制 (MUI 内置)
+- 使用 React Hook Form 处理表单
+- 使用 Zod 进行表单验证
+
+**示例组件 (使用 MUI)**:
+```tsx
+import { useState } from 'react'
+import { Button, CircularProgress, Box } from '@mui/material'
+import { invoke } from '@tauri-apps/api/core'
+
+interface CategoryNode {
+  path: string
+  name: string
+  children?: CategoryNode[]
+}
+
+export function CategoryTree() {
+  const [categories, setCategories] = useState<CategoryNode[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const loadCategories = async () => {
+    setLoading(true)
+    try {
+      const data = await invoke<CategoryNode[]>('load_categories')
+      setCategories(data)
+    } catch (error) {
+      console.error('Failed to load categories:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Box>
+      <Button
+        variant="contained"
+        onClick={loadCategories}
+        disabled={loading}
+        startIcon={loading ? <CircularProgress size={20} /> : null}
+      >
+        {loading ? 'Loading...' : 'Refresh'}
+      </Button>
+      {/* 渲染分类树 */}
+    </Box>
+  )
+}
+```
+
+**对话框组件示例 (MUI Dialog)**:
+```tsx
+import { useState } from 'react'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+} from '@mui/material'
+import { invoke } from '@tauri-apps/api/core'
+
+interface AddCategoryDialogProps {
+  open: boolean
+  onClose: () => void
+  onCategoryCreated: () => void
+}
+
+export function AddCategoryDialog({
+  open,
+  onClose,
+  onCategoryCreated,
+}: AddCategoryDialogProps) {
+  const [name, setName] = useState('')
+  const [error, setError] = useState('')
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      setError('名称不能为空')
+      return
+    }
+
+    try {
+      await invoke('create_category', { name: name.trim() })
+      setName('')
+      setError('')
+      onCategoryCreated()
+      onClose()
+    } catch (err) {
+      setError(err as string)
+    }
+  }
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>添加分类</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          margin="dense"
+          label="分类名称"
+          fullWidth
+          variant="outlined"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          error={!!error}
+          helperText={error}
+          sx={{ mt: 2 }}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>取消</Button>
+        <Button onClick={handleSubmit} variant="contained">
+          添加
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+```
 
 ### 开发插件
 - **Rust 插件**: 实现定义的 trait，编译为动态库(.so/.dll)
@@ -624,21 +893,26 @@ move_category(draggedPath: string, targetPath?: string, position: string): Promi
 
 - **IDE**: VS Code
 - **扩展**:
-  - Svelte for VS Code
+  - ES7+ React/Redux/React-Native snippets
   - Tauri
   - rust-analyzer
   - Even Better TOML(Cargo.toml 支持)
   - Error Lens(内联错误显示)
+  - Tailwind CSS IntelliSense
 
 - **调试工具**:
   - CrabNebula DevTools (Tauri 应用调试)
+  - React DevTools (React 组件调试)
   - Chrome DevTools (前端调试)
 
 ## 参考资源
 
 ### 官方文档
 - [Tauri 官方文档](https://tauri.app/)
-- [SvelteKit 文档](https://kit.svelte.dev/)
+- [React 官方文档](https://react.dev/)
+- [React Router 文档](https://reactrouter.com/)
+- [Material-UI (MUI) 文档](https://mui.com/)
+- [MUI X Tree View 文档](https://mui.com/x/react-tree-view/)
 - [Rust 官方文档](https://www.rust-lang.org/)
 
 ### 项目文档
@@ -651,6 +925,8 @@ move_category(draggedPath: string, targetPath?: string, position: string): Promi
 - [sqlx 文档](https://docs.rs/sqlx/)
 - [ndarray 文档](https://docs.rs/ndarray/)
 - [linfa 文档](https://docs.rs/linfa/)
+- [TanStack Query 文档](https://tanstack.com/query/latest)
+- [Zustand 文档](https://zustand-demo.pmnd.rs/)
 
 ## 社区与贡献
 
@@ -669,13 +945,13 @@ move_category(draggedPath: string, targetPath?: string, position: string): Promi
 1. Fork 项目仓库
 2. 创建特性分支
 3. 编写测试用例
-4. 确保通过所有检查(`cargo test`, `cargo clippy`, `yarn check`)
+4. 确保通过所有检查(`cargo test`, `cargo clippy`, `yarn lint`, `yarn test`)
 5. 提交 Pull Request
 
 **代码规范**:
 - Rust: 遵循 `rustfmt` 格式化，通过 `clippy` 检查
 - TypeScript: 遵循 ESLint 规则
-- 提交前运行 `yarn check` 和 `cargo test`
+- 提交前运行 `yarn lint` 和 `cargo test`
 - 所有的日志内容均为英文
 
 **开源许可**: MIT / Apache 2.0(待定)
@@ -692,6 +968,7 @@ move_category(draggedPath: string, targetPath?: string, position: string): Promi
 - [x] PDF 解析和元数据提取
 - [x] 基础搜索和过滤
 - [x] 本地数据存储
+- [x] React 前端重构 (进行中)
 
 ### v0.2.0 (计划中)
 - [ ] AI 智能推荐和分类
@@ -712,4 +989,4 @@ move_category(draggedPath: string, targetPath?: string, position: string): Promi
 
 - 不要主动提交代码
 
-**最后更新**: 2025-01-20
+**最后更新**: 2025-01-22

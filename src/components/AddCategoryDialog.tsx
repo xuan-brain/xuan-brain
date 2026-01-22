@@ -10,6 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Close } from "@mui/icons-material";
+import { useI18n } from "../lib/i18n";
 
 // Lazy load invoke helper - works in both Tauri and browser
 async function invokeCommand<T = unknown>(
@@ -33,6 +34,7 @@ export default function AddCategoryDialog({
   onCategoryCreated,
   parentPath,
 }: AddCategoryDialogProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,12 +49,12 @@ export default function AddCategoryDialog({
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setError("名称不能为空");
+      setError(t("dialog.categoryNameRequired"));
       return;
     }
 
     if (name.length > 50) {
-      setError("名称最多50个字符");
+      setError(t("dialog.categoryNameMaxLength"));
       return;
     }
 
@@ -89,7 +91,7 @@ export default function AddCategoryDialog({
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Typography variant="h6" component="div">
-          {parentPath ? "添加子分类" : "添加分类"}
+          {parentPath ? t("dialog.addSubcategory") : t("dialog.addCategory")}
         </Typography>
         <IconButton
           aria-label="close"
@@ -108,7 +110,7 @@ export default function AddCategoryDialog({
         <TextField
           autoFocus
           margin="dense"
-          label="分类名称"
+          label={t("dialog.categoryName")}
           fullWidth
           variant="outlined"
           value={name}
@@ -121,12 +123,12 @@ export default function AddCategoryDialog({
           helperText={error}
           disabled={loading}
           sx={{ mt: 2 }}
-          placeholder="请输入分类名称"
+          placeholder={t("dialog.enterCategoryName")}
         />
         {parentPath && (
           <TextField
             margin="dense"
-            label="父分类"
+            label={t("dialog.parentCategory")}
             fullWidth
             variant="filled"
             value={parentPath}
@@ -139,19 +141,19 @@ export default function AddCategoryDialog({
           color="text.secondary"
           sx={{ mt: 1, display: "block" }}
         >
-          分类名称不能为空，最多50个字符
+          {t("dialog.categoryNameRules")}
         </Typography>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
-          取消
+          {t("dialog.cancel")}
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
           disabled={loading || !name.trim() || name.length > 50}
         >
-          {loading ? "添加中..." : "添加"}
+          {loading ? t("dialog.adding") : t("dialog.add")}
         </Button>
       </DialogActions>
     </Dialog>

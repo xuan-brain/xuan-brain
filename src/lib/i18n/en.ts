@@ -15,6 +15,15 @@ export default {
     importDocuments: "Import Documents",
     search: "Search",
     noDocuments: "No documents yet",
+    startUsing: "Click 'Import Documents' to get started",
+    importFirst: "Import your first document",
+  },
+
+  // Statistics
+  statistics: {
+    totalDocuments: "Total Documents",
+    totalCategories: "Categories",
+    totalTags: "Tags",
   },
 
   // Details panel
@@ -62,5 +71,38 @@ export default {
     green: "Green",
     teal: "Teal",
     cyan: "Cyan",
+  },
+
+  // Dialogs
+  dialog: {
+    add: "Add",
+    edit: "Edit",
+    delete: "Delete",
+    cancel: "Cancel",
+    save: "Save",
+    close: "Close",
+    confirm: "Confirm",
+    addCategory: "Add Category",
+    addSubcategory: "Add Subcategory",
+    editCategory: "Edit Category",
+    deleteCategory: "Delete Category",
+    addTag: "Add Tag",
+    editTag: "Edit Tag",
+    deleteTag: "Delete Tag",
+    categoryName: "Category Name",
+    tagName: "Tag Name",
+    parentCategory: "Parent Category",
+    enterCategoryName: "Enter category name",
+    enterTagName: "Enter tag name",
+    categoryNameRequired: "Category name is required",
+    categoryNameMaxLength: "Category name cannot exceed 50 characters",
+    categoryNameRules: "Category name is required, maximum 50 characters",
+    tagNameRequired: "Tag name is required",
+    tagNameMaxLength: "Tag name cannot exceed 30 characters",
+    tagNameRules: "Tag name is required, maximum 30 characters",
+    adding: "Adding...",
+    saving: "Saving...",
+    deleting: "Deleting...",
+    rename: "Rename",
   },
 } as const;

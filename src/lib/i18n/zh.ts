@@ -15,6 +15,15 @@ export default {
     importDocuments: "导入文档",
     search: "搜索",
     noDocuments: "暂无文档",
+    startUsing: "点击「导入文档」按钮开始使用",
+    importFirst: "导入第一篇文献",
+  },
+
+  // Statistics
+  statistics: {
+    totalDocuments: "总文献数",
+    totalCategories: "分类数量",
+    totalTags: "标签数量",
   },
 
   // Details panel
@@ -62,5 +71,38 @@ export default {
     green: "绿色",
     teal: "青色",
     cyan: "青蓝色",
+  },
+
+  // Dialogs
+  dialog: {
+    add: "添加",
+    edit: "编辑",
+    delete: "删除",
+    cancel: "取消",
+    save: "保存",
+    close: "关闭",
+    confirm: "确认",
+    addCategory: "添加分类",
+    addSubcategory: "添加子分类",
+    editCategory: "编辑分类",
+    deleteCategory: "删除分类",
+    addTag: "添加标签",
+    editTag: "编辑标签",
+    deleteTag: "删除标签",
+    categoryName: "分类名称",
+    tagName: "标签名称",
+    parentCategory: "父分类",
+    enterCategoryName: "请输入分类名称",
+    enterTagName: "请输入标签名称",
+    categoryNameRequired: "名称不能为空",
+    categoryNameMaxLength: "名称最多50个字符",
+    categoryNameRules: "分类名称不能为空，最多50个字符",
+    tagNameRequired: "标签名称不能为空",
+    tagNameMaxLength: "标签名称最多30个字符",
+    tagNameRules: "标签名称不能为空，最多30个字符",
+    adding: "添加中...",
+    saving: "保存中...",
+    deleting: "删除中...",
+    rename: "重命名",
   },
 } as const;

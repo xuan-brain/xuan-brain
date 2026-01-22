@@ -1,9 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Tree,
   type NodeModel,
   type DropOptions,
-  type TreeMethods,
   type RenderParams,
 } from "@minoru/react-dnd-treeview";
 import { DndProvider } from "react-dnd";
@@ -30,6 +29,7 @@ import {
   Check,
   Close,
 } from "@mui/icons-material";
+import { useI18n } from "../lib/i18n";
 import AddCategoryDialog from "./AddCategoryDialog";
 
 // Lazy load invoke helper - works in both Tauri and browser
@@ -64,6 +64,7 @@ interface ContextMenuState {
 }
 
 export default function CategoryTree() {
+  const { t } = useI18n();
   const [treeData, setTreeData] = useState<ExtendedNodeModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<NodeModel["id"] | null>(
@@ -78,7 +79,6 @@ export default function CategoryTree() {
   });
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addDialogParentPath, setAddDialogParentPath] = useState<string>("");
-  const treeRef = useRef<TreeMethods>(null);
 
   // Load categories from backend
   const loadCategoriesData = useCallback(async () => {
@@ -452,7 +452,6 @@ export default function CategoryTree() {
     <DndProvider backend={HTML5Backend}>
       <Box sx={{ position: "relative" }}>
         <Tree
-          ref={treeRef}
           tree={treeData}
           rootId={0}
           onDrop={handleDrop}
@@ -481,7 +480,7 @@ export default function CategoryTree() {
             <ListItemIcon>
               <Add fontSize="small" />
             </ListItemIcon>
-            <ListItemText>添加子分类</ListItemText>
+            <ListItemText>{t("dialog.addSubcategory")}</ListItemText>
           </MenuItem>
           <MenuItem
             onClick={() => {
@@ -492,13 +491,13 @@ export default function CategoryTree() {
             <ListItemIcon>
               <Edit fontSize="small" />
             </ListItemIcon>
-            <ListItemText>重命名</ListItemText>
+            <ListItemText>{t("dialog.rename")}</ListItemText>
           </MenuItem>
           <MenuItem onClick={handleDeleteCategory}>
             <ListItemIcon>
               <Delete fontSize="small" />
             </ListItemIcon>
-            <ListItemText>删除</ListItemText>
+            <ListItemText>{t("dialog.delete")}</ListItemText>
           </MenuItem>
         </Menu>
 

@@ -10,7 +10,14 @@
       "mcp__mcp-server-context7__query-docs",
       "mcp__zread__search_doc",
       "mcp__zread__get_repo_structure",
-      "mcp__zread__read_file"
+      "mcp__zread__read_file",
+      "Bash(yarn tsc:*)",
+      "Bash(yarn dev:*)",
+      "Bash(git commit:*)",
+      "Bash(yarn build:*)",
+      "Bash(yarn eslint:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)"
     ]
   }
 }

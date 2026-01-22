@@ -20,12 +20,14 @@ import {
   ExpandLess,
   ExpandMore,
 } from "@mui/icons-material";
+import { useI18n } from "../lib/i18n";
 import CategoryTree from "./CategoryTree";
 import TagsSection from "./TagsSection";
 import AddCategoryDialog from "./AddCategoryDialog";
 import AddTagDialog from "./AddTagDialog";
 
 export default function Navigation() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState("library");
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
@@ -73,7 +75,7 @@ export default function Navigation() {
             <ListItemIcon sx={{ minWidth: 32 }}>
               <LibraryIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText primary="文献库" />
+            <ListItemText primary={t("navigation.library")} />
             <IconButton
               size="small"
               onClick={(e) => {
@@ -101,7 +103,7 @@ export default function Navigation() {
                 <ExpandLess fontSize="small" />
               )}
             </ListItemIcon>
-            <ListItemText primary="分类" />
+            <ListItemText primary={t("navigation.categories")} />
           </ListItemButton>
         </ListItem>
         <Collapse in={categoriesExpanded} timeout="auto" unmountOnExit>
@@ -121,7 +123,7 @@ export default function Navigation() {
             <ListItemIcon sx={{ minWidth: 32 }}>
               <TagIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText primary="标签" />
+            <ListItemText primary={t("navigation.tags")} />
             {tagsExpanded ? (
               <ExpandMore fontSize="small" />
             ) : (
@@ -146,7 +148,7 @@ export default function Navigation() {
             <ListItemIcon sx={{ minWidth: 32 }}>
               <Star fontSize="small" />
             </ListItemIcon>
-            <ListItemText primary="收藏夹" />
+            <ListItemText primary={t("navigation.favorites")} />
           </ListItemButton>
         </ListItem>
 
@@ -159,7 +161,7 @@ export default function Navigation() {
             <ListItemIcon sx={{ minWidth: 32 }}>
               <Delete fontSize="small" />
             </ListItemIcon>
-            <ListItemText primary="回收站" />
+            <ListItemText primary={t("navigation.trash")} />
           </ListItemButton>
         </ListItem>
       </List>

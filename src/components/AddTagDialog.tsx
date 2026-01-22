@@ -10,9 +10,13 @@ import {
   Typography,
 } from "@mui/material";
 import { Close } from "@mui/icons-material";
+import { useI18n } from "../lib/i18n";
 
 // Lazy load invoke helper - works in both Tauri and browser
-async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+async function invokeCommand<T = unknown>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>(cmd, args);
 }
@@ -28,6 +32,7 @@ export default function AddTagDialog({
   onClose,
   onTagCreated,
 }: AddTagDialogProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,12 +47,12 @@ export default function AddTagDialog({
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setError("标签名称不能为空");
+      setError(t("dialog.tagNameRequired"));
       return;
     }
 
     if (name.length > 30) {
-      setError("标签名称最多30个字符");
+      setError(t("dialog.tagNameMaxLength"));
       return;
     }
 
@@ -83,7 +88,7 @@ export default function AddTagDialog({
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Typography variant="h6" component="div">
-          添加标签
+          {t("dialog.addTag")}
         </Typography>
         <IconButton
           aria-label="close"
@@ -102,7 +107,7 @@ export default function AddTagDialog({
         <TextField
           autoFocus
           margin="dense"
-          label="标签名称"
+          label={t("dialog.tagName")}
           fullWidth
           variant="outlined"
           value={name}
@@ -115,26 +120,26 @@ export default function AddTagDialog({
           helperText={error}
           disabled={loading}
           sx={{ mt: 2 }}
-          placeholder="请输入标签名称"
+          placeholder={t("dialog.enterTagName")}
         />
         <Typography
           variant="caption"
           color="text.secondary"
           sx={{ mt: 1, display: "block" }}
         >
-          标签名称不能为空，最多30个字符
+          {t("dialog.tagNameRules")}
         </Typography>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
-          取消
+          {t("dialog.cancel")}
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
           disabled={loading || !name.trim() || name.length > 30}
         >
-          {loading ? "添加中..." : "添加"}
+          {loading ? t("dialog.adding") : t("dialog.add")}
         </Button>
       </DialogActions>
     </Dialog>

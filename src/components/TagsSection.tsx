@@ -10,11 +10,11 @@ import {
 import { Delete, MoreVert } from "@mui/icons-material";
 import AddTagDialog from "./AddTagDialog";
 
-// Lazy load invoke - works in both Tauri and browser
-const invokeCommand = async <T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> => {
+// Lazy load invoke helper - works in both Tauri and browser
+async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>(cmd, args);
-};
+}
 
 // Predefined color palette for tags
 const TAG_COLORS: Record<string, string> = {

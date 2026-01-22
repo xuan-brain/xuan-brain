@@ -1,6 +1,5 @@
 <script lang="ts">
   import ThemeSwitcher from "$lib/components/ThemeSwitcher.svelte";
-  import TagsSection from "$lib/components/TagsSection.svelte";
   import StatusBar from "$lib/components/StatusBar.svelte";
   import Navigation from "$lib/components/Navigation.svelte";
   import { onDestroy } from "svelte";
@@ -138,17 +137,9 @@
   >
     <Navigation />
 
-    <!-- Tags Section at bottom -->
-    <div
-      class="border-t border-gray-200 dark:border-gray-700"
-      style="padding: 10px;"
-    >
-      <TagsSection />
-    </div>
-
     <!-- Theme switcher at bottom of left sidebar -->
     <div
-      class="border-t border-gray-200 dark:border-gray-700"
+      class="border-t border-gray-200 dark:border-gray-700 mt-auto"
       style="padding: 5px;"
     >
       <ThemeSwitcher />

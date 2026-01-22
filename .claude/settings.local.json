@@ -5,7 +5,8 @@
       "mcp__acp__Write",
       "mcp__web-reader__webReader",
       "mcp__web-search-prime__webSearchPrime",
-      "mcp__acp__Edit"
+      "mcp__acp__Edit",
+      "mcp__mcp-server-context7__resolve-library-id"
     ]
   }
 }

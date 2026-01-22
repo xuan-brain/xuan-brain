@@ -39,6 +39,19 @@ pub async fn delete_category(
 }
 
 #[tauri::command]
+pub async fn update_category(
+    db: State<'_, DatabaseConnection>,
+    path: String,
+    name: String,
+) -> Result<(), String> {
+    let service = CategoryService::new(db.inner());
+    service
+        .update_by_path(&path, &name)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn move_category(
     db: State<'_, DatabaseConnection>,
     dragged_path: String,

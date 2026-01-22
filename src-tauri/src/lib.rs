@@ -6,6 +6,9 @@ mod sys;
 
 use std::path::PathBuf;
 
+use crate::command::category_command::{
+    create_category, delete_category, load_categories, move_category, update_category,
+};
 use crate::command::label_command::{create_label, delete_label, get_all_labels};
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
@@ -62,7 +65,12 @@ pub fn run() -> Result<()> {
         .invoke_handler(tauri::generate_handler![
             get_all_labels,
             create_label,
-            delete_label
+            delete_label,
+            load_categories,
+            create_category,
+            delete_category,
+            update_category,
+            move_category
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

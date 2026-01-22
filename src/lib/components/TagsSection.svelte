@@ -153,22 +153,7 @@
 </script>
 
 <div class="tags-section">
-  <h3
-    class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 pb-1 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
-  >
-    <div class="flex items-center gap-1">
-      <Tags size={14} />
-      {$t("navigation.tags")}
-    </div>
-    <button
-      onclick={() => (showDialog = true)}
-      class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-      aria-label="添加标签"
-      title="添加标签"
-    >
-      <Plus size={14} />
-    </button>
-  </h3>
+  <!-- Tags list -->
   <div class="overflow-y-auto pr-1" style="max-height: 200px;">
     <div class="flex flex-wrap gap-1.5">
       {#each allTags as tag}

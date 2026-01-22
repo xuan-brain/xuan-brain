@@ -1,25 +1,22 @@
 <script lang="ts">
-  import { t } from "$lib/i18n";
-  import { Library, Star, Trash2 } from "lucide-svelte";
+  import { Library, Star, Trash2, Tag, Plus } from "lucide-svelte";
+  import CategoryTree from "./CategoryTree.svelte";
+  import TagsSection from "./TagsSection.svelte";
+  import AddCategoryDialog from "./AddCategoryDialog.svelte";
+  import AddTagDialog from "./AddTagDialog.svelte";
 
   // Active navigation item
   let activeItem = $state("library");
 
-  // Navigation items configuration
-  const navItems: Array<{
-    id: string;
-    getIcon: () => any;
-    label: string;
-  }> = [
-    { id: "library", getIcon: () => Library, label: "navigation.library" },
-    { id: "favorites", getIcon: () => Star, label: "navigation.favorites" },
-    { id: "trash", getIcon: () => Trash2, label: "navigation.trash" },
-  ];
+  // Dialog state
+  let showAddCategoryDialog = $state(false);
+  let showAddTagDialog = $state(false);
 
-  // Handle navigation item click
+  // Handle navigation click
   function handleNavClick(itemId: string) {
     activeItem = itemId;
-    // TODO: Add navigation logic here
+    console.log("Navigated to:", itemId);
+    // TODO: Add navigation logic
   }
 
   // Handle keyboard navigation
@@ -29,39 +26,170 @@
       handleNavClick(itemId);
     }
   }
+
+  // Handle add category
+  function handleAddCategory() {
+    showAddCategoryDialog = true;
+  }
+
+  // Handle add tag
+  function handleAddTag() {
+    showAddTagDialog = true;
+  }
+
+  // Dialog close handlers
+  function closeAddCategoryDialog() {
+    showAddCategoryDialog = false;
+  }
+
+  function closeAddTagDialog() {
+    showAddTagDialog = false;
+  }
+
+  async function onCategoryCreated() {
+    closeAddCategoryDialog();
+  }
+
+  async function onTagCreated() {
+    closeAddTagDialog();
+  }
 </script>
 
-<div class="flex-1 overflow-y-auto" style="padding: 10px;">
-  <h2
-    class="section-title text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700"
-  >
-    {$t("navigation.title")}
-  </h2>
-  <nav>
-    <ul class="list-none p-0 m-0">
-      {#each navItems as item (item.id)}
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Scrollable content area (Library) -->
+  <div class="flex-1 overflow-y-auto" style="padding: 10px;">
+    <!-- Library navigation item -->
+    <nav>
+      <ul class="list-none p-0 m-0 space-y-1">
         <li>
-          <button
-            type="button"
-            class="nav-item w-full rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 flex items-center gap-1.5 text-left"
-            class:bg-accent={activeItem === item.id}
-            class:text-white={activeItem === item.id}
-            class:hover:bg-accent={activeItem === item.id}
-            onclick={() => handleNavClick(item.id)}
-            onkeydown={(e) => handleKeydown(e, item.id)}
-            aria-current={activeItem === item.id ? "page" : undefined}
+          <div
+            class="rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 flex items-center gap-1.5 text-left py-1.5 px-2 font-semibold"
+            class:bg-accent={activeItem === "library"}
+            class:text-white={activeItem === "library"}
+            class:hover:bg-accent={activeItem === "library"}
+            onclick={() => handleNavClick("library")}
+            onkeydown={(e) => handleKeydown(e, "library")}
+            aria-current={activeItem === "library" ? "page" : undefined}
+            role="button"
+            tabindex="0"
           >
-            {#if item.id === "library"}
-              <Library size={14} />
-            {:else if item.id === "favorites"}
-              <Star size={14} />
-            {:else if item.id === "trash"}
-              <Trash2 size={14} />
-            {/if}
-            {$t(item.label)}
-          </button>
+            <Library size={14} />
+            文献库
+            <button
+              onclick={(e) => {
+                e.stopPropagation();
+                handleAddCategory();
+              }}
+              class="ml-auto hover:bg-gray-200 dark:hover:bg-gray-600 rounded p-0.5 transition-colors"
+              aria-label="添加分类"
+              title="添加分类"
+            >
+              <Plus size={12} />
+            </button>
+          </div>
+
+          <!-- Category Tree (always expanded) -->
+          <div class="ml-6 mt-1">
+            <CategoryTree />
+          </div>
         </li>
-      {/each}
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Bottom fixed navigation items -->
+  <nav
+    class="border-t border-gray-200 dark:border-gray-700"
+    style="padding: 10px;"
+  >
+    <ul class="list-none p-0 m-0 space-y-1">
+      <!-- Favorites -->
+      <li>
+        <button
+          type="button"
+          class="w-full rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 flex items-center gap-1.5 text-left py-1.5 px-2 font-semibold"
+          class:bg-accent={activeItem === "favorites"}
+          class:text-white={activeItem === "favorites"}
+          class:hover:bg-accent={activeItem === "favorites"}
+          onclick={() => handleNavClick("favorites")}
+          onkeydown={(e) => handleKeydown(e, "favorites")}
+          aria-current={activeItem === "favorites" ? "page" : undefined}
+        >
+          <Star size={14} />
+          收藏
+        </button>
+      </li>
+
+      <!-- Divider -->
+      <li class="border-t border-gray-200 dark:border-gray-700"></li>
+
+      <!-- Tags -->
+      <li>
+        <div
+          class="rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 flex items-center gap-1.5 text-left py-1.5 px-2 font-semibold"
+          class:bg-accent={activeItem === "tags"}
+          class:text-white={activeItem === "tags"}
+          class:hover:bg-accent={activeItem === "tags"}
+          onclick={() => handleNavClick("tags")}
+          onkeydown={(e) => handleKeydown(e, "tags")}
+          aria-current={activeItem === "tags" ? "page" : undefined}
+          role="button"
+          tabindex="0"
+        >
+          <Tag size={14} />
+          标签
+          <button
+            onclick={(e) => {
+              e.stopPropagation();
+              handleAddTag();
+            }}
+            class="ml-auto hover:bg-gray-200 dark:hover:bg-gray-600 rounded p-0.5 transition-colors"
+            aria-label="添加标签"
+            title="添加标签"
+          >
+            <Plus size={12} />
+          </button>
+        </div>
+
+        <!-- Tags Section (always expanded) -->
+        <div class="ml-6 mt-1">
+          <TagsSection />
+        </div>
+      </li>
+
+      <!-- Divider -->
+      <li class="border-t border-gray-200 dark:border-gray-700"></li>
+
+      <!-- Trash -->
+      <li>
+        <button
+          type="button"
+          class="w-full rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 flex items-center gap-1.5 text-left py-1.5 px-2 font-semibold"
+          class:bg-accent={activeItem === "trash"}
+          class:text-white={activeItem === "trash"}
+          class:hover:bg-accent={activeItem === "trash"}
+          onclick={() => handleNavClick("trash")}
+          onkeydown={(e) => handleKeydown(e, "trash")}
+          aria-current={activeItem === "trash" ? "page" : undefined}
+        >
+          <Trash2 size={14} />
+          回收站
+        </button>
+      </li>
     </ul>
   </nav>
 </div>
+
+<!-- Add Category Dialog -->
+<AddCategoryDialog
+  open={showAddCategoryDialog}
+  {onCategoryCreated}
+  onClose={closeAddCategoryDialog}
+/>
+
+<!-- Add Tag Dialog -->
+<AddTagDialog
+  open={showAddTagDialog}
+  {onTagCreated}
+  onClose={closeAddTagDialog}
+/>

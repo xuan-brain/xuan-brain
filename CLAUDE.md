@@ -422,6 +422,14 @@ src/                         # SvelteKit 前端
 │   └── settings/          # 设置页面
 ├── lib/                   # 前端工具库
 │   ├── components/        # 自定义组件和 Skeleton 组件封装
+│   │   ├── Navigation.svelte       # 导航组件（包含分类树）
+│   │   ├── CategoryTree.svelte     # 文献库分类树组件
+│   │   ├── AddCategoryDialog.svelte    # 添加分类对话框
+│   │   ├── EditCategoryDialog.svelte   # 编辑分类对话框
+│   │   ├── ThemeSwitcher.svelte    # 主题切换组件
+│   │   ├── StatusBar.svelte        # 状态栏组件
+│   │   ├── TagsSection.svelte      # 标签区域组件
+│   │   └── AddTagDialog.svelte     # 添加标签对话框
 │   ├── css/               # 全局样式文件
 │   │   └── app.css       # Tailwind + Skeleton 样式导入
 │   ├── stores/            # Svelte stores (状态管理)
@@ -451,11 +459,19 @@ src-tauri/                  # Rust 后端
 │   │   ├── classify.rs
 │   │   ├── keywords.rs
 │   │   └── summary.rs
-│   ├── db/               # 数据库层
+│   ├── command/          # Tauri commands
 │   │   ├── mod.rs
-│   │   ├── models.rs
-│   │   ├── schema.rs
-│   │   └── queries.rs
+│   │   ├── label_command.rs       # 标签相关命令
+│   │   └── category_command.rs    # 分类相关命令
+│   ├── database/         # 数据库层
+│   │   ├── entities/     # SeaORM 实体
+│   │   │   ├── mod.rs
+│   │   │   ├── label.rs
+│   │   │   └── category.rs
+│   │   └── mod.rs
+│   ├── service/          # 业务逻辑层
+│   │   ├── mod.rs
+│   │   └── category_service.rs    # 分类服务
 │   ├── sync/             # 同步模块
 │   │   ├── mod.rs
 │   │   ├── cloud.rs
@@ -541,6 +557,44 @@ cd src-tauri && cargo test --test integration
 2. 实现算法逻辑(或集成 Python 模型)
 3. 通过 Tauri command 暴露给前端
 4. 在前端添加 UI 和交互逻辑
+
+### 文献库分类管理
+
+**前端组件**:
+- `CategoryTree.svelte` - 文献库分类树主组件
+  - 使用 `@keenmate/svelte-treeview` 渲染层级结构
+  - 支持右键上下文菜单（添加、编辑、删除）
+  - 支持节点展开/折叠和选中
+- `AddCategoryDialog.svelte` - 添加分类对话框
+- `EditCategoryDialog.svelte` - 编辑分类对话框
+
+**后端接口**:
+```typescript
+// 加载分类树
+load_categories(): Promise<CategoryDto[]>
+
+// 创建分类
+create_category(name: string, parentPath?: string): Promise<void>
+
+// 更新分类名称
+update_category(path: string, name: string): Promise<void>
+
+// 删除分类（级联删除子节点）
+delete_category(path: string): Promise<void>
+
+// 移动分类（待完善）
+move_category(draggedPath: string, targetPath?: string, position: string): Promise<string>
+```
+
+**数据结构**:
+- 使用 PostgreSQL `ltree` 扩展存储分类路径
+- 路径格式: `"1"`, `"1.2"`, `"1.2.3"` 等
+- 支持无限层级嵌套
+
+**开发指南**:
+- 分类服务位于 `src-tauri/src/service/category_service.rs`
+- Tauri commands 定义在 `src-tauri/src/command/category_command.rs`
+- 数据库实体在 `src-tauri/src/database/entities/category.rs`
 
 ### 开发插件
 - **Rust 插件**: 实现定义的 trait，编译为动态库(.so/.dll)

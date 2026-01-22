@@ -77,6 +77,20 @@ impl<'a> CategoryService<'a> {
             .await
     }
 
+    // 根据 ltree_path 更新分类名称
+    pub async fn update_by_path(&self, path: &str, name: &str) -> Result<(), DbErr> {
+        let category = Category::find()
+            .filter(entities::category::Column::LtreePath.eq(path))
+            .one(self.db)
+            .await?
+            .ok_or_else(|| DbErr::Custom("Category not found".into()))?;
+
+        let mut active: entities::category::ActiveModel = category.into();
+        active.name = ActiveValue::Set(name.to_string());
+        active.update(self.db).await?;
+        Ok(())
+    }
+
     // 移动节点：核心逻辑是根据 targetPath + position 重新计算 ltree_path，并更新整棵子树
     pub async fn move_node(
         &self,

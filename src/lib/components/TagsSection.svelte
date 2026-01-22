@@ -177,6 +177,9 @@
           style="background-color: {tag.color};"
           title="{tag.count} documents"
           oncontextmenu={(e) => handleTagContextMenu(e, tag)}
+          role="button"
+          tabindex="0"
+          aria-label="{tag.name} - {tag.count} documents - right-click to delete"
         >
           {tag.name}
           <span class="text-[10px] opacity-70">({tag.count})</span>
@@ -192,6 +195,9 @@
     class="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[150px]"
     style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
     onmousedown={(e) => e.stopPropagation()}
+    role="menu"
+    tabindex="-1"
+    aria-label="Tag context menu"
   >
     <div
       class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700"

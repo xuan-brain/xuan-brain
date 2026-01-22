@@ -113,12 +113,18 @@
       onkeydown={handleKeydown}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="dialog-title"
     >
       <!-- Header -->
       <div
         class="flex items-center justify-between dialog-header-padding border-b border-gray-200 dark:border-gray-700"
       >
-        <h2 class="dialog-title text-gray-900 dark:text-gray-100">添加标签</h2>
+        <h2
+          id="dialog-title"
+          class="dialog-title text-gray-900 dark:text-gray-100"
+        >
+          添加标签
+        </h2>
         <button
           onclick={closeDialog}
           class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors dialog-close-button"
@@ -154,45 +160,46 @@
             placeholder="输入标签名称..."
             class="w-full dialog-input border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             autocomplete="off"
-            autofocus
           />
         </div>
 
         <!-- Color picker -->
         <div>
-          <label class="block dialog-label text-gray-700 dark:text-gray-300">
-            选择颜色
-          </label>
-          <div class="flex flex-wrap gap-2">
-            {#each Object.entries(TAG_COLORS) as [colorName, colorHex]}
-              <button
-                type="button"
-                class="w-8 h-8 rounded-full border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                class:border-gray-300={selectedColor !== colorName}
-                class:border-gray-900={selectedColor === colorName}
-                style="background-color: {colorHex};"
-                onclick={() => (selectedColor = colorName)}
-                aria-label="选择 {colorName} 颜色"
-                title={colorName}
-              >
-                {#if selectedColor === colorName}
-                  <svg
-                    class="w-5 h-5 text-white drop-shadow-md"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="3"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                {/if}
-              </button>
-            {/each}
-          </div>
+          <fieldset>
+            <legend class="block dialog-label text-gray-700 dark:text-gray-300">
+              选择颜色
+            </legend>
+            <div class="flex flex-wrap gap-2">
+              {#each Object.entries(TAG_COLORS) as [colorName, colorHex]}
+                <button
+                  type="button"
+                  class="w-8 h-8 rounded-full border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  class:border-gray-300={selectedColor !== colorName}
+                  class:border-gray-900={selectedColor === colorName}
+                  style="background-color: {colorHex};"
+                  onclick={() => (selectedColor = colorName)}
+                  aria-label="选择 {colorName} 颜色"
+                  title={colorName}
+                >
+                  {#if selectedColor === colorName}
+                    <svg
+                      class="w-5 h-5 text-white drop-shadow-md"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="3"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  {/if}
+                </button>
+              {/each}
+            </div>
+          </fieldset>
         </div>
       </div>
 

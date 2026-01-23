@@ -26,6 +26,7 @@ interface AddCategoryDialogProps {
   onClose: () => void;
   onCategoryCreated: () => void;
   parentPath?: string;
+  parentName?: string;
 }
 
 export default function AddCategoryDialog({
@@ -33,6 +34,7 @@ export default function AddCategoryDialog({
   onClose,
   onCategoryCreated,
   parentPath,
+  parentName,
 }: AddCategoryDialogProps) {
   const { t } = useI18n();
   const [name, setName] = useState("");
@@ -125,13 +127,13 @@ export default function AddCategoryDialog({
           sx={{ mt: 2 }}
           placeholder={t("dialog.enterCategoryName")}
         />
-        {parentPath && (
+        {parentName && (
           <TextField
             margin="dense"
             label={t("dialog.parentCategory")}
             fullWidth
             variant="filled"
-            value={parentPath}
+            value={parentName}
             disabled
             sx={{ mt: 2 }}
           />

@@ -78,6 +78,7 @@ export default function CategoryTree() {
   });
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addDialogParentPath, setAddDialogParentPath] = useState<string>("");
+  const [addDialogParentName, setAddDialogParentName] = useState<string>("");
 
   // Load categories from backend
   const loadCategoriesData = useCallback(async () => {
@@ -205,10 +206,11 @@ export default function CategoryTree() {
   const handleAddSubcategory = useCallback(() => {
     if (contextMenu.nodePath) {
       setAddDialogParentPath(contextMenu.nodePath);
+      setAddDialogParentName(contextMenu.nodeName || "");
       setShowAddDialog(true);
     }
     handleCloseContextMenu();
-  }, [contextMenu.nodePath, handleCloseContextMenu]);
+  }, [contextMenu.nodePath, contextMenu.nodeName, handleCloseContextMenu]);
 
   // Handle delete category
   const handleDeleteCategory = useCallback(async () => {
@@ -505,6 +507,7 @@ export default function CategoryTree() {
             await loadCategoriesData();
           }}
           parentPath={addDialogParentPath}
+          parentName={addDialogParentName}
         />
       </Box>
     </DndProvider>

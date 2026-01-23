@@ -5,10 +5,21 @@ import { CssBaseline, Box } from "@mui/material";
 import { lightTheme, darkTheme } from "./theme";
 import { I18nProvider } from "./lib/i18n";
 import Layout from "./components/Layout";
-import LibraryPage from "./pages/LibraryPage";
 
 function App() {
   const [isDark, setIsDark] = useState(true);
+  const [selectedDocument, setSelectedDocument] = useState<{
+    id: number;
+    title: string;
+    authors: string[];
+    year: number;
+    abstract?: string;
+    keywords?: string[];
+    fileType?: string;
+    fileSize?: string;
+    addedDate?: string;
+    tags?: { id: number; name: string; color: string }[];
+  } | null>(null);
 
   // Initialize theme from localStorage and listen for changes
   useEffect(() => {
@@ -46,8 +57,15 @@ function App() {
         <CssBaseline />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<LibraryPage />} />
+            <Route
+              path="/"
+              element={
+                <Layout
+                  selectedDocument={selectedDocument}
+                  onDocumentSelect={setSelectedDocument}
+                />
+              }
+            >
               <Route
                 path="reader/:id"
                 element={<Box sx={{ p: 2 }}>PDF 阅读器（待实现）</Box>}

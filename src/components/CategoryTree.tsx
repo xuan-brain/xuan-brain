@@ -320,8 +320,8 @@ export default function CategoryTree() {
           )}
 
           {/* Folder Icon */}
-          <Box sx={{ mr: 0.5, minWidth: 16 }}>
-            <FolderOpen sx={{ fontSize: 16 }} />
+          <Box sx={{ mr: 0.5, minWidth: 20 }}>
+            <FolderOpen />
           </Box>
 
           {/* Node Text or Edit Input */}
@@ -345,7 +345,6 @@ export default function CategoryTree() {
                   flex: 1,
                   "& .MuiInputBase-root": {
                     height: 24,
-                    fontSize: "0.8125rem",
                   },
                 }}
                 onFocus={(e: React.FocusEvent<HTMLInputElement>) =>
@@ -364,7 +363,7 @@ export default function CategoryTree() {
                   }
                 }}
               >
-                <Check fontSize="small" />
+                <Check />
               </IconButton>
               <IconButton
                 size="small"
@@ -373,11 +372,11 @@ export default function CategoryTree() {
                   handleEditCancel(node.id as number);
                 }}
               >
-                <Close fontSize="small" />
+                <Close />
               </IconButton>
             </Box>
           ) : (
-            <Typography variant="body2" sx={{ flex: 1, fontSize: "0.8125rem" }}>
+            <Typography variant="body2" sx={{ flex: 1 }}>
               {node.text}
             </Typography>
           )}
@@ -400,7 +399,7 @@ export default function CategoryTree() {
               ".MuiBox-root:hover &": { opacity: 1 },
             }}
           >
-            <MoreVert fontSize="small" />
+            <MoreVert />
           </IconButton>
         </Box>
       );
@@ -420,15 +419,17 @@ export default function CategoryTree() {
     return (
       <Paper
         sx={{
-          px: 1,
-          py: 0.5,
+          px: 1.5,
+          py: 0.75,
           bgcolor: "primary.main",
           color: "primary.contrastText",
           opacity: 0.8,
           cursor: "grabbing",
         }}
       >
-        <Typography variant="body2">{props.item.text}</Typography>
+        <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>
+          {props.item.text}
+        </Typography>
       </Paper>
     );
   }, []);
@@ -472,7 +473,7 @@ export default function CategoryTree() {
         >
           <MenuItem onClick={handleAddSubcategory}>
             <ListItemIcon>
-              <Add fontSize="small" />
+              <Add />
             </ListItemIcon>
             <ListItemText>{t("dialog.addSubcategory")}</ListItemText>
           </MenuItem>
@@ -483,13 +484,13 @@ export default function CategoryTree() {
             }}
           >
             <ListItemIcon>
-              <Edit fontSize="small" />
+              <Edit />
             </ListItemIcon>
             <ListItemText>{t("dialog.rename")}</ListItemText>
           </MenuItem>
           <MenuItem onClick={handleDeleteCategory}>
             <ListItemIcon>
-              <Delete fontSize="small" />
+              <Delete />
             </ListItemIcon>
             <ListItemText>{t("dialog.delete")}</ListItemText>
           </MenuItem>

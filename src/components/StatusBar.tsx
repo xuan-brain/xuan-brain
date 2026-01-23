@@ -39,7 +39,7 @@ export default function StatusBar() {
   return (
     <Box
       sx={{
-        height: 24,
+        height: 32,
         bgcolor: "background.paper",
         borderTop: 1,
         borderColor: "divider",
@@ -70,7 +70,7 @@ export default function StatusBar() {
               },
             }}
           >
-            <Sync sx={{ fontSize: 14 }} />
+            <Sync sx={{ fontSize: "18px" }} />
           </IconButton>
           <Chip
             size="small"
@@ -82,14 +82,14 @@ export default function StatusBar() {
                   ? "warning"
                   : "default"
             }
-            sx={{ height: 18, fontSize: "0.65rem" }}
+            sx={{ height: 24 }}
           />
         </Box>
 
         {/* Document count */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.3 }}>
-          <Description sx={{ fontSize: 12 }} />
-          <Typography variant="caption" sx={{ fontSize: "0.65rem" }}>
+          <Description sx={{ fontSize: "18px" }} />
+          <Typography variant="caption" sx={{ fontSize: "12px" }}>
             {t("status.documents")}: {documentCount}
           </Typography>
         </Box>
@@ -102,8 +102,8 @@ export default function StatusBar() {
             gap: 0.3,
           }}
         >
-          <Search sx={{ fontSize: 12 }} />
-          <Typography variant="caption" sx={{ fontSize: "0.65rem" }}>
+          <Search sx={{ fontSize: "18px" }} />
+          <Typography variant="caption" sx={{ fontSize: "12px" }}>
             {t("status.searchStatus")}
           </Typography>
         </Box>
@@ -116,8 +116,8 @@ export default function StatusBar() {
             gap: 0.3,
           }}
         >
-          <Memory sx={{ fontSize: 12 }} />
-          <Typography variant="caption" sx={{ fontSize: "0.65rem" }}>
+          <Memory sx={{ fontSize: "18px" }} />
+          <Typography variant="caption" sx={{ fontSize: "12px" }}>
             {memoryUsage}
           </Typography>
         </Box>
@@ -131,7 +131,7 @@ export default function StatusBar() {
         {/* Version */}
         <Typography
           variant="caption"
-          sx={{ display: { xs: "none", sm: "block" }, fontSize: "0.65rem" }}
+          sx={{ display: { xs: "none", sm: "block" }, fontSize: "12px" }}
         >
           {t("status.version")} 0.1.0
         </Typography>
@@ -146,7 +146,7 @@ export default function StatusBar() {
             borderRadius: 0.5,
           }}
         >
-          <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
+          <Typography variant="caption" sx={{ fontSize: "12px" }}>
             {currentTime.toLocaleTimeString()}
           </Typography>
         </Box>

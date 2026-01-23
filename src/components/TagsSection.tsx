@@ -178,7 +178,6 @@ export default function TagsSection(_props: TagsSectionProps) {
               label={`${tag.name} (${tag.count})`}
               size="small"
               sx={{
-                fontSize: "0.7rem",
                 height: 24,
                 bgcolor: tag.color,
                 color: "white",
@@ -208,7 +207,7 @@ export default function TagsSection(_props: TagsSectionProps) {
         onClose={handleCloseContextMenu}
       >
         <MenuItem onClick={handleDeleteTag} disabled={!contextMenu.tag}>
-          <Delete fontSize="small" sx={{ mr: 1 }} />
+          <Delete sx={{ mr: 1 }} />
           删除标签
         </MenuItem>
       </Menu>

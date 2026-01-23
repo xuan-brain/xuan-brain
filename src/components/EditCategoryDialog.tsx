@@ -13,7 +13,10 @@ import {
 import { Close } from "@mui/icons-material";
 
 // Lazy load invoke helper - works in both Tauri and browser
-async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+async function invokeCommand<T = unknown>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>(cmd, args);
 }
@@ -164,7 +167,6 @@ export default function EditCategoryDialog({
                 py: 0.25,
                 bgcolor: "action.hover",
                 borderRadius: 0.5,
-                fontSize: "0.75rem",
               }}
             >
               {categoryPath}

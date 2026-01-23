@@ -52,15 +52,15 @@ export default function Navigation() {
   return (
     <Box
       sx={{
-        width: 240,
         bgcolor: "background.paper",
         borderRight: 1,
         borderColor: "divider",
         display: "flex",
         flexDirection: "column",
+        height: "100%",
       }}
     >
-      {/* 导航列表 */}
+      {/* 上部：文献库和分类树 */}
       <List sx={{ flex: 1, overflow: "auto", py: 0.5 }}>
         {/* 文献库 */}
         <ListItem disablePadding>
@@ -70,7 +70,7 @@ export default function Navigation() {
             sx={{ pl: 1.5, py: 0.5 }}
           >
             <ListItemIcon sx={{ minWidth: 32 }}>
-              <LibraryIcon fontSize="small" />
+              <LibraryIcon />
             </ListItemIcon>
             <ListItemText primary={t("navigation.library")} />
             <IconButton
@@ -82,7 +82,7 @@ export default function Navigation() {
               sx={{ ml: 1 }}
               edge="end"
             >
-              <Add fontSize="small" />
+              <Add />
             </IconButton>
           </ListItemButton>
         </ListItem>
@@ -91,61 +91,72 @@ export default function Navigation() {
         <Box sx={{ pl: 0.5, py: 0.5, pr: 0.5 }}>
           <CategoryTree key={categoryTreeKey} />
         </Box>
-
-        <Divider sx={{ my: 0.5 }} />
-
-        {/* 标签 */}
-        <ListItem disablePadding>
-          <ListItemButton sx={{ pl: 1.5, py: 0.5 }}>
-            <ListItemIcon sx={{ minWidth: 32 }}>
-              <TagIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary={t("navigation.tags")} />
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAddTag();
-              }}
-              sx={{ ml: 1 }}
-              edge="end"
-            >
-              <Add fontSize="small" />
-            </IconButton>
-          </ListItemButton>
-        </ListItem>
-        <Box sx={{ pl: 1, py: 0.5 }}>
-          <TagsSection key={tagsSectionKey} onAddTag={handleAddTag} />
-        </Box>
-
-        <Divider sx={{ my: 0.5 }} />
-
-        {/* 收藏夹 */}
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => handleNavClick("favorites")}
-            sx={{ pl: 1.5, py: 0.5 }}
-          >
-            <ListItemIcon sx={{ minWidth: 32 }}>
-              <Star fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary={t("navigation.favorites")} />
-          </ListItemButton>
-        </ListItem>
-
-        {/* 回收站 */}
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => handleNavClick("trash")}
-            sx={{ pl: 1.5, py: 0.5 }}
-          >
-            <ListItemIcon sx={{ minWidth: 32 }}>
-              <Delete fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary={t("navigation.trash")} />
-          </ListItemButton>
-        </ListItem>
       </List>
+
+      {/* 下部：停靠区域（标签、收藏夹、回收站） */}
+      <Box
+        sx={{
+          borderTop: 1,
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <List sx={{ py: 0.5 }}>
+          {/* 标签 */}
+          <ListItem disablePadding>
+            <ListItemButton sx={{ pl: 1.5, py: 0.5 }}>
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <TagIcon />
+              </ListItemIcon>
+              <ListItemText primary={t("navigation.tags")} />
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddTag();
+                }}
+                sx={{ ml: 1 }}
+                edge="end"
+              >
+                <Add />
+              </IconButton>
+            </ListItemButton>
+          </ListItem>
+          <Box sx={{ pl: 1, py: 0.5 }}>
+            <TagsSection key={tagsSectionKey} onAddTag={handleAddTag} />
+          </Box>
+
+          <Divider sx={{ my: 0.5 }} />
+
+          {/* 收藏夹 */}
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => handleNavClick("favorites")}
+              sx={{ pl: 1.5, py: 0.5 }}
+            >
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <Star />
+              </ListItemIcon>
+              <ListItemText primary={t("navigation.favorites")} />
+            </ListItemButton>
+          </ListItem>
+
+          <Divider sx={{ my: 0.5 }} />
+
+          {/* 回收站 */}
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => handleNavClick("trash")}
+              sx={{ pl: 1.5, py: 0.5 }}
+            >
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <Delete />
+              </ListItemIcon>
+              <ListItemText primary={t("navigation.trash")} />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Box>
 
       {/* 对话框 */}
       <AddCategoryDialog

@@ -32,7 +32,7 @@ pub async fn get_all_labels(
             id: l.id,
             name: l.name,
             color: l.color,
-            document_count: l.document_count,
+            document_count: l.document_count.unwrap_or(0),
         })
         .collect();
 
@@ -48,7 +48,7 @@ pub async fn create_label(
     let new_label = label::ActiveModel {
         name: Set(name),
         color: Set(color),
-        document_count: Set(0),
+        document_count: Set(Some(0)),
         created_at: Set(Local::now().naive_local()),
         updated_at: Set(Local::now().naive_local()),
         ..Default::default()
@@ -62,7 +62,7 @@ pub async fn create_label(
         id: label.id,
         name: label.name,
         color: label.color,
-        document_count: label.document_count,
+        document_count: label.document_count.unwrap_or(0),
     })
 }
 #[tauri::command]

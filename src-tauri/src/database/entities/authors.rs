@@ -3,35 +3,36 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "label")]
+#[sea_orm(table_name = "authors")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
+    #[sea_orm(column_type = "Text")]
     pub name: String,
-    pub color: String,
-    pub document_count: Option<i64>,
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub affiliation: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub email: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::paper_labels::Entity")]
-    PaperLabels,
+    #[sea_orm(has_many = "super::paper_authors::Entity")]
+    PaperAuthors,
 }
 
-impl Related<super::paper_labels::Entity> for Entity {
+impl Related<super::paper_authors::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::PaperLabels.def()
+        Relation::PaperAuthors.def()
     }
 }
 
 impl Related<super::papers::Entity> for Entity {
     fn to() -> RelationDef {
-        super::paper_labels::Relation::Papers.def()
+        super::paper_authors::Relation::Papers.def()
     }
     fn via() -> Option<RelationDef> {
-        Some(super::paper_labels::Relation::Label.def().rev())
+        Some(super::paper_authors::Relation::Authors.def().rev())
     }
 }
 

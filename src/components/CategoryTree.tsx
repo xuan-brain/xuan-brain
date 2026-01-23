@@ -30,6 +30,7 @@ import {
 } from "@mui/icons-material";
 import { useI18n } from "../lib/i18n";
 import AddCategoryDialog from "./AddCategoryDialog";
+import EditCategoryDialog from "./EditCategoryDialog";
 
 // Lazy load invoke helper - works in both Tauri and browser
 async function invokeCommand<T = unknown>(
@@ -79,6 +80,9 @@ export default function CategoryTree() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addDialogParentPath, setAddDialogParentPath] = useState<string>("");
   const [addDialogParentName, setAddDialogParentName] = useState<string>("");
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editDialogPath, setEditDialogPath] = useState<string>("");
+  const [editDialogName, setEditDialogName] = useState<string>("");
 
   // Load categories from backend
   const loadCategoriesData = useCallback(async () => {
@@ -481,7 +485,11 @@ export default function CategoryTree() {
           </MenuItem>
           <MenuItem
             onClick={() => {
-              handleDoubleClick(contextMenu.nodeId!);
+              if (contextMenu.nodePath && contextMenu.nodeName) {
+                setEditDialogPath(contextMenu.nodePath);
+                setEditDialogName(contextMenu.nodeName);
+                setShowEditDialog(true);
+              }
               handleCloseContextMenu();
             }}
           >
@@ -497,6 +505,18 @@ export default function CategoryTree() {
             <ListItemText>{t("dialog.delete")}</ListItemText>
           </MenuItem>
         </Menu>
+
+        {/* Edit Category Dialog */}
+        <EditCategoryDialog
+          open={showEditDialog}
+          categoryPath={editDialogPath}
+          currentName={editDialogName}
+          onClose={() => setShowEditDialog(false)}
+          onCategoryUpdated={async () => {
+            setShowEditDialog(false);
+            await loadCategoriesData();
+          }}
+        />
 
         {/* Add Category Dialog */}
         <AddCategoryDialog

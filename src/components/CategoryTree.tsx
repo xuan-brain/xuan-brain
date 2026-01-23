@@ -1,12 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
+import { useTree } from "@headless-tree/react";
 import {
-  Tree,
-  type NodeModel,
-  type DropOptions,
-  type RenderParams,
-} from "@minoru/react-dnd-treeview";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+  syncDataLoaderFeature,
+  dragAndDropFeature,
+  selectionFeature,
+} from "@headless-tree/core";
 import {
   Box,
   Typography,
@@ -15,8 +13,6 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  TextField,
-  Paper,
   CircularProgress,
 } from "@mui/material";
 import {
@@ -25,8 +21,8 @@ import {
   Edit,
   Delete,
   Add,
-  Check,
-  Close,
+  ExpandMore,
+  ChevronRight,
 } from "@mui/icons-material";
 import { useI18n } from "../lib/i18n";
 import AddCategoryDialog from "./AddCategoryDialog";
@@ -41,12 +37,7 @@ async function invokeCommand<T = unknown>(
   return invoke<T>(cmd, args);
 }
 
-// Extended NodeModel with our custom fields
-interface ExtendedNodeModel extends NodeModel {
-  path?: string;
-  isEditing?: boolean;
-}
-
+// Backend data structure
 interface CategoryNode {
   id: number;
   path: string;
@@ -55,26 +46,29 @@ interface CategoryNode {
   sort_order: number;
 }
 
+// Headless Tree data structure
+interface TreeDataItem {
+  itemName: string;
+  childrenIds: string[];
+  isFolder: boolean;
+}
+
 interface ContextMenuState {
   mouseX: number;
   mouseY: number;
-  nodeId: number | null;
-  nodePath: string | null;
+  nodeId: string | null;
   nodeName: string | null;
 }
 
 export default function CategoryTree() {
   const { t } = useI18n();
-  const [treeData, setTreeData] = useState<ExtendedNodeModel[]>([]);
+  const [treeData, setTreeData] = useState<Record<string, TreeDataItem>>({});
   const [loading, setLoading] = useState(true);
-  const [selectedNode, setSelectedNode] = useState<NodeModel["id"] | null>(
-    null,
-  );
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     mouseX: 0,
     mouseY: 0,
     nodeId: null,
-    nodePath: null,
     nodeName: null,
   });
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -84,103 +78,149 @@ export default function CategoryTree() {
   const [editDialogPath, setEditDialogPath] = useState<string>("");
   const [editDialogName, setEditDialogName] = useState<string>("");
 
+  // Transform backend data to headless-tree format
+  const transformToHeadlessTreeData = useCallback(
+    (categories: CategoryNode[]): Record<string, TreeDataItem> => {
+      const dataMap: Record<string, TreeDataItem> = {};
+
+      // Build lookup map
+      categories.forEach((cat) => {
+        dataMap[cat.path] = {
+          itemName: cat.name,
+          childrenIds: [],
+          isFolder: true,
+        };
+      });
+
+      // Link children to parents
+      categories.forEach((cat) => {
+        if (cat.parent_id) {
+          const parentPath = categories.find(
+            (c) => c.id === cat.parent_id,
+          )?.path;
+          if (parentPath && dataMap[parentPath]) {
+            dataMap[parentPath].childrenIds.push(cat.path);
+          }
+        }
+      });
+
+      // Add root node
+      const rootChildren = categories
+        .filter((cat) => !cat.parent_id)
+        .map((cat) => cat.path);
+
+      dataMap["root"] = {
+        itemName: "root",
+        childrenIds: rootChildren,
+        isFolder: true,
+      };
+
+      return dataMap;
+    },
+    [],
+  );
+
   // Load categories from backend
   const loadCategoriesData = useCallback(async () => {
     setLoading(true);
     try {
       const categories = await invokeCommand<CategoryNode[]>("load_categories");
-
-      // Convert backend data to react-dnd-treeview format
-      const newTreeData: ExtendedNodeModel[] = categories.map((cat) => ({
-        id: cat.id,
-        parent: cat.parent_id || 0,
-        text: cat.name,
-        path: cat.path,
-        isEditing: false,
-      }));
-
-      setTreeData(newTreeData);
+      const transformedData = transformToHeadlessTreeData(categories);
+      setTreeData(transformedData);
+      // Auto-expand root level items
+      const rootLevelItems = categories
+        .filter((cat) => !cat.parent_id)
+        .map((cat) => cat.path);
+      setExpandedItems(rootLevelItems);
     } catch (err) {
       console.error("Failed to load categories:", err);
       // Demo data fallback (works in both Tauri and browser)
-      setTreeData([
-        { id: 1, parent: 0, text: "计算机科学", path: "1" },
-        { id: 2, parent: 1, text: "人工智能", path: "1.2" },
-        { id: 3, parent: 1, text: "机器学习", path: "1.3" },
-        { id: 4, parent: 0, text: "物理学", path: "4" },
-      ]);
+      const demoData = {
+        root: {
+          itemName: "root",
+          childrenIds: ["1", "4"],
+          isFolder: true,
+        },
+        "1": {
+          itemName: "计算机科学",
+          childrenIds: ["1.2", "1.3"],
+          isFolder: true,
+        },
+        "1.2": {
+          itemName: "人工智能",
+          childrenIds: [],
+          isFolder: true,
+        },
+        "1.3": {
+          itemName: "机器学习",
+          childrenIds: [],
+          isFolder: true,
+        },
+        "4": {
+          itemName: "物理学",
+          childrenIds: [],
+          isFolder: true,
+        },
+      };
+      setTreeData(demoData);
+      setExpandedItems(["1", "4"]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [transformToHeadlessTreeData]);
 
   useEffect(() => {
     loadCategoriesData();
   }, [loadCategoriesData]);
 
-  // Handle drop (drag and drop)
-  const handleDrop = useCallback(
-    async (tree: NodeModel[], options: DropOptions) => {
-      const { dragSourceId, dropTargetId, destinationIndex } = options;
+  // Map headless-tree drop event to backend API
+  const mapDropToBackend = useCallback(
+    (
+      items: any[],
+      target: any,
+    ): {
+      draggedPath: string;
+      targetPath: string;
+      position: "child" | "above" | "below";
+    } => {
+      const draggedItem = items[0];
+      const draggedPath = draggedItem.getId();
 
-      if (!dragSourceId || !dropTargetId) {
-        return;
+      // Check if dropped on item title (make child)
+      if ("item" in target) {
+        return {
+          draggedPath,
+          targetPath: target.item.getId(),
+          position: "child",
+        };
       }
 
-      const draggedNode = tree.find(
-        (node) => node.id === dragSourceId,
-      ) as ExtendedNodeModel;
-      if (!draggedNode) return;
+      // Dropped between items
+      const { targetItem, childIndex } = target;
+      const targetChildren = targetItem.getItemMeta().children;
 
-      const targetNode = tree.find(
-        (node) => node.id === dropTargetId,
-      ) as ExtendedNodeModel;
-      if (!targetNode) return;
-
-      // Calculate position
-      let position: "above" | "below" | "child" = "child";
-      const targetChildren = tree.filter(
-        (node) => node.parent === dropTargetId,
-      );
-
-      if (destinationIndex === targetChildren.length) {
-        // Dropped after all children
-        position = "child";
-      } else {
-        // Determine if above or below based on destination index
-        position = "below";
+      // If dropped at the end, make it a child
+      if (childIndex === targetChildren.length) {
+        return {
+          draggedPath,
+          targetPath: targetItem.getId(),
+          position: "child",
+        };
       }
 
-      // Call backend to move category
-      try {
-        await invokeCommand("move_category", {
-          draggedPath: draggedNode.path,
-          targetPath: targetNode.path,
-          position: position,
-        });
-
-        // Reload categories after successful move
-        await loadCategoriesData();
-      } catch (err) {
-        console.error("Failed to move category:", err);
-      }
+      // Otherwise, insert as sibling (below)
+      return {
+        draggedPath,
+        targetPath: targetItem.getId(),
+        position: "below",
+      };
     },
-    [treeData, loadCategoriesData],
+    [],
   );
-
-  // Handle node selection
-  const handleSelect = useCallback((nodeId: NodeModel["id"]) => {
-    setSelectedNode(nodeId);
-  }, []);
 
   // Handle right-click context menu
   const handleContextMenu = useCallback(
-    (
-      event: React.MouseEvent,
-      nodeId: number,
-      nodePath: string,
-      nodeName: string,
-    ) => {
+    (event: React.MouseEvent, nodeId: string, nodeName: string) => {
       event.preventDefault();
       event.stopPropagation();
 
@@ -188,7 +228,6 @@ export default function CategoryTree() {
         mouseX: event.clientX,
         mouseY: event.clientY,
         nodeId,
-        nodePath,
         nodeName,
       });
     },
@@ -201,28 +240,27 @@ export default function CategoryTree() {
       mouseX: 0,
       mouseY: 0,
       nodeId: null,
-      nodePath: null,
       nodeName: null,
     });
   }, []);
 
   // Handle add subcategory
   const handleAddSubcategory = useCallback(() => {
-    if (contextMenu.nodePath) {
-      setAddDialogParentPath(contextMenu.nodePath);
+    if (contextMenu.nodeId) {
+      setAddDialogParentPath(contextMenu.nodeId);
       setAddDialogParentName(contextMenu.nodeName || "");
       setShowAddDialog(true);
     }
     handleCloseContextMenu();
-  }, [contextMenu.nodePath, contextMenu.nodeName, handleCloseContextMenu]);
+  }, [contextMenu.nodeId, contextMenu.nodeName, handleCloseContextMenu]);
 
   // Handle delete category
   const handleDeleteCategory = useCallback(async () => {
-    if (!contextMenu.nodePath) return;
+    if (!contextMenu.nodeId) return;
 
     try {
       await invokeCommand("delete_category", {
-        path: contextMenu.nodePath,
+        path: contextMenu.nodeId,
       });
       await loadCategoriesData();
     } catch (err) {
@@ -230,215 +268,7 @@ export default function CategoryTree() {
     }
 
     handleCloseContextMenu();
-  }, [contextMenu.nodePath, loadCategoriesData, handleCloseContextMenu]);
-
-  // Handle inline edit (double-click)
-  const handleDoubleClick = useCallback((nodeId: number) => {
-    setTreeData((prev) =>
-      prev.map((node) =>
-        node.id === nodeId ? { ...node, isEditing: true } : node,
-      ),
-    );
-  }, []);
-
-  // Handle inline edit save
-  const handleEditSave = useCallback(
-    async (nodeId: number, newName: string) => {
-      const node = treeData.find((n) => n.id === nodeId) as ExtendedNodeModel;
-      if (!node || !newName.trim()) {
-        // Cancel edit if name is empty
-        setTreeData((prev) =>
-          prev.map((n) => (n.id === nodeId ? { ...n, isEditing: false } : n)),
-        );
-        return;
-      }
-
-      try {
-        await invokeCommand("update_category", {
-          path: node.path,
-          name: newName.trim(),
-        });
-        await loadCategoriesData();
-      } catch (err) {
-        console.error("Failed to update category:", err);
-        // Cancel edit on error
-        setTreeData((prev) =>
-          prev.map((n) => (n.id === nodeId ? { ...n, isEditing: false } : n)),
-        );
-      }
-    },
-    [treeData, loadCategoriesData],
-  );
-
-  // Handle inline edit cancel
-  const handleEditCancel = useCallback((nodeId: number) => {
-    setTreeData((prev) =>
-      prev.map((n) => (n.id === nodeId ? { ...n, isEditing: false } : n)),
-    );
-  }, []);
-
-  // Render node
-  const renderNode = useCallback(
-    (node: NodeModel, params: RenderParams) => {
-      const extendedNode = node as ExtendedNodeModel;
-      const nodePath = extendedNode.path;
-      const isEditing = extendedNode.isEditing || false;
-      const { depth, hasChild } = params;
-
-      return (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            py: 0.25,
-            pl: depth * 0.5,
-            pr: 0.5,
-            borderRadius: 1,
-            cursor: "pointer",
-            "&:hover": {
-              bgcolor: "action.hover",
-            },
-            bgcolor:
-              selectedNode === node.id ? "action.selected" : "transparent",
-          }}
-          onContextMenu={(e: React.MouseEvent) =>
-            handleContextMenu(e, node.id as number, nodePath || "", node.text)
-          }
-          onDoubleClick={() => handleDoubleClick(node.id as number)}
-          onClick={() => handleSelect(node.id)}
-        >
-          {/* Expand/Collapse Icon - Fixed expanded mode */}
-          {hasChild ? (
-            <Box
-              sx={{
-                width: 20,
-                height: 20,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mr: 0.3,
-              }}
-            >
-              <ExpandMoreIcon />
-            </Box>
-          ) : (
-            <Box sx={{ width: 20, mr: 0.3 }} />
-          )}
-
-          {/* Folder Icon */}
-          <Box sx={{ mr: 0.5, minWidth: 20 }}>
-            <FolderOpen />
-          </Box>
-
-          {/* Node Text or Edit Input */}
-          {isEditing ? (
-            <Box
-              sx={{ display: "flex", alignItems: "center", flex: 1, gap: 0.5 }}
-            >
-              <TextField
-                size="small"
-                defaultValue={node.text}
-                autoFocus
-                onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
-                  if (e.key === "Enter") {
-                    const target = e.target as HTMLInputElement;
-                    handleEditSave(node.id as number, target.value);
-                  } else if (e.key === "Escape") {
-                    handleEditCancel(node.id as number);
-                  }
-                }}
-                sx={{
-                  flex: 1,
-                  "& .MuiInputBase-root": {
-                    height: 24,
-                  },
-                }}
-                onFocus={(e: React.FocusEvent<HTMLInputElement>) =>
-                  e.target.select()
-                }
-              />
-              <IconButton
-                size="small"
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  const input = document.querySelector(
-                    "input:focus",
-                  ) as HTMLInputElement;
-                  if (input) {
-                    handleEditSave(node.id as number, input.value);
-                  }
-                }}
-              >
-                <Check />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  handleEditCancel(node.id as number);
-                }}
-              >
-                <Close />
-              </IconButton>
-            </Box>
-          ) : (
-            <Typography variant="body2" sx={{ flex: 1 }}>
-              {node.text}
-            </Typography>
-          )}
-
-          {/* More Options Button */}
-          <IconButton
-            size="small"
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              handleContextMenu(
-                e,
-                node.id as number,
-                nodePath || "",
-                node.text,
-              );
-            }}
-            sx={{
-              opacity: 0,
-              "&:hover": { opacity: 1 },
-              ".MuiBox-root:hover &": { opacity: 1 },
-            }}
-          >
-            <MoreVert />
-          </IconButton>
-        </Box>
-      );
-    },
-    [
-      selectedNode,
-      handleContextMenu,
-      handleDoubleClick,
-      handleSelect,
-      handleEditSave,
-      handleEditCancel,
-    ],
-  );
-
-  // Custom render drag preview
-  const renderDragPreview = useCallback((props: any) => {
-    return (
-      <Paper
-        sx={{
-          px: 1.5,
-          py: 0.75,
-          bgcolor: "primary.main",
-          color: "primary.contrastText",
-          opacity: 0.8,
-          cursor: "grabbing",
-        }}
-      >
-        <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>
-          {props.item.text}
-        </Typography>
-      </Paper>
-    );
-  }, []);
+  }, [contextMenu.nodeId, loadCategoriesData, handleCloseContextMenu]);
 
   if (loading) {
     return (
@@ -449,104 +279,295 @@ export default function CategoryTree() {
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <Box sx={{ position: "relative", overflow: "hidden" }}>
-        <Tree
-          tree={treeData}
-          rootId={0}
-          onDrop={handleDrop}
-          dragPreviewRender={renderDragPreview}
-          classes={{
-            root: "tree-root",
-            draggingSource: "dragging-source",
-            dropTarget: "drop-target",
-          }}
-          sort={false}
-          render={renderNode}
-          initialOpen={true}
-        />
-
-        {/* Context Menu */}
-        <Menu
-          open={contextMenu.mouseY !== 0 && contextMenu.nodeId !== null}
-          onClose={handleCloseContextMenu}
-          anchorReference="anchorPosition"
-          anchorPosition={
-            contextMenu.mouseY !== 0 && contextMenu.nodeId !== null
-              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-              : undefined
-          }
-        >
-          <MenuItem onClick={handleAddSubcategory}>
-            <ListItemIcon>
-              <Add />
-            </ListItemIcon>
-            <ListItemText>{t("dialog.addSubcategory")}</ListItemText>
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              if (contextMenu.nodePath && contextMenu.nodeName) {
-                setEditDialogPath(contextMenu.nodePath);
-                setEditDialogName(contextMenu.nodeName);
-                setShowEditDialog(true);
-              }
-              handleCloseContextMenu();
-            }}
-          >
-            <ListItemIcon>
-              <Edit />
-            </ListItemIcon>
-            <ListItemText>{t("dialog.rename")}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={handleDeleteCategory}>
-            <ListItemIcon>
-              <Delete />
-            </ListItemIcon>
-            <ListItemText>{t("dialog.delete")}</ListItemText>
-          </MenuItem>
-        </Menu>
-
-        {/* Edit Category Dialog */}
-        <EditCategoryDialog
-          open={showEditDialog}
-          categoryPath={editDialogPath}
-          currentName={editDialogName}
-          onClose={() => setShowEditDialog(false)}
-          onCategoryUpdated={async () => {
-            setShowEditDialog(false);
-            await loadCategoriesData();
-          }}
-        />
-
-        {/* Add Category Dialog */}
-        <AddCategoryDialog
-          open={showAddDialog}
-          onClose={() => setShowAddDialog(false)}
-          onCategoryCreated={async () => {
-            setShowAddDialog(false);
-            await loadCategoriesData();
-          }}
-          parentPath={addDialogParentPath}
-          parentName={addDialogParentName}
-        />
-      </Box>
-    </DndProvider>
+    <CategoryTreeContent
+      treeData={treeData}
+      expandedItems={expandedItems}
+      setExpandedItems={setExpandedItems}
+      mapDropToBackend={mapDropToBackend}
+      loadCategoriesData={loadCategoriesData}
+      handleContextMenu={handleContextMenu}
+      handleAddSubcategory={handleAddSubcategory}
+      handleDeleteCategory={handleDeleteCategory}
+      handleCloseContextMenu={handleCloseContextMenu}
+      contextMenu={contextMenu}
+      showAddDialog={showAddDialog}
+      addDialogParentPath={addDialogParentPath}
+      addDialogParentName={addDialogParentName}
+      showEditDialog={showEditDialog}
+      editDialogPath={editDialogPath}
+      editDialogName={editDialogName}
+      setShowAddDialog={setShowAddDialog}
+      setShowEditDialog={setShowEditDialog}
+      setEditDialogPath={setEditDialogPath}
+      setEditDialogName={setEditDialogName}
+      t={t}
+    />
   );
 }
 
-// Helper icons
-const ExpandMoreIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="6 9 12 15 18 9"></polyline>
-  </svg>
-);
+// Separate component to render tree after data is loaded
+interface CategoryTreeContentProps {
+  treeData: Record<string, TreeDataItem>;
+  expandedItems: string[];
+  setExpandedItems: React.Dispatch<React.SetStateAction<string[]>>;
+  mapDropToBackend: (
+    items: any[],
+    target: any,
+  ) => {
+    draggedPath: string;
+    targetPath: string;
+    position: "child" | "above" | "below";
+  };
+  loadCategoriesData: () => Promise<void>;
+  handleContextMenu: (
+    event: React.MouseEvent,
+    nodeId: string,
+    nodeName: string,
+  ) => void;
+  handleAddSubcategory: () => void;
+  handleDeleteCategory: () => void;
+  handleCloseContextMenu: () => void;
+  contextMenu: ContextMenuState;
+  showAddDialog: boolean;
+  addDialogParentPath: string;
+  addDialogParentName: string;
+  showEditDialog: boolean;
+  editDialogPath: string;
+  editDialogName: string;
+  setShowAddDialog: (show: boolean) => void;
+  setShowEditDialog: (show: boolean) => void;
+  setEditDialogPath: (path: string) => void;
+  setEditDialogName: (name: string) => void;
+  t: (key: string) => string;
+}
+
+function CategoryTreeContent({
+  treeData,
+  expandedItems,
+  setExpandedItems,
+  mapDropToBackend,
+  loadCategoriesData,
+  handleContextMenu,
+  handleAddSubcategory,
+  handleDeleteCategory,
+  handleCloseContextMenu,
+  contextMenu,
+  showAddDialog,
+  addDialogParentPath,
+  addDialogParentName,
+  showEditDialog,
+  editDialogPath,
+  editDialogName,
+  setShowAddDialog,
+  setShowEditDialog,
+  setEditDialogPath,
+  setEditDialogName,
+  t,
+}: CategoryTreeContentProps) {
+  // Initialize tree
+  const tree = useTree<TreeDataItem>({
+    rootItemId: "root",
+    getItemName: (item) => item.getItemData().itemName,
+    isItemFolder: (item) => item.getItemData().isFolder !== false,
+    dataLoader: {
+      getItem: (itemId) => treeData[itemId],
+      getChildren: (itemId) => treeData[itemId]?.childrenIds || [],
+    },
+    setExpandedItems,
+    indent: 24,
+    canReorder: true,
+    onDrop: async (items, target) => {
+      const { draggedPath, targetPath, position } = mapDropToBackend(
+        items,
+        target,
+      );
+
+      // Don't drop on itself
+      if (draggedPath === targetPath) {
+        return;
+      }
+
+      try {
+        await invokeCommand("move_category", {
+          draggedPath,
+          targetPath: targetPath === "root" ? null : targetPath,
+          position,
+        });
+        await loadCategoriesData();
+      } catch (err) {
+        console.error("Failed to move category:", err);
+      }
+    },
+    features: [syncDataLoaderFeature, dragAndDropFeature, selectionFeature],
+  });
+
+  const items = tree.getItems();
+
+  return (
+    <Box sx={{ position: "relative" }}>
+      <div {...tree.getContainerProps()} className="tree-root">
+        {items.map((item) => {
+          const itemData = item.getItemData();
+          const level = item.getItemMeta().level;
+          const isExpanded = item.isExpanded();
+          const children = item.getChildren();
+          const hasChildren = children.length > 0;
+          const isSelected = item.isSelected();
+          const itemId = item.getId();
+
+          // Skip root node in rendering
+          if (itemId === "root") return null;
+
+          return (
+            <Box
+              key={itemId}
+              {...item.getProps()}
+              className="tree-item"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                py: 0.25,
+                pl: level * 1.5,
+                pr: 0.5,
+                borderRadius: 1,
+                cursor: "pointer",
+                transition: "background-color 150ms",
+                "&:hover": {
+                  bgcolor: "action.hover",
+                },
+                bgcolor: isSelected ? "action.selected" : "transparent",
+              }}
+              onContextMenu={(e: React.MouseEvent) =>
+                handleContextMenu(e, itemId, itemData.itemName)
+              }
+            >
+              {/* Expand/Collapse Icon */}
+              {hasChildren ? (
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mr: 0.3,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const itemId = item.getId();
+                    if (isExpanded) {
+                      setExpandedItems(
+                        expandedItems.filter((id) => id !== itemId),
+                      );
+                    } else {
+                      setExpandedItems([...expandedItems, itemId]);
+                    }
+                  }}
+                >
+                  {isExpanded ? (
+                    <ExpandMore sx={{ fontSize: 14 }} />
+                  ) : (
+                    <ChevronRight sx={{ fontSize: 14 }} />
+                  )}
+                </Box>
+              ) : (
+                <Box sx={{ width: 20, mr: 0.3 }} />
+              )}
+
+              {/* Folder Icon */}
+              <Box sx={{ mr: 0.5, minWidth: 20 }}>
+                <FolderOpen fontSize="small" />
+              </Box>
+
+              {/* Node Text */}
+              <Typography variant="body2" sx={{ flex: 1 }}>
+                {itemData.itemName}
+              </Typography>
+
+              {/* More Options Button */}
+              <IconButton
+                size="small"
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  handleContextMenu(e, itemId, itemData.itemName);
+                }}
+                sx={{
+                  opacity: 0,
+                  "&:hover": { opacity: 1 },
+                  ".tree-item:hover &": { opacity: 1 },
+                }}
+              >
+                <MoreVert fontSize="small" />
+              </IconButton>
+            </Box>
+          );
+        })}
+        <div style={tree.getDragLineStyle()} className="dragline" />
+      </div>
+
+      {/* Context Menu */}
+      <Menu
+        open={contextMenu.mouseY !== 0 && contextMenu.nodeId !== null}
+        onClose={handleCloseContextMenu}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenu.mouseY !== 0 && contextMenu.nodeId !== null
+            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+            : undefined
+        }
+      >
+        <MenuItem onClick={handleAddSubcategory}>
+          <ListItemIcon>
+            <Add fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>{t("dialog.addSubcategory")}</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (contextMenu.nodeId && contextMenu.nodeName) {
+              setEditDialogPath(contextMenu.nodeId);
+              setEditDialogName(contextMenu.nodeName);
+              setShowEditDialog(true);
+            }
+            handleCloseContextMenu();
+          }}
+        >
+          <ListItemIcon>
+            <Edit fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>{t("dialog.rename")}</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleDeleteCategory}>
+          <ListItemIcon>
+            <Delete fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>{t("dialog.delete")}</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Edit Category Dialog */}
+      <EditCategoryDialog
+        open={showEditDialog}
+        categoryPath={editDialogPath}
+        currentName={editDialogName}
+        onClose={() => setShowEditDialog(false)}
+        onCategoryUpdated={async () => {
+          setShowEditDialog(false);
+          await loadCategoriesData();
+        }}
+      />
+
+      {/* Add Category Dialog */}
+      <AddCategoryDialog
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onCategoryCreated={async () => {
+          setShowAddDialog(false);
+          await loadCategoriesData();
+        }}
+        parentPath={addDialogParentPath}
+        parentName={addDialogParentName}
+      />
+    </Box>
+  );
+}

@@ -24,9 +24,9 @@ import {
   ExpandMore,
   ChevronRight,
 } from "@mui/icons-material";
-import { useI18n } from "../lib/i18n";
-import AddCategoryDialog from "./AddCategoryDialog";
-import EditCategoryDialog from "./EditCategoryDialog";
+import { useI18n } from "../../lib/i18n";
+import AddCategoryDialog from "../dialogs/AddCategoryDialog";
+import EditCategoryDialog from "../dialogs/EditCategoryDialog";
 
 // Lazy load invoke helper - works in both Tauri and browser
 async function invokeCommand<T = unknown>(

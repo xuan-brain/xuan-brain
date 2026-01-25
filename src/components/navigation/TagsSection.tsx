@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Box, Typography, Chip, Menu, MenuItem, Divider } from "@mui/material";
 import { Delete } from "@mui/icons-material";
-import AddTagDialog from "./AddTagDialog";
+import AddTagDialog from "../dialogs/AddTagDialog";
 
 // Lazy load invoke helper - works in both Tauri and browser
 async function invokeCommand<T = unknown>(

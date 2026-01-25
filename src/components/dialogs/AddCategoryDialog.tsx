@@ -10,7 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Close } from "@mui/icons-material";
-import { useI18n } from "../lib/i18n";
+import { useI18n } from "../../lib/i18n";
 
 // Lazy load invoke helper - works in both Tauri and browser
 async function invokeCommand<T = unknown>(

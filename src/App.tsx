@@ -4,7 +4,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, Box } from "@mui/material";
 import { lightTheme, darkTheme } from "./theme";
 import { I18nProvider } from "./lib/i18n";
-import Layout from "./components/Layout";
+import Layout from "./components/layout/Layout";
 
 function App() {
   const [isDark, setIsDark] = useState(true);

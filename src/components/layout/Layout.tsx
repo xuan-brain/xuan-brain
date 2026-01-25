@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { Box } from "@mui/material";
-import Navigation from "./Navigation";
+import Navigation from "../navigation/Navigation";
 import StatusBar from "./StatusBar";
-import DocumentList from "./DocumentList";
-import DocumentDetails from "./DocumentDetails";
+import DocumentList from "../document/DocumentList";
+import DocumentDetails from "../document/DocumentDetails";
 
 interface LayoutProps {
   children?: React.ReactNode;

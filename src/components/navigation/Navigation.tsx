@@ -17,11 +17,11 @@ import {
   LocalOffer as TagIcon,
   Add,
 } from "@mui/icons-material";
-import { useI18n } from "../lib/i18n";
+import { useI18n } from "../../lib/i18n";
 import CategoryTree from "./CategoryTree";
 import TagsSection from "./TagsSection";
-import AddCategoryDialog from "./AddCategoryDialog";
-import AddTagDialog from "./AddTagDialog";
+import AddCategoryDialog from "../dialogs/AddCategoryDialog";
+import AddTagDialog from "../dialogs/AddTagDialog";
 
 export default function Navigation() {
   const { t } = useI18n();

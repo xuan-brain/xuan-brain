@@ -14,7 +14,7 @@ import {
   Palette,
   Check,
 } from "@mui/icons-material";
-import { useI18n, localeList, type LocaleCode } from "../lib/i18n";
+import { useI18n, localeList, type LocaleCode } from "../../lib/i18n";
 
 // Accent colors
 const accentColors = [

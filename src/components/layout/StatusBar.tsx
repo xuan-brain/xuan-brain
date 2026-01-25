@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Box, Typography, IconButton, Chip } from "@mui/material";
 import { Sync, Description, Search, Memory } from "@mui/icons-material";
-import { useI18n } from "../lib/i18n";
-import ThemeSwitcher from "./ThemeSwitcher";
+import { useI18n } from "../../lib/i18n";
+import ThemeSwitcher from "../navigation/ThemeSwitcher";
 
 export default function StatusBar() {
   const { t } = useI18n();

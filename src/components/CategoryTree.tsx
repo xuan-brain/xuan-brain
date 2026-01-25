@@ -83,8 +83,13 @@ export default function CategoryTree() {
     (categories: CategoryNode[]): Record<string, TreeDataItem> => {
       const dataMap: Record<string, TreeDataItem> = {};
 
+      // Sort categories by sort_order
+      const sortedCategories = [...categories].sort(
+        (a, b) => a.sort_order - b.sort_order,
+      );
+
       // Build lookup map
-      categories.forEach((cat) => {
+      sortedCategories.forEach((cat) => {
         dataMap[cat.path] = {
           itemName: cat.name,
           childrenIds: [],
@@ -93,7 +98,7 @@ export default function CategoryTree() {
       });
 
       // Link children to parents
-      categories.forEach((cat) => {
+      sortedCategories.forEach((cat) => {
         if (cat.parent_id) {
           const parentPath = categories.find(
             (c) => c.id === cat.parent_id,
@@ -105,7 +110,7 @@ export default function CategoryTree() {
       });
 
       // Add root node
-      const rootChildren = categories
+      const rootChildren = sortedCategories
         .filter((cat) => !cat.parent_id)
         .map((cat) => cat.path);
 
@@ -127,11 +132,19 @@ export default function CategoryTree() {
       const categories = await invokeCommand<CategoryNode[]>("load_categories");
       const transformedData = transformToHeadlessTreeData(categories);
       setTreeData(transformedData);
-      // Auto-expand root level items
-      const rootLevelItems = categories
-        .filter((cat) => !cat.parent_id)
+      // Auto-expand items up to level 2 (so level 3 items are visible)
+      const itemsToExpand = categories
+        .filter((cat) => {
+          // Level 1: No parent
+          if (!cat.parent_id) return true;
+
+          // Level 2: Parent is a root-level item
+          const parent = categories.find((p) => p.id === cat.parent_id);
+          return parent && !parent.parent_id;
+        })
         .map((cat) => cat.path);
-      setExpandedItems(rootLevelItems);
+
+      setExpandedItems(itemsToExpand);
     } catch (err) {
       console.error("Failed to load categories:", err);
       // Demo data fallback (works in both Tauri and browser)
@@ -180,42 +193,72 @@ export default function CategoryTree() {
       target: any,
     ): {
       draggedPath: string;
-      targetPath: string;
+      targetPath: string | null;
       position: "child" | "above" | "below";
     } => {
       const draggedItem = items[0];
       const draggedPath = draggedItem.getId();
 
+      // Check for reorder/insert (Drop Between)
+      if (typeof target.childIndex === "number") {
+        // In some versions/configs, the parent item is in 'item' or 'targetItem'
+        const targetItem = target.targetItem || target.item;
+
+        if (!targetItem) {
+          console.error(
+            "Dropped between items but no parent item found:",
+            target,
+          );
+          return {
+            draggedPath,
+            targetPath: null,
+            position: "child",
+          };
+        }
+
+        const parentId = targetItem.getId();
+        // Use treeData directly to ensure we have the correct children list
+        const targetChildrenIds = treeData[parentId]?.childrenIds || [];
+        const { childIndex } = target;
+
+        // If dropped at the end, make it a child of the parent
+        if (childIndex === targetChildrenIds.length) {
+          return {
+            draggedPath,
+            targetPath: parentId === "root" ? null : parentId,
+            position: "child",
+          };
+        }
+
+        // Otherwise, insert ABOVE the sibling at that index
+        const siblingId = targetChildrenIds[childIndex];
+        return {
+          draggedPath,
+          targetPath: siblingId,
+          position: "above",
+        };
+      }
+
       // Check if dropped on item title (make child)
+      // Only if childIndex is NOT present
       if ("item" in target) {
+        const targetId = target.item.getId();
         return {
           draggedPath,
-          targetPath: target.item.getId(),
+          targetPath: targetId === "root" ? null : targetId,
           position: "child",
         };
       }
 
-      // Dropped between items
-      const { targetItem, childIndex } = target;
-      const targetChildren = targetItem.getItemMeta().children;
-
-      // If dropped at the end, make it a child
-      if (childIndex === targetChildren.length) {
-        return {
-          draggedPath,
-          targetPath: targetItem.getId(),
-          position: "child",
-        };
-      }
-
-      // Otherwise, insert as sibling (below)
+      // Fallback (should not happen usually)
+      console.warn("Unknown drop target type:", target);
       return {
         draggedPath,
-        targetPath: targetItem.getId(),
-        position: "below",
+        targetPath: null,
+        position: "child", // Default to root append
       };
     },
-    [],
+    [treeData],
   );
 
   // Handle right-click context menu
@@ -315,7 +358,7 @@ interface CategoryTreeContentProps {
     target: any,
   ) => {
     draggedPath: string;
-    targetPath: string;
+    targetPath: string | null;
     position: "child" | "above" | "below";
   };
   loadCategoriesData: () => Promise<void>;
@@ -373,7 +416,9 @@ function CategoryTreeContent({
       getItem: (itemId) => treeData[itemId],
       getChildren: (itemId) => treeData[itemId]?.childrenIds || [],
     },
-    setExpandedItems,
+    initialState: {
+      expandedItems,
+    },
     indent: 24,
     canReorder: true,
     onDrop: async (items, target) => {

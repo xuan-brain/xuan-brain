@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Box, Typography, Chip, Menu, MenuItem } from "@mui/material";
+import { Box, Typography, Chip, Menu, MenuItem, Divider } from "@mui/material";
 import { Delete } from "@mui/icons-material";
 import AddTagDialog from "./AddTagDialog";
 
@@ -133,6 +133,23 @@ export default function TagsSection(_props: TagsSectionProps) {
     }
   };
 
+  // Handle update tag color
+  const handleUpdateTagColor = async (colorKey: string) => {
+    if (!contextMenu.tag) return;
+
+    try {
+      await invokeCommand("update_label", {
+        id: contextMenu.tag.id,
+        color: colorKey,
+      });
+      handleCloseContextMenu();
+      await loadTags();
+    } catch (error) {
+      console.error("Failed to update tag color:", error);
+      alert(`修改标签颜色失败: ${error}`);
+    }
+  };
+
   return (
     <Box sx={{ py: 1 }}>
       {/* Header */}
@@ -210,6 +227,40 @@ export default function TagsSection(_props: TagsSectionProps) {
           <Delete sx={{ mr: 1 }} />
           删除标签
         </MenuItem>
+
+        <Divider />
+
+        <Box sx={{ p: 2, maxWidth: 220 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mb: 1, display: "block" }}
+          >
+            修改颜色
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+            {Object.entries(TAG_COLORS).map(([key, value]) => (
+              <Box
+                key={key}
+                onClick={() => handleUpdateTagColor(key)}
+                sx={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  bgcolor: value,
+                  cursor: "pointer",
+                  border:
+                    contextMenu.tag?.color === value
+                      ? "2px solid black"
+                      : "1px solid #ddd",
+                  "&:hover": { transform: "scale(1.2)" },
+                  transition: "transform 0.2s",
+                }}
+                title={key}
+              />
+            ))}
+          </Box>
+        </Box>
       </Menu>
     </Box>
   );

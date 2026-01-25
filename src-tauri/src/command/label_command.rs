@@ -65,6 +65,43 @@ pub async fn create_label(
         document_count: label.document_count.unwrap_or(0),
     })
 }
+
+#[tauri::command]
+pub async fn update_label(
+    connection: State<'_, DatabaseConnection>,
+    id: i64,
+    name: Option<String>,
+    color: Option<String>,
+) -> Result<LabelResponse, String> {
+    let label = Label::find_by_id(id)
+        .one(connection.inner())
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Label not found".to_string())?;
+
+    let mut active_model: label::ActiveModel = label.into();
+
+    if let Some(n) = name {
+        active_model.name = Set(n);
+    }
+    if let Some(c) = color {
+        active_model.color = Set(c);
+    }
+    active_model.updated_at = Set(Local::now().naive_local());
+
+    let updated_label = active_model
+        .update(connection.inner())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(LabelResponse {
+        id: updated_label.id,
+        name: updated_label.name,
+        color: updated_label.color,
+        document_count: updated_label.document_count.unwrap_or(0),
+    })
+}
+
 #[tauri::command]
 pub async fn delete_label(
     connection: State<'_, DatabaseConnection>,

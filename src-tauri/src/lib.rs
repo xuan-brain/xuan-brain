@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use crate::command::category_command::{
     create_category, delete_category, load_categories, move_category, update_category,
 };
-use crate::command::label_command::{create_label, delete_label, get_all_labels};
+use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
 use tauri::Manager;
@@ -66,6 +66,7 @@ pub fn run() -> Result<()> {
             get_all_labels,
             create_label,
             delete_label,
+            update_label,
             load_categories,
             create_category,
             delete_category,

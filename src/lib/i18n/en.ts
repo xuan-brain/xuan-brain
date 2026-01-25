@@ -32,6 +32,14 @@ export default {
     noSelection: "Select a document to view details",
   },
 
+  // Document list
+  document: {
+    title: "Title",
+    authors: "Authors",
+    source: "Journal/Conference",
+    year: "Year",
+  },
+
   // Theme
   theme: {
     darkMode: "Dark Mode",

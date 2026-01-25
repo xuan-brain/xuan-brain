@@ -32,6 +32,14 @@ export default {
     noSelection: "选择一个文档以查看详情",
   },
 
+  // Document list
+  document: {
+    title: "标题",
+    authors: "作者",
+    source: "期刊/会议",
+    year: "年份",
+  },
+
   // Theme
   theme: {
     darkMode: "深色模式",

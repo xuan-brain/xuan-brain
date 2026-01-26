@@ -22,7 +22,7 @@ pub async fn get_all_labels(
         .all(connection.inner())
         .await
         .map_err(|e| e.to_string())?;
-    debug!("Labels: {:?}", labels);
+    // debug!("Labels: {:?}", labels);
 
     // For now, return labels without document count
     // TODO: Join with document_labels table to get actual count

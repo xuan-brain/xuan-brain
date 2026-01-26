@@ -39,10 +39,13 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
     try {
       const papers = await invokeCommand<PaperDto[]>("get_all_papers");
       setRows(papers);
+      if (papers.length > 0) {
+        onDocumentSelect(papers[0]);
+      }
     } catch (error) {
       console.error("Failed to load papers:", error);
       // Demo data if backend fails (dev mode without tauri)
-      setRows([
+      const demoData = [
         {
           id: 1,
           title: "Attention Is All You Need",
@@ -50,7 +53,11 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
           publication_year: 2017,
           conference_name: "NIPS",
         },
-      ]);
+      ];
+      setRows(demoData);
+      if (demoData.length > 0) {
+        onDocumentSelect(demoData[0]);
+      }
     } finally {
       setLoading(false);
     }
@@ -86,7 +93,6 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
         loading={loading}
         density="compact"
         onRowClick={(params) => onDocumentSelect(params.row)}
-        disableRowSelectionOnClick
         initialState={{
           pagination: {
             paginationModel: { page: 0, pageSize: 25 },

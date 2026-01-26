@@ -14,6 +14,26 @@ pub struct PaperDto {
     pub authors: Vec<String>,
 }
 
+#[derive(Serialize)]
+pub struct PaperDetailDto {
+    pub id: i64,
+    pub title: String,
+    pub abstract_text: Option<String>,
+    pub doi: Option<String>,
+    pub publication_year: Option<i64>,
+    pub publication_date: Option<String>,
+    pub journal_name: Option<String>,
+    pub conference_name: Option<String>,
+    pub volume: Option<String>,
+    pub issue: Option<String>,
+    pub pages: Option<String>,
+    pub url: Option<String>,
+    pub citation_count: Option<i64>,
+    pub read_status: Option<String>,
+    pub notes: Option<String>,
+    pub authors: Vec<String>,
+}
+
 #[tauri::command]
 pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<PaperDto>, String> {
     let papers = Papers::find()
@@ -36,4 +56,36 @@ pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<Pap
         .collect();
 
     Ok(dtos)
+}
+
+#[tauri::command]
+pub async fn get_paper(id: i64, db: State<'_, DatabaseConnection>) -> Result<Option<PaperDetailDto>, String> {
+    let paper_with_authors = Papers::find_by_id(id)
+        .find_with_related(Authors)
+        .all(db.inner())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if let Some((paper, authors)) = paper_with_authors.into_iter().next() {
+        Ok(Some(PaperDetailDto {
+            id: paper.id,
+            title: paper.title,
+            abstract_text: paper.r#abstract,
+            doi: paper.doi,
+            publication_year: paper.publication_year,
+            publication_date: paper.publication_date,
+            journal_name: paper.journal_name,
+            conference_name: paper.conference_name,
+            volume: paper.volume,
+            issue: paper.issue,
+            pages: paper.pages,
+            url: paper.url,
+            citation_count: paper.citation_count,
+            read_status: paper.read_status,
+            notes: paper.notes,
+            authors: authors.into_iter().map(|a| a.name).collect(),
+        }))
+    } else {
+        Ok(None)
+    }
 }

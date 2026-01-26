@@ -2,7 +2,6 @@ use chrono::prelude::*;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait};
 use serde::Serialize;
 use tauri::State;
-use tracing::debug;
 
 use crate::database::entities::{label, prelude::Label};
 

@@ -1,8 +1,15 @@
-use sea_orm::{DatabaseConnection, EntityTrait, QueryOrder};
+use sea_orm::{DatabaseConnection, EntityTrait, LoaderTrait, QueryOrder};
 use serde::Serialize;
 use tauri::State;
 
 use crate::database::entities::{papers, prelude::*};
+
+#[derive(Serialize)]
+pub struct LabelDto {
+    pub id: i64,
+    pub name: String,
+    pub color: String,
+}
 
 #[derive(Serialize)]
 pub struct PaperDto {
@@ -12,6 +19,7 @@ pub struct PaperDto {
     pub journal_name: Option<String>,
     pub conference_name: Option<String>,
     pub authors: Vec<String>,
+    pub labels: Vec<LabelDto>,
 }
 
 #[derive(Serialize)]
@@ -37,21 +45,40 @@ pub struct PaperDetailDto {
 #[tauri::command]
 pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<PaperDto>, String> {
     let papers = Papers::find()
-        .find_with_related(Authors)
         .order_by_desc(papers::Column::Id)
         .all(db.inner())
         .await
         .map_err(|e| e.to_string())?;
 
+    let authors = papers
+        .load_many_to_many(Authors, PaperAuthors, db.inner())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let labels = papers
+        .load_many_to_many(Label, PaperLabels, db.inner())
+        .await
+        .map_err(|e| e.to_string())?;
+
     let dtos: Vec<PaperDto> = papers
         .into_iter()
-        .map(|(paper, authors)| PaperDto {
+        .zip(authors.into_iter())
+        .zip(labels.into_iter())
+        .map(|((paper, authors), labels)| PaperDto {
             id: paper.id,
             title: paper.title,
             publication_year: paper.publication_year,
             journal_name: paper.journal_name,
             conference_name: paper.conference_name,
             authors: authors.into_iter().map(|a| a.name).collect(),
+            labels: labels
+                .into_iter()
+                .map(|l| LabelDto {
+                    id: l.id,
+                    name: l.name,
+                    color: l.color,
+                })
+                .collect(),
         })
         .collect();
 
@@ -59,7 +86,10 @@ pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<Pap
 }
 
 #[tauri::command]
-pub async fn get_paper(id: i64, db: State<'_, DatabaseConnection>) -> Result<Option<PaperDetailDto>, String> {
+pub async fn get_paper(
+    id: i64,
+    db: State<'_, DatabaseConnection>,
+) -> Result<Option<PaperDetailDto>, String> {
     let paper_with_authors = Papers::find_by_id(id)
         .find_with_related(Authors)
         .all(db.inner())

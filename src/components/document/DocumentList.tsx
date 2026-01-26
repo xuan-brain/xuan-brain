@@ -12,6 +12,33 @@ async function invokeCommand<T = unknown>(
   return invoke<T>(cmd, args);
 }
 
+// Predefined color palette for tags
+const TAG_COLORS: Record<string, string> = {
+  red: "#ef4444",
+  orange: "#f97316",
+  amber: "#f59e0b",
+  yellow: "#eab308",
+  lime: "#84cc16",
+  green: "#22c55e",
+  emerald: "#10b981",
+  teal: "#14b8a6",
+  cyan: "#06b6d4",
+  sky: "#0ea5e9",
+  blue: "#3b82f6",
+  indigo: "#6366f1",
+  violet: "#8b5cf6",
+  purple: "#a855f7",
+  fuchsia: "#d946ef",
+  pink: "#ec4899",
+  rose: "#f43f5e",
+};
+
+interface LabelDto {
+  id: number;
+  name: string;
+  color: string;
+}
+
 interface PaperDto {
   id: number;
   title: string;
@@ -19,6 +46,7 @@ interface PaperDto {
   journal_name?: string;
   conference_name?: string;
   authors: string[];
+  labels: LabelDto[];
 }
 
 interface DocumentListProps {
@@ -52,6 +80,7 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
           authors: ["Vaswani et al."],
           publication_year: 2017,
           conference_name: "NIPS",
+          labels: [],
         },
       ];
       setRows(demoData);
@@ -102,6 +131,43 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
         row.journal_name || row.conference_name || "",
     },
     { field: "publication_year", headerName: t("document.year"), width: 90 },
+    {
+      field: "labels",
+      headerName: t("document.labels"),
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => {
+        return (
+          <Box
+            sx={{
+              display: "flex",
+              gap: 0.5,
+              flexWrap: "wrap",
+              alignItems: "center",
+              height: "100%",
+            }}
+          >
+            {params.row.labels?.map((label: LabelDto) => (
+              <Chip
+                key={label.id}
+                label={label.name}
+                size="small"
+                sx={{
+                  fontSize: "0.75rem",
+                  maxWidth: "100px",
+                  backgroundColor: TAG_COLORS[label.color] || TAG_COLORS.blue,
+                  color: "#fff",
+                  "& .MuiChip-label": {
+                    paddingLeft: "4px",
+                    paddingRight: "4px",
+                  },
+                }}
+              />
+            ))}
+          </Box>
+        );
+      },
+    },
   ];
 
   return (

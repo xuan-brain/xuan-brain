@@ -38,6 +38,7 @@ export default {
     authors: "Authors",
     source: "Journal/Conference",
     year: "Year",
+    labels: "Labels",
   },
 
   // Theme

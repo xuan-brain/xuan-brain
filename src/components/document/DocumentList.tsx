@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { Box } from "@mui/material";
+import { Box, Chip } from "@mui/material";
 import { useI18n } from "../../lib/i18n";
 
 // Lazy load invoke helper - works in both Tauri and browser
@@ -70,8 +70,27 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       headerName: t("document.authors"),
       flex: 1,
       minWidth: 150,
-      valueGetter: (_value: unknown, row: PaperDto) => {
-        return row.authors ? row.authors.join(", ") : "";
+      renderCell: (params) => {
+        return (
+          <Box
+            sx={{
+              display: "flex",
+              gap: 0.5,
+              flexWrap: "wrap",
+              alignItems: "center",
+              height: "100%",
+            }}
+          >
+            {params.row.authors?.map((author: string, index: number) => (
+              <Chip
+                key={index}
+                label={author}
+                size="small"
+                sx={{ fontSize: "0.875rem" }}
+              />
+            ))}
+          </Box>
+        );
       },
     },
     {
@@ -92,13 +111,25 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
         columns={columns}
         loading={loading}
         density="compact"
-        onRowClick={(params) => onDocumentSelect(params.row)}
-        initialState={{
-          pagination: {
-            paginationModel: { page: 0, pageSize: 25 },
+        onRowClick={(params) => {
+          onDocumentSelect(params.row);
+        }}
+        pageSizeOptions={[]}
+        hideFooter
+        disableColumnFilter
+        disableColumnMenu
+        disableColumnSelector
+        sx={{
+          "& .MuiDataGrid-cell": {
+            borderBottom: "1px solid rgba(224, 224, 224, 0.5)",
+          },
+          "& .MuiDataGrid-cell:focus": {
+            outline: "none",
+          },
+          "& .MuiDataGrid-cell:focus-within": {
+            outline: "none",
           },
         }}
-        pageSizeOptions={[25, 50, 100]}
       />
     </Box>
   );

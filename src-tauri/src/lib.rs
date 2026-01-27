@@ -11,7 +11,9 @@ use crate::command::category_command::{
     create_category, delete_category, load_categories, move_category, update_category,
 };
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
-use crate::command::paper_command::{get_all_papers, get_paper, import_paper_by_doi};
+use crate::command::paper_command::{
+    get_all_papers, get_paper, import_paper_by_arxiv_id, import_paper_by_doi,
+};
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
 use futures::executor::block_on;
@@ -78,7 +80,8 @@ pub fn run() -> Result<()> {
             move_category,
             get_all_papers,
             get_paper,
-            import_paper_by_doi
+            import_paper_by_doi,
+            import_paper_by_arxiv_id
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

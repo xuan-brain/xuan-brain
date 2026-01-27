@@ -7,6 +7,7 @@ use tauri::State;
 use tracing::{info, instrument};
 
 use crate::database::entities::{authors, paper_authors, papers, prelude::*};
+use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
 use crate::sys::error::{AppError, Result};
 
@@ -213,6 +214,108 @@ pub async fn import_paper_by_doi(
     info!(
         "Successfully imported paper: {} (id: {}, doi: {})",
         metadata.title, paper.id, metadata.doi
+    );
+
+    Ok(PaperDto {
+        id: paper.id,
+        title: paper.title,
+        publication_year: paper.publication_year,
+        journal_name: paper.journal_name,
+        conference_name: paper.conference_name,
+        authors: metadata.authors,
+        labels: vec![],
+    })
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn import_paper_by_arxiv_id(
+    arxiv_id: String,
+    db: State<'_, DatabaseConnection>,
+) -> Result<PaperDto> {
+    info!("Importing paper with arXiv ID: {}", arxiv_id);
+
+    // Fetch metadata from arXiv
+    let metadata = fetch_arxiv_metadata(&arxiv_id).await.map_err(|e| match e {
+        ArxivError::InvalidArxivId(id) => {
+            AppError::validation("arxiv_id", format!("Invalid arXiv ID: {}", id))
+        }
+        ArxivError::NotFound => AppError::not_found("arXiv ID", arxiv_id),
+        ArxivError::ParseError(msg) => AppError::validation(
+            "metadata",
+            format!("Failed to parse arXiv metadata: {}", msg),
+        ),
+        ArxivError::RequestError(e) => {
+            AppError::network_error(&arxiv_id, format!("Failed to fetch arXiv: {}", e))
+        }
+    })?;
+
+    // Check if paper already exists by DOI or URL
+    if let Some(doi) = &metadata.doi {
+        if let Some(existing) = Papers::find()
+            .filter(papers::Column::Doi.eq(doi))
+            .one(db.inner())
+            .await?
+        {
+            info!("Paper with DOI {} already exists, id: {}", doi, existing.id);
+            return Err(AppError::validation(
+                "doi",
+                format!("Paper with DOI {} already exists", doi),
+            ));
+        }
+    }
+
+    // Extract publication year from published date
+    let publication_year = metadata
+        .published
+        .split('-')
+        .next()
+        .and_then(|y| y.parse::<i64>().ok());
+
+    // Create paper
+    let paper = papers::ActiveModel {
+        title: Set(metadata.title.clone()),
+        doi: Set(metadata.doi.clone()),
+        publication_year: Set(publication_year),
+        url: Set(Some(metadata.pdf_url.clone())),
+        r#abstract: Set(Some(metadata.summary.clone())),
+        journal_name: Set(metadata.journal_ref.clone()),
+        ..Default::default()
+    }
+    .insert(db.inner())
+    .await?;
+
+    // Add authors
+    for author_name in &metadata.authors {
+        // Find or create author
+        let author = if let Some(existing_author) = Authors::find()
+            .filter(authors::Column::Name.eq(author_name))
+            .one(db.inner())
+            .await?
+        {
+            existing_author
+        } else {
+            authors::ActiveModel {
+                name: Set(author_name.clone()),
+                ..Default::default()
+            }
+            .insert(db.inner())
+            .await?
+        };
+
+        // Link author to paper
+        paper_authors::ActiveModel {
+            paper_id: Set(paper.id),
+            author_id: Set(author.id),
+            ..Default::default()
+        }
+        .insert(db.inner())
+        .await?;
+    }
+
+    info!(
+        "Successfully imported arXiv paper: {} (id: {}, arxiv_id: {})",
+        metadata.title, paper.id, metadata.arxiv_id
     );
 
     Ok(PaperDto {

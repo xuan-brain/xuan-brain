@@ -29,6 +29,8 @@ export default function DocumentToolbar({ onRefresh }: DocumentToolbarProps) {
   const { t } = useI18n();
   const [doiDialogOpen, setDoiDialogOpen] = useState(false);
   const [doiInput, setDoiInput] = useState("");
+  const [arxivDialogOpen, setArxivDialogOpen] = useState(false);
+  const [arxivInput, setArxivInput] = useState("");
 
   const handleDoiButtonClick = () => {
     setDoiDialogOpen(true);
@@ -38,6 +40,38 @@ export default function DocumentToolbar({ onRefresh }: DocumentToolbarProps) {
   const handleDoiDialogClose = () => {
     setDoiDialogOpen(false);
     setDoiInput("");
+  };
+
+  const handleArxivButtonClick = () => {
+    setArxivDialogOpen(true);
+    setArxivInput("");
+  };
+
+  const handleArxivDialogClose = () => {
+    setArxivDialogOpen(false);
+    setArxivInput("");
+  };
+
+  const handleArxivSubmit = async () => {
+    if (!arxivInput.trim()) {
+      return;
+    }
+    try {
+      // Import paper by arXiv ID
+      console.info("Importing paper with arXiv ID:", arxivInput.trim());
+      await invokeCommand("import_paper_by_arxiv_id", {
+        arxivId: arxivInput.trim(),
+      });
+
+      // Refresh the document list
+      if (onRefresh) {
+        await onRefresh();
+      }
+
+      handleArxivDialogClose();
+    } catch (error) {
+      console.error("Failed to import paper by arXiv ID:", error);
+    }
   };
 
   const handleDoiSubmit = async () => {
@@ -76,6 +110,14 @@ export default function DocumentToolbar({ onRefresh }: DocumentToolbarProps) {
         <Button variant="outlined" size="small" onClick={handleDoiButtonClick}>
           {t("toolbar.doi")}
         </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleArxivButtonClick}
+          sx={{ ml: 1 }}
+        >
+          {t("toolbar.arxiv")}
+        </Button>
       </Toolbar>
 
       {/* DOI Import Dialog */}
@@ -111,6 +153,44 @@ export default function DocumentToolbar({ onRefresh }: DocumentToolbarProps) {
         <DialogActions>
           <Button onClick={handleDoiDialogClose}>{t("dialog.cancel")}</Button>
           <Button onClick={handleDoiSubmit} variant="contained">
+            {t("toolbar.import")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* arXiv Import Dialog */}
+      <Dialog
+        open={arxivDialogOpen}
+        onClose={handleArxivDialogClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{t("toolbar.importByArxiv")}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {t("toolbar.arxivDescription")}
+            </Typography>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="arXiv ID"
+              fullWidth
+              variant="outlined"
+              placeholder={t("toolbar.arxivPlaceholder")}
+              value={arxivInput}
+              onChange={(e) => setArxivInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleArxivSubmit();
+                }
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleArxivDialogClose}>{t("dialog.cancel")}</Button>
+          <Button onClick={handleArxivSubmit} variant="contained">
             {t("toolbar.import")}
           </Button>
         </DialogActions>

@@ -119,9 +119,13 @@ export default {
   // Toolbar
   toolbar: {
     doi: "DOI",
+    arxiv: "arXiv",
     importByDoi: "通过 DOI 导入文献",
     doiDescription: "输入 DOI（数字对象标识符）来导入文献。",
     doiPlaceholder: "例如：10.1038/nature12373",
+    importByArxiv: "从 arXiv 导入文献",
+    arxivDescription: "输入 arXiv ID（例如：2301.12345）或 URL 来导入文献。",
+    arxivPlaceholder: "例如：2301.12345 或 https://arxiv.org/abs/2301.12345",
     import: "导入",
   },
 } as const;

@@ -119,10 +119,15 @@ export default {
   // Toolbar
   toolbar: {
     doi: "DOI",
+    arxiv: "arXiv",
     importByDoi: "Import Paper by DOI",
     doiDescription:
       "Enter the DOI (Digital Object Identifier) to import the paper.",
     doiPlaceholder: "e.g., 10.1038/nature12373",
+    importByArxiv: "Import Paper from arXiv",
+    arxivDescription:
+      "Enter the arXiv ID (e.g., 2301.12345) or URL to import the paper.",
+    arxivPlaceholder: "e.g., 2301.12345 or https://arxiv.org/abs/2301.12345",
     import: "Import",
   },
 } as const;

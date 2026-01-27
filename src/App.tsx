@@ -1,36 +1,22 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, Box } from "@mui/material";
 import { lightTheme, darkTheme } from "./theme";
 import { I18nProvider } from "./lib/i18n";
 import Layout from "./components/layout/Layout";
+import { useAppStore } from "./stores/useAppStore";
 
 function App() {
-  const [isDark, setIsDark] = useState(true);
-  const [accentColor, setAccentColor] = useState("#3b82f6");
-  const [selectedDocument, setSelectedDocument] = useState<{
-    id: number;
-    title: string;
-    authors: string[];
-    year: number;
-    abstract?: string;
-    keywords?: string[];
-    fileType?: string;
-    fileSize?: string;
-    addedDate?: string;
-    tags?: { id: number; name: string; color: string }[];
-  } | null>(null);
+  const { isDark, accentColor, setTheme, setAccentColor } = useAppStore();
 
-  // Initialize theme from localStorage and listen for changes
+  // Initialize theme from system/css variables if needed, though zustand persist handles localStorage
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedDarkMode = localStorage.getItem("dark-mode") === "true";
-      const savedAccentColor =
-        localStorage.getItem("accent-color") || "#3b82f6";
-      setIsDark(savedDarkMode);
-      setAccentColor(savedAccentColor);
+    // Test logging to verify tauri-plugin-tracing
+    console.log("App component mounted - Tracing system check");
+    console.info("Info level log check");
 
+    if (typeof window !== "undefined") {
       // Watch for changes to data-mode attribute
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
@@ -39,7 +25,7 @@ function App() {
             mutation.attributeName === "data-mode"
           ) {
             const mode = document.documentElement.getAttribute("data-mode");
-            setIsDark(mode === "dark");
+            setTheme(mode === "dark");
           }
         });
       });
@@ -56,10 +42,10 @@ function App() {
             mutation.type === "attributes" &&
             mutation.attributeName === "style"
           ) {
-            const accentColor =
+            const newAccentColor =
               document.documentElement.style.getPropertyValue("--accent-color");
-            if (accentColor) {
-              setAccentColor(accentColor);
+            if (newAccentColor) {
+              setAccentColor(newAccentColor);
             }
           }
         });
@@ -75,7 +61,7 @@ function App() {
         accentObserver.disconnect();
       };
     }
-  }, []);
+  }, [setTheme, setAccentColor]);
 
   // Create theme with dynamic accent color
   const theme = createTheme({
@@ -117,15 +103,7 @@ function App() {
         <CssBaseline />
         <BrowserRouter>
           <Routes>
-            <Route
-              path="/"
-              element={
-                <Layout
-                  selectedDocument={selectedDocument}
-                  onDocumentSelect={setSelectedDocument}
-                />
-              }
-            >
+            <Route path="/" element={<Layout />}>
               <Route
                 path="reader/:id"
                 element={<Box sx={{ p: 2 }}>PDF 阅读器（待实现）</Box>}

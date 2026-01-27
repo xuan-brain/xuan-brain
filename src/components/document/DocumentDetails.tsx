@@ -40,7 +40,18 @@ interface PaperDetailDto {
 }
 
 interface DocumentDetailsProps {
-  document?: { id: number };
+  document?: {
+    id: number;
+    title: string;
+    authors: string[];
+    year: number;
+    abstract?: string;
+    keywords?: string[];
+    fileType?: string;
+    fileSize?: string;
+    addedDate?: string;
+    tags?: { id: number; name: string; color: string }[];
+  } | null;
 }
 
 export default function DocumentDetails({ document }: DocumentDetailsProps) {

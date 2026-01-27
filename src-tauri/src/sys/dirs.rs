@@ -49,13 +49,13 @@ pub async fn init_app_dirs() -> Result<AppDirs> {
     for (dir_name, description) in dirs {
         let dir_path = data_dir.join(dir_name);
 
-        match tokio::fs::metadata(&dir_path).await {
+        match std::fs::metadata(&dir_path) {
             Ok(_) => {
                 debug!("{} directory already exists: {:?}", description, dir_path);
             }
             Err(_) => {
                 info!("Creating {} directory: {:?}", description, dir_path);
-                tokio::fs::create_dir_all(&dir_path).await.map_err(|e| {
+                std::fs::create_dir_all(&dir_path).map_err(|e| {
                     error!("Failed to create directory: {} ({})", dir_path.display(), e);
                     AppError::file_system(
                         dir_path.display().to_string(),

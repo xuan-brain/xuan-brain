@@ -66,6 +66,7 @@ export default function AddCategoryDialog({
         name: name.trim(),
         parentPath: parentPath || null,
       });
+      console.info("Category created successfully:", name.trim());
       setName("");
       setError("");
       onCategoryCreated();

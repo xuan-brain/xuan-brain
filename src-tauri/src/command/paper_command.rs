@@ -1,8 +1,10 @@
 use sea_orm::{DatabaseConnection, EntityTrait, LoaderTrait, QueryOrder};
 use serde::Serialize;
 use tauri::State;
+use tracing::{info, instrument};
 
 use crate::database::entities::{papers, prelude::*};
+use crate::sys::error::Result;
 
 #[derive(Serialize)]
 pub struct LabelDto {
@@ -43,22 +45,21 @@ pub struct PaperDetailDto {
 }
 
 #[tauri::command]
-pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<PaperDto>, String> {
+#[instrument(skip(db))]
+pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<PaperDto>> {
+    info!("Fetching all papers");
     let papers = Papers::find()
         .order_by_desc(papers::Column::Id)
         .all(db.inner())
-        .await
-        .map_err(|e| e.to_string())?;
+        .await?;
 
     let authors = papers
         .load_many_to_many(Authors, PaperAuthors, db.inner())
-        .await
-        .map_err(|e| e.to_string())?;
+        .await?;
 
     let labels = papers
         .load_many_to_many(Label, PaperLabels, db.inner())
-        .await
-        .map_err(|e| e.to_string())?;
+        .await?;
 
     let dtos: Vec<PaperDto> = papers
         .into_iter()
@@ -82,19 +83,21 @@ pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<Pap
         })
         .collect();
 
+    info!("Fetched {} papers", dtos.len());
     Ok(dtos)
 }
 
 #[tauri::command]
+#[instrument(skip(db))]
 pub async fn get_paper(
     id: i64,
     db: State<'_, DatabaseConnection>,
-) -> Result<Option<PaperDetailDto>, String> {
+) -> Result<Option<PaperDetailDto>> {
+    info!("Fetching details for paper id {}", id);
     let paper_with_authors = Papers::find_by_id(id)
         .find_with_related(Authors)
         .all(db.inner())
-        .await
-        .map_err(|e| e.to_string())?;
+        .await?;
 
     if let Some((paper, authors)) = paper_with_authors.into_iter().next() {
         Ok(Some(PaperDetailDto {
@@ -116,6 +119,7 @@ pub async fn get_paper(
             authors: authors.into_iter().map(|a| a.name).collect(),
         }))
     } else {
+        info!("Paper id {} not found", id);
         Ok(None)
     }
 }

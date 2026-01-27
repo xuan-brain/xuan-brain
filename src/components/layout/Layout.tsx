@@ -4,22 +4,10 @@ import Navigation from "../navigation/Navigation";
 import StatusBar from "./StatusBar";
 import DocumentList from "../document/DocumentList";
 import DocumentDetails from "../document/DocumentDetails";
+import { useAppStore } from "../../stores/useAppStore";
 
 interface LayoutProps {
   children?: React.ReactNode;
-  selectedDocument?: {
-    id: number;
-    title: string;
-    authors: string[];
-    year: number;
-    abstract?: string;
-    keywords?: string[];
-    fileType?: string;
-    fileSize?: string;
-    addedDate?: string;
-    tags?: { id: number; name: string; color: string }[];
-  } | null;
-  onDocumentSelect: (document: any) => void;
 }
 
 const STORAGE_KEY = "xuan-brain-layout-widths";
@@ -48,11 +36,8 @@ function loadWidths(): { left: number; right: number } {
   return { left: 15, right: 15 };
 }
 
-export default function Layout({
-  children,
-  selectedDocument,
-  onDocumentSelect,
-}: LayoutProps) {
+export default function Layout({ children }: LayoutProps) {
+  const { selectedDocument, setSelectedDocument } = useAppStore();
   const savedWidths = loadWidths();
   const [leftWidth, setLeftWidth] = useState(savedWidths.left);
   const [rightWidth, setRightWidth] = useState(savedWidths.right);
@@ -201,7 +186,7 @@ export default function Layout({
             minWidth: 0,
           }}
         >
-          {children || <DocumentList onDocumentSelect={onDocumentSelect} />}
+          {children || <DocumentList onDocumentSelect={setSelectedDocument} />}
         </Box>
 
         {/* Right Resizer */}

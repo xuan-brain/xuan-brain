@@ -2,8 +2,10 @@ use chrono::prelude::*;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait};
 use serde::Serialize;
 use tauri::State;
+use tracing::{info, instrument};
 
 use crate::database::entities::{label, prelude::Label};
+use crate::sys::error::{AppError, Result};
 
 #[derive(Serialize)]
 pub struct LabelResponse {
@@ -14,14 +16,12 @@ pub struct LabelResponse {
 }
 
 #[tauri::command]
+#[instrument(skip(connection))]
 pub async fn get_all_labels(
     connection: State<'_, DatabaseConnection>,
-) -> Result<Vec<LabelResponse>, String> {
-    let labels = Label::find()
-        .all(connection.inner())
-        .await
-        .map_err(|e| e.to_string())?;
-    // debug!("Labels: {:?}", labels);
+) -> Result<Vec<LabelResponse>> {
+    info!("Fetching all labels");
+    let labels = Label::find().all(connection.inner()).await?;
 
     // For now, return labels without document count
     // TODO: Join with document_labels table to get actual count
@@ -35,15 +35,18 @@ pub async fn get_all_labels(
         })
         .collect();
 
+    info!("Fetched {} labels", result.len());
     Ok(result)
 }
 
 #[tauri::command]
+#[instrument(skip(connection))]
 pub async fn create_label(
     connection: State<'_, DatabaseConnection>,
     name: String,
     color: String,
-) -> Result<LabelResponse, String> {
+) -> Result<LabelResponse> {
+    info!("Creating label '{}' with color '{}'", name, color);
     let new_label = label::ActiveModel {
         name: Set(name),
         color: Set(color),
@@ -52,11 +55,9 @@ pub async fn create_label(
         updated_at: Set(Local::now().naive_local()),
         ..Default::default()
     };
-    let label = new_label
-        .insert(connection.inner())
-        .await
-        .map_err(|e| e.to_string())?;
+    let label = new_label.insert(connection.inner()).await?;
 
+    info!("Label created successfully with id {}", label.id);
     Ok(LabelResponse {
         id: label.id,
         name: label.name,
@@ -66,17 +67,18 @@ pub async fn create_label(
 }
 
 #[tauri::command]
+#[instrument(skip(connection))]
 pub async fn update_label(
     connection: State<'_, DatabaseConnection>,
     id: i64,
     name: Option<String>,
     color: Option<String>,
-) -> Result<LabelResponse, String> {
+) -> Result<LabelResponse> {
+    info!("Updating label id {}", id);
     let label = Label::find_by_id(id)
         .one(connection.inner())
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Label not found".to_string())?;
+        .await?
+        .ok_or_else(|| AppError::not_found("Label", id.to_string()))?;
 
     let mut active_model: label::ActiveModel = label.into();
 
@@ -88,11 +90,9 @@ pub async fn update_label(
     }
     active_model.updated_at = Set(Local::now().naive_local());
 
-    let updated_label = active_model
-        .update(connection.inner())
-        .await
-        .map_err(|e| e.to_string())?;
+    let updated_label = active_model.update(connection.inner()).await?;
 
+    info!("Label updated successfully");
     Ok(LabelResponse {
         id: updated_label.id,
         name: updated_label.name,
@@ -102,24 +102,16 @@ pub async fn update_label(
 }
 
 #[tauri::command]
-pub async fn delete_label(
-    connection: State<'_, DatabaseConnection>,
-    id: i64,
-) -> Result<(), String> {
-    tracing::info!("Deleting label with id: {}", id);
+#[instrument(skip(connection))]
+pub async fn delete_label(connection: State<'_, DatabaseConnection>, id: i64) -> Result<()> {
+    info!("Deleting label with id: {}", id);
 
-    let delete_result = Label::delete_by_id(id)
-        .exec(connection.inner())
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to delete label: {}", e);
-            e.to_string()
-        })?;
+    let delete_result = Label::delete_by_id(id).exec(connection.inner()).await?;
 
-    tracing::info!("Delete affected {} rows", delete_result.rows_affected);
+    info!("Delete affected {} rows", delete_result.rows_affected);
 
     if delete_result.rows_affected == 0 {
-        return Err("Label not found".to_string());
+        return Err(AppError::not_found("Label", id.to_string()));
     }
 
     Ok(())

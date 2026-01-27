@@ -84,6 +84,12 @@ export default function EditCategoryDialog({
         path: categoryPath,
         name: categoryName.trim(),
       });
+      console.info(
+        "Category updated successfully:",
+        categoryPath,
+        "to",
+        categoryName.trim(),
+      );
 
       // Reset and close
       resetForm();

@@ -13,8 +13,9 @@ use crate::command::label_command::{create_label, delete_label, get_all_labels, 
 use crate::command::paper_command::{get_all_papers, get_paper};
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
+use futures::executor::block_on;
 use tauri::Manager;
-use tracing::{error, info};
+use tracing::info;
 
 use crate::sys::dirs::init_app_dirs;
 use crate::sys::log::init_logger;
@@ -22,12 +23,25 @@ use crate::sys::log::init_logger;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
     println!("Application starting...");
+    println!("Initializing application data directories...");
+
+    let app_dirs =
+        block_on(init_app_dirs()).expect("Failed to initialize application data directories");
+    println!("Application data directories initialized");
+    println!("Initializing logger...");
+    let (log_guard, layer) =
+        block_on(init_logger(&PathBuf::from(&app_dirs.logs))).expect("Failed to initialize logger");
+    info!("Logger initialized");
+    tracing::subscriber::set_global_default(layer)
+        .expect("failed to set global default subscriber");
+
     // Initialize logger with console and file output
     // The WorkerGuard must be kept alive for the lifetime of the application
 
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwdwd| {}))
+        .plugin(tauri_plugin_tracing::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_http::init())
@@ -38,27 +52,15 @@ pub fn run() -> Result<()> {
         .setup(|app| {
             // Initialize data directories on app startup
             let app_handle = app.handle().clone();
+            app_handle.manage(log_guard);
+            let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                info!("Initializing application data directories...");
-                let app_dirs = init_app_dirs().await;
-                if let Err(err) = app_dirs {
-                    error!("Failed to initialize application data directories: {}", err);
-                    return;
-                }
-                let app_dirs = app_dirs.unwrap();
-                let log_guard = init_logger(&PathBuf::from(&app_dirs.logs))
-                    .await
-                    .expect("Failed to initialize logger");
-                info!("Logger initialized");
-                app_handle.manage(log_guard);
-
                 let db = init_database_connection(PathBuf::from(&app_dirs.data))
                     .await
                     .expect("Failed to initialize database connection");
-                app_handle.manage(db);
                 info!("Database connection initialized");
+                app_handle.manage(db);
             });
-
             Ok(())
         })
         // TODO: Uncomment after fixing Tauri 2.x error type compatibility

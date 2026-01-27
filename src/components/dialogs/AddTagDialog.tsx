@@ -86,6 +86,7 @@ export default function AddTagDialog({
         name: name.trim(),
         color: selectedColor,
       });
+      console.info("Tag created successfully:", name.trim());
       setName("");
       setSelectedColor("blue");
       setError("");

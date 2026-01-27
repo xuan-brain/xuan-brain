@@ -66,6 +66,7 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
     setLoading(true);
     try {
       const papers = await invokeCommand<PaperDto[]>("get_all_papers");
+      console.info("Loaded papers:", papers.length);
       setRows(papers);
       if (papers.length > 0) {
         onDocumentSelect(papers[0]);

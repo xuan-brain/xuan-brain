@@ -1,5 +1,6 @@
 use crate::sys::error::{AppError, Result};
 use std::path::PathBuf;
+use tauri_plugin_tracing::LevelFilter;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     fmt::{self, format::FmtSpan},
@@ -28,14 +29,9 @@ use tracing_subscriber::{
 ///
 /// Console output: Colored, human-readable format
 /// File output: Detailed format with timestamps, file location, and span information
-pub async fn init_logger(log_dir: &PathBuf) -> Result<WorkerGuard> {
+pub async fn init_logger(log_dir: &PathBuf) -> Result<(WorkerGuard, impl tracing::Subscriber)> {
     // Ensure log directory exists
-    tokio::fs::create_dir_all(log_dir).await.map_err(|_e| {
-        AppError::file_system(
-            log_dir.display().to_string(),
-            "Failed to create log directory",
-        )
-    })?;
+    std::fs::create_dir_all(log_dir)?;
 
     // Create file appender with weekly rotation
     // This will create files like: xuan-brain.2024-W03.log, xuan-brain.2024-W04.log, etc.
@@ -44,20 +40,17 @@ pub async fn init_logger(log_dir: &PathBuf) -> Result<WorkerGuard> {
 
     // Set up environment filter from RUST_LOG environment variable
     // Default to debug level if not set
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("xuan_brain=debug,tauri=debug"));
 
     // Console layer with colored output and span events
     let console_layer = fmt::layer()
         // .with_target(true)
         .with_target(false)
         .with_thread_ids(true)
-        // .with_thread_names(true)
         .with_file(true)
         .with_line_number(true)
         .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
         .with_ansi(true)
-        .with_filter(env_filter.clone());
+        .with_filter(LevelFilter::DEBUG);
 
     // File layer with more detailed formatting
     let file_layer = fmt::layer()
@@ -68,16 +61,15 @@ pub async fn init_logger(log_dir: &PathBuf) -> Result<WorkerGuard> {
         .with_file(true)
         .with_line_number(true)
         .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-        .with_ansi(false) // No colors in file
-        .with_filter(env_filter);
+        .with_ansi(false)
+        .with_filter(LevelFilter::DEBUG);
 
     // Initialize global subscriber with both console and file layers
-    tracing_subscriber::registry()
+    let layer = tracing_subscriber::registry()
         .with(console_layer)
-        .with(file_layer)
-        .init();
+        .with(file_layer);
 
-    Ok(file_guard)
+    Ok((file_guard, layer))
 }
 
 /// Initialize the application logger with custom log level

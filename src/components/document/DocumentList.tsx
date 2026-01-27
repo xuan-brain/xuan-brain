@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { Box, Chip } from "@mui/material";
 import { useI18n } from "../../lib/i18n";
+import DocumentToolbar from "./DocumentToolbar";
 
 // Lazy load invoke helper - works in both Tauri and browser
 async function invokeCommand<T = unknown>(
@@ -172,7 +173,18 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
   ];
 
   return (
-    <Box sx={{ height: "100%", width: "100%" }}>
+    <Box
+      sx={{
+        height: "100%",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* Toolbar */}
+      <DocumentToolbar onRefresh={loadPapers} />
+
+      {/* DataGrid */}
       <DataGrid
         rows={rows}
         columns={columns}

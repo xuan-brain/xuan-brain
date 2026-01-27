@@ -115,4 +115,13 @@ export default {
     deleting: "删除中...",
     rename: "重命名",
   },
+
+  // Toolbar
+  toolbar: {
+    doi: "DOI",
+    importByDoi: "通过 DOI 导入文献",
+    doiDescription: "输入 DOI（数字对象标识符）来导入文献。",
+    doiPlaceholder: "例如：10.1038/nature12373",
+    import: "导入",
+  },
 } as const;

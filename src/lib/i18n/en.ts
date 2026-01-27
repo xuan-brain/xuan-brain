@@ -115,4 +115,14 @@ export default {
     deleting: "Deleting...",
     rename: "Rename",
   },
+
+  // Toolbar
+  toolbar: {
+    doi: "DOI",
+    importByDoi: "Import Paper by DOI",
+    doiDescription:
+      "Enter the DOI (Digital Object Identifier) to import the paper.",
+    doiPlaceholder: "e.g., 10.1038/nature12373",
+    import: "Import",
+  },
 } as const;

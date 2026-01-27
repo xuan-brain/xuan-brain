@@ -1,16 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  IconButton,
-  Typography,
-  Box,
-} from "@mui/material";
-import { Close } from "@mui/icons-material";
+import { Modal, Input, Button, Typography, Alert } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 
 // Lazy load invoke helper - works in both Tauri and browser
 async function invokeCommand<T = unknown>(
@@ -116,101 +106,75 @@ export default function EditCategoryDialog({
   };
 
   return (
-    <Dialog
+    <Modal
       open={open}
-      onClose={closeDialog}
-      maxWidth="sm"
-      fullWidth
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          closeDialog();
-        }
-      }}
+      onCancel={closeDialog}
+      title={
+        <div style={{ position: "relative", paddingRight: 32 }}>
+          <Typography.Text strong>编辑分类</Typography.Text>
+        </div>
+      }
+      closeIcon={<CloseOutlined />}
+      width={480}
+      footer={
+        <>
+          <Button onClick={closeDialog} disabled={loading}>
+            取消
+          </Button>
+          <Button
+            type="primary"
+            onClick={handleUpdateCategory}
+            loading={loading}
+            disabled={!categoryName.trim() || categoryName.length > 50}
+          >
+            保存
+          </Button>
+        </>
+      }
     >
-      <DialogTitle>
-        <Typography variant="h6" component="div">
-          编辑分类
-        </Typography>
-        <IconButton
-          aria-label="close"
-          onClick={closeDialog}
-          sx={{
-            position: "absolute",
-            right: 8,
-            top: 8,
-            color: "grey.500",
-          }}
-        >
-          <Close />
-        </IconButton>
-      </DialogTitle>
+      {/* Error message */}
+      {errorMessage && (
+        <Alert
+          message={errorMessage}
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
-      <DialogContent dividers>
-        {/* Error message */}
-        {errorMessage && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 1.5,
-              typography: "body2",
-              color: "error.dark",
-              bgcolor: "error.50",
-              borderRadius: 1,
+      {/* Category path info */}
+      <div style={{ marginBottom: 16 }}>
+        <Typography.Text type="secondary">
+          分类路径:{" "}
+          <code
+            style={{
+              padding: "2px 6px",
+              background: "rgba(0, 0, 0, 0.06)",
+              borderRadius: 4,
             }}
           >
-            {errorMessage}
-          </Box>
-        )}
+            {categoryPath}
+          </code>
+        </Typography.Text>
+      </div>
 
-        {/* Category path info */}
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            分类路径:{" "}
-            <Typography
-              component="code"
-              sx={{
-                px: 0.5,
-                py: 0.25,
-                bgcolor: "action.hover",
-                borderRadius: 0.5,
-              }}
-            >
-              {categoryPath}
-            </Typography>
-          </Typography>
-        </Box>
-
-        {/* Category name input */}
-        <TextField
+      {/* Category name input */}
+      <div>
+        <Input
           autoFocus
-          margin="dense"
-          label="分类名称"
-          fullWidth
-          variant="outlined"
+          placeholder="输入分类名称..."
           value={categoryName}
           onChange={(e) => {
             setCategoryName(e.target.value);
             setErrorMessage("");
           }}
-          onKeyPress={handleKeyPress}
+          onPressEnter={handleKeyPress}
           disabled={loading}
-          placeholder="输入分类名称..."
-          helperText="最多 50 个字符"
         />
-      </DialogContent>
-
-      <DialogActions>
-        <Button onClick={closeDialog} disabled={loading}>
-          取消
-        </Button>
-        <Button
-          onClick={handleUpdateCategory}
-          variant="contained"
-          disabled={loading || !categoryName.trim() || categoryName.length > 50}
-        >
-          {loading ? "保存中..." : "保存"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          最多 50 个字符
+        </Typography.Text>
+      </div>
+    </Modal>
   );
 }

@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, IconButton, Chip } from "@mui/material";
-import { Sync, Description, Search, Memory } from "@mui/icons-material";
+import { Button, Tag, Space, Typography } from "antd";
+import {
+  SyncOutlined,
+  FileTextOutlined,
+  SearchOutlined,
+  ApiOutlined,
+} from "@ant-design/icons";
 import { useI18n } from "../../lib/i18n";
 import ThemeSwitcher from "../navigation/ThemeSwitcher";
 
@@ -37,44 +42,34 @@ export default function StatusBar() {
   };
 
   return (
-    <Box
-      sx={{
+    <div
+      style={{
         height: 32,
-        bgcolor: "background.paper",
-        borderTop: 1,
-        borderColor: "divider",
+        borderTop: "1px solid var(--ant-color-border)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        px: 1.5,
+        padding: "0 12px",
         userSelect: "none",
+        backgroundColor: "var(--ant-color-bg-container)",
       }}
     >
       {/* Left section */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <Space size="middle">
         {/* Sync status */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.3 }}>
-          <IconButton
+        <Space size="small">
+          <Button
+            type="text"
             size="small"
+            icon={<SyncOutlined spin={isSyncing} />}
             onClick={handleSync}
             disabled={isSyncing}
-            sx={{
-              p: 0.25,
-              color: "text.secondary",
-              "&:hover": { color: "text.primary" },
-              animation: isSyncing ? "pulse 1s infinite" : "none",
-              "@keyframes pulse": {
-                "0%": { opacity: 1 },
-                "50%": { opacity: 0.5 },
-                "100%": { opacity: 1 },
-              },
+            style={{
+              padding: "0 4px",
+              height: 24,
             }}
-          >
-            <Sync sx={{ fontSize: "18px" }} />
-          </IconButton>
-          <Chip
-            size="small"
-            label={t(`status.${syncStatus}`)}
+          />
+          <Tag
             color={
               syncStatus === "synced"
                 ? "success"
@@ -82,75 +77,72 @@ export default function StatusBar() {
                   ? "warning"
                   : "default"
             }
-            sx={{ height: 24 }}
-          />
-        </Box>
+            style={{ margin: 0, height: 24, fontSize: 12 }}
+          >
+            {t(`status.${syncStatus}`)}
+          </Tag>
+        </Space>
 
         {/* Document count */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.3 }}>
-          <Description sx={{ fontSize: "18px" }} />
-          <Typography variant="caption" sx={{ fontSize: "12px" }}>
+        <Space size="small" style={{ fontSize: 12 }}>
+          <FileTextOutlined />
+          <Typography.Text style={{ fontSize: 12 }}>
             {t("status.documents")}: {documentCount}
-          </Typography>
-        </Box>
+          </Typography.Text>
+        </Space>
 
         {/* Search status */}
-        <Box
-          sx={{
-            display: { xs: "none", md: "flex" },
-            alignItems: "center",
-            gap: 0.3,
-          }}
+        <Space
+          size="small"
+          style={{ fontSize: 12 }}
+          className="hidden-md-down"
         >
-          <Search sx={{ fontSize: "18px" }} />
-          <Typography variant="caption" sx={{ fontSize: "12px" }}>
+          <SearchOutlined />
+          <Typography.Text style={{ fontSize: 12 }}>
             {t("status.searchStatus")}
-          </Typography>
-        </Box>
+          </Typography.Text>
+        </Space>
 
         {/* Memory usage */}
-        <Box
-          sx={{
-            display: { xs: "none", lg: "flex" },
-            alignItems: "center",
-            gap: 0.3,
-          }}
+        <Space
+          size="small"
+          style={{ fontSize: 12 }}
+          className="hidden-lg-down"
         >
-          <Memory sx={{ fontSize: "18px" }} />
-          <Typography variant="caption" sx={{ fontSize: "12px" }}>
+          <ApiOutlined />
+          <Typography.Text style={{ fontSize: 12 }}>
             {memoryUsage}
-          </Typography>
-        </Box>
-      </Box>
+          </Typography.Text>
+        </Space>
+      </Space>
 
       {/* Right section */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <Space size="middle">
         {/* Theme Switcher (Dark Mode, Language, Theme, Accent Color) */}
         <ThemeSwitcher />
 
         {/* Version */}
-        <Typography
-          variant="caption"
-          sx={{ display: { xs: "none", sm: "block" }, fontSize: "12px" }}
+        <Typography.Text
+          style={{ fontSize: 12 }}
+          className="hidden-sm-down"
         >
           {t("status.version")} 0.1.0
-        </Typography>
+        </Typography.Text>
 
         {/* Clock */}
-        <Box
-          sx={{
+        <div
+          style={{
             fontFamily: "monospace",
-            bgcolor: "action.disabledBackground",
-            px: 0.75,
-            py: 0.25,
-            borderRadius: 0.5,
+            backgroundColor: "var(--ant-color-bg-layout)",
+            padding: "2px 8px",
+            borderRadius: 4,
           }}
         >
-          <Typography variant="caption" sx={{ fontSize: "12px" }}>
+          <Typography.Text style={{ fontSize: 12 }}>
             {currentTime.toLocaleTimeString()}
-          </Typography>
-        </Box>
-      </Box>
-    </Box>
+          </Typography.Text>
+        </div>
+      </Space>
+    </div>
   );
 }

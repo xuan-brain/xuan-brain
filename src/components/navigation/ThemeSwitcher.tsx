@@ -1,20 +1,15 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { Button, Dropdown, Spin, Space } from "antd";
 import {
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemText,
-  Box,
-  CircularProgress,
-} from "@mui/material";
-import {
-  Brightness4,
-  Brightness7,
-  Language,
-  Palette,
-  Check,
-} from "@mui/icons-material";
-import { useI18n, localeList, type LocaleCode } from "../../lib/i18n";
+  MoonOutlined,
+  SunOutlined,
+  GlobalOutlined,
+  BgColorsOutlined,
+  CheckOutlined,
+} from "@ant-design/icons";
+import type { MenuProps } from "antd";
+import { useI18n, localeList } from "../../lib/i18n";
+import { useAppStore } from "../../stores/useAppStore";
 
 // Accent colors
 const accentColors = [
@@ -30,56 +25,23 @@ const accentColors = [
 
 export default function ThemeSwitcher() {
   const { locale, setLocale, t, isLoading: isI18nLoading } = useI18n();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [selectedAccentColor, setSelectedAccentColor] = useState(
-    accentColors[0].value,
-  );
+  const { isDark: isDarkMode, accentColor, setTheme, setAccentColor } = useAppStore();
 
-  // Menu states
-  const [languageAnchor, setLanguageAnchor] = useState<null | HTMLElement>(
-    null,
-  );
-  const [accentAnchor, setAccentAnchor] = useState<null | HTMLElement>(null);
-
-  // Initialize theme from localStorage
+  // Initialize theme from store on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedDarkMode = localStorage.getItem("dark-mode") === "true";
-      const savedAccentColor =
-        localStorage.getItem("accent-color") || accentColors[0].value;
-
-      setIsDarkMode(savedDarkMode);
-      setSelectedAccentColor(savedAccentColor);
-
-      applyDarkMode(savedDarkMode);
-      applyAccentColor(savedAccentColor);
-    }
-  }, []);
-
-  // Apply dark mode to document
-  const applyDarkMode = (dark: boolean) => {
-    if (typeof document !== "undefined") {
-      const mode = dark ? "dark" : "light";
+      // Apply dark mode to document
+      const mode = isDarkMode ? "dark" : "light";
       document.documentElement.setAttribute("data-mode", mode);
-    }
-    if (typeof window !== "undefined") {
-      localStorage.setItem("dark-mode", String(dark));
-    }
-  };
 
-  // Apply accent color to document
-  const applyAccentColor = (color: string) => {
-    if (typeof document !== "undefined") {
-      document.documentElement.style.setProperty("--accent-color", color);
+      // Apply accent color to document
+      document.documentElement.style.setProperty("--accent-color", accentColor);
       document.documentElement.style.setProperty(
         "--accent-color-hover",
-        adjustBrightness(color, -10),
+        adjustBrightness(accentColor, -10),
       );
     }
-    if (typeof window !== "undefined") {
-      localStorage.setItem("accent-color", color);
-    }
-  };
+  }, [isDarkMode, accentColor]);
 
   // Helper function to adjust color brightness
   const adjustBrightness = (color: string, percent: number): string => {
@@ -104,197 +66,112 @@ export default function ThemeSwitcher() {
   // Toggle dark mode
   const toggleDarkMode = () => {
     const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    applyDarkMode(newMode);
+    setTheme(newMode);
   };
 
-  // Handle language menu
-  const handleLanguageClick = (event: React.MouseEvent<HTMLElement>) => {
-    setLanguageAnchor(event.currentTarget);
-  };
+  // Language menu items
+  const languageMenuItems: MenuProps["items"] = localeList.map(
+    (localeInfo) => ({
+      key: localeInfo.code,
+      label: (
+        <span>
+          <span style={{ marginRight: 8 }}>{localeInfo.flag}</span>
+          {localeInfo.nativeName}
+        </span>
+      ),
+      onClick: () => setLocale(localeInfo.code),
+      icon: locale === localeInfo.code ? <CheckOutlined /> : null,
+    }),
+  );
 
-  const handleLanguageClose = () => {
-    setLanguageAnchor(null);
-  };
-
-  const handleLanguageSelect = async (localeCode: LocaleCode) => {
-    await setLocale(localeCode);
-    handleLanguageClose();
-  };
-
-  // Handle accent color menu
-  const handleAccentClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAccentAnchor(event.currentTarget);
-  };
-
-  const handleAccentClose = () => {
-    setAccentAnchor(null);
-  };
-
-  const handleAccentSelect = (color: string) => {
-    setSelectedAccentColor(color);
-    applyAccentColor(color);
-    handleAccentClose();
-  };
+  // Accent color menu items
+  const accentMenuItems: MenuProps["items"] = [
+    {
+      key: "colors",
+      label: (
+        <div>
+          <div style={{ marginBottom: 8 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: 4,
+              }}
+            >
+              {accentColors.map((color) => (
+                <div
+                  key={color.value}
+                  onClick={() => {
+                    setAccentColor(color.value);
+                  }}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 4,
+                    backgroundColor: color.value,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border:
+                      accentColor === color.value
+                        ? "2px solid currentColor"
+                        : "2px solid transparent",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {accentColor === color.value && (
+                    <CheckOutlined style={{ color: "white" }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 0.5,
-        height: "100%",
-      }}
-    >
+    <Space size="small">
       {/* Dark Mode Toggle */}
-      <IconButton
+      <Button
+        type="text"
         size="small"
+        icon={isDarkMode ? <SunOutlined /> : <MoonOutlined />}
         onClick={toggleDarkMode}
         title={isDarkMode ? t("theme.lightMode") : t("theme.darkMode")}
-        sx={{
-          color: "text.secondary",
-          "&:hover": { color: "text.primary" },
-        }}
-      >
-        {isDarkMode ? (
-          <Brightness7 fontSize="small" />
-        ) : (
-          <Brightness4 fontSize="small" />
-        )}
-      </IconButton>
+        style={{ height: 24, padding: "0 4px" }}
+      />
 
       {/* Language Selector */}
-      <IconButton
-        size="small"
-        onClick={handleLanguageClick}
-        title={t("language.selectLanguage")}
-        sx={{
-          color: "text.secondary",
-          "&:hover": { color: "text.primary" },
-        }}
-        disabled={isI18nLoading}
-      >
-        {isI18nLoading ? (
-          <CircularProgress size={16} />
-        ) : (
-          <Language fontSize="small" />
-        )}
-      </IconButton>
-      <Menu
-        anchorEl={languageAnchor}
-        open={Boolean(languageAnchor)}
-        onClose={handleLanguageClose}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              minWidth: 180,
-              bgcolor: "background.paper",
-            },
-          },
-        }}
-      >
-        {localeList.map((localeInfo) => (
-          <MenuItem
-            key={localeInfo.code}
-            onClick={() => handleLanguageSelect(localeInfo.code)}
-            selected={locale === localeInfo.code}
-          >
-            <ListItemText>
-              <span style={{ marginRight: 8 }}>{localeInfo.flag}</span>
-              {localeInfo.nativeName}
-            </ListItemText>
-            {locale === localeInfo.code && (
-              <Check fontSize="small" sx={{ ml: 1 }} />
-            )}
-          </MenuItem>
-        ))}
-      </Menu>
+      <Dropdown menu={{ items: languageMenuItems }} trigger={["click"]}>
+        <Button
+          type="text"
+          size="small"
+          icon={
+            isI18nLoading ? (
+              <Spin size="small" />
+            ) : (
+              <GlobalOutlined />
+            )
+          }
+          title={t("language.selectLanguage")}
+          disabled={isI18nLoading}
+          style={{ height: 24, padding: "0 4px" }}
+        />
+      </Dropdown>
 
       {/* Accent Color Selector */}
-      <IconButton
-        size="small"
-        onClick={handleAccentClick}
-        title={t("theme.accentColor")}
-        sx={{
-          color: "text.secondary",
-          "&:hover": { color: "text.primary" },
-        }}
-      >
-        <Palette fontSize="small" />
-      </IconButton>
-      <Menu
-        anchorEl={accentAnchor}
-        open={Boolean(accentAnchor)}
-        onClose={handleAccentClose}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              minWidth: 200,
-              bgcolor: "background.paper",
-            },
-          },
-        }}
-      >
-        <Box sx={{ p: 2 }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 1,
-            }}
-          >
-            {accentColors.map((color) => (
-              <Box
-                key={color.value}
-                onClick={() => handleAccentSelect(color.value)}
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 1,
-                  bgcolor: color.value,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border:
-                    selectedAccentColor === color.value
-                      ? "2px solid"
-                      : "2px solid transparent",
-                  borderColor:
-                    selectedAccentColor === color.value
-                      ? "text.primary"
-                      : "transparent",
-                  "&:hover": {
-                    opacity: 0.8,
-                    transform: "scale(1.1)",
-                  },
-                  transition: "all 0.2s",
-                }}
-              >
-                {selectedAccentColor === color.value && (
-                  <Check fontSize="small" sx={{ color: "white" }} />
-                )}
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      </Menu>
-    </Box>
+      <Dropdown menu={{ items: accentMenuItems }} trigger={["click"]}>
+        <Button
+          type="text"
+          size="small"
+          icon={<BgColorsOutlined />}
+          title={t("theme.accentColor")}
+          style={{ height: 24, padding: "0 4px" }}
+        />
+      </Dropdown>
+    </Space>
   );
 }

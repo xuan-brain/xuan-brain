@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { Box, Typography, Chip, Menu, MenuItem, Divider } from "@mui/material";
-import { Delete } from "@mui/icons-material";
+import { Tag, Dropdown, Typography, Spin } from "antd";
+import { DeleteOutlined } from "@ant-design/icons";
+import type { MenuProps } from "antd";
 import AddTagDialog from "../dialogs/AddTagDialog";
 
 // Lazy load invoke helper - works in both Tauri and browser
@@ -48,13 +49,6 @@ export default function TagsSection(_props: TagsSectionProps) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{
-    anchorEl: null | HTMLElement;
-    tag: Tag | null;
-  }>({
-    anchorEl: null,
-    tag: null,
-  });
 
   // Load tags from backend
   const loadTags = useCallback(async () => {
@@ -97,35 +91,11 @@ export default function TagsSection(_props: TagsSectionProps) {
     await loadTags();
   };
 
-  // Handle context menu
-  const handleContextMenu = (
-    event: React.MouseEvent<HTMLElement>,
-    tag: Tag,
-  ) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setContextMenu({
-      anchorEl: event.currentTarget,
-      tag,
-    });
-  };
-
-  // Handle close context menu
-  const handleCloseContextMenu = () => {
-    setContextMenu({
-      anchorEl: null,
-      tag: null,
-    });
-  };
-
   // Handle delete tag
-  const handleDeleteTag = async () => {
-    if (!contextMenu.tag) return;
-
-    const tagId = contextMenu.tag.id;
+  const handleDeleteTag = async (tag: Tag) => {
+    const tagId = tag.id;
     try {
       await invokeCommand("delete_label", { id: tagId });
-      handleCloseContextMenu();
       await loadTags();
     } catch (error) {
       console.error("Failed to delete tag:", error);
@@ -134,15 +104,12 @@ export default function TagsSection(_props: TagsSectionProps) {
   };
 
   // Handle update tag color
-  const handleUpdateTagColor = async (colorKey: string) => {
-    if (!contextMenu.tag) return;
-
+  const handleUpdateTagColor = async (tag: Tag, colorKey: string) => {
     try {
       await invokeCommand("update_label", {
-        id: contextMenu.tag.id,
+        id: tag.id,
         color: colorKey,
       });
-      handleCloseContextMenu();
       await loadTags();
     } catch (error) {
       console.error("Failed to update tag color:", error);
@@ -151,63 +118,88 @@ export default function TagsSection(_props: TagsSectionProps) {
   };
 
   return (
-    <Box sx={{ py: 1 }}>
-      {/* Header */}
-      {/*<Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          px: 1,
-          mb: 1,
-        }}
-      >
-        <Typography variant="caption" color="text.secondary">
-          标签（{tags.length}）
-        </Typography>
-        <IconButton
-          size="small"
-          onClick={() => setShowAddDialog(true)}
-          aria-label="添加标签"
-        >
-          <MoreVert fontSize="small" />
-        </IconButton>
-      </Box>*/}
-
+    <div style={{ padding: "4px 0" }}>
       {/* Tags list */}
       {loading ? (
-        <Box sx={{ px: 2, py: 1, textAlign: "center" }}>
-          <Typography variant="caption" color="text.secondary">
+        <div style={{ padding: "8px 16px", textAlign: "center" }}>
+          <Spin size="small" />
+          <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
             加载中...
-          </Typography>
-        </Box>
+          </Typography.Text>
+        </div>
       ) : tags.length === 0 ? (
-        <Box sx={{ px: 2, py: 1, textAlign: "center" }}>
-          <Typography variant="caption" color="text.secondary">
-            暂无标签
-          </Typography>
-        </Box>
+        <div style={{ padding: "8px 16px", textAlign: "center" }}>
+          <Typography.Text type="secondary">暂无标签</Typography.Text>
+        </div>
       ) : (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, px: 1 }}>
-          {tags.map((tag) => (
-            <Chip
-              key={tag.id}
-              label={`${tag.name} (${tag.count})`}
-              size="small"
-              sx={{
-                height: 24,
-                bgcolor: tag.color,
-                color: "white",
-                "&:hover": {
-                  bgcolor: tag.color,
-                  opacity: 0.8,
-                },
-                cursor: "pointer",
-              }}
-              onClick={(e) => handleContextMenu(e, tag)}
-            />
-          ))}
-        </Box>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, padding: "0 4px" }}>
+          {tags.map((tag) => {
+            const menuItems: MenuProps["items"] = [
+              {
+                key: "delete",
+                label: "删除标签",
+                icon: <DeleteOutlined />,
+                onClick: () => handleDeleteTag(tag),
+                danger: true,
+              },
+              {
+                type: "divider",
+              },
+              {
+                key: "colors",
+                label: (
+                  <div>
+                    <Typography.Text
+                      type="secondary"
+                      style={{ fontSize: 12, marginBottom: 8, display: "block" }}
+                    >
+                      修改颜色
+                    </Typography.Text>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {Object.entries(TAG_COLORS).map(([key, value]) => (
+                        <div
+                          key={key}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUpdateTagColor(tag, key);
+                          }}
+                          style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: "50%",
+                            backgroundColor: value,
+                            cursor: "pointer",
+                            border:
+                              tag.color === value
+                                ? "2px solid currentColor"
+                                : "1px solid #ddd",
+                            transition: "transform 0.2s",
+                          }}
+                          title={key}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ),
+              },
+            ];
+
+            return (
+              <Dropdown key={tag.id} menu={{ items: menuItems }} trigger={["click"]}>
+                <Tag
+                  style={{
+                    backgroundColor: tag.color,
+                    color: "white",
+                    cursor: "pointer",
+                    marginBottom: 2,
+                  }}
+                >
+                  {tag.name} ({tag.count})
+                </Tag>
+              </Dropdown>
+            );
+          })}
+        </div>
       )}
 
       {/* Add Tag Dialog */}
@@ -216,52 +208,6 @@ export default function TagsSection(_props: TagsSectionProps) {
         onClose={() => setShowAddDialog(false)}
         onTagCreated={handleTagCreated}
       />
-
-      {/* Context Menu */}
-      <Menu
-        anchorEl={contextMenu.anchorEl}
-        open={Boolean(contextMenu.anchorEl)}
-        onClose={handleCloseContextMenu}
-      >
-        <MenuItem onClick={handleDeleteTag} disabled={!contextMenu.tag}>
-          <Delete sx={{ mr: 1 }} />
-          删除标签
-        </MenuItem>
-
-        <Divider />
-
-        <Box sx={{ p: 2, maxWidth: 220 }}>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ mb: 1, display: "block" }}
-          >
-            修改颜色
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-            {Object.entries(TAG_COLORS).map(([key, value]) => (
-              <Box
-                key={key}
-                onClick={() => handleUpdateTagColor(key)}
-                sx={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  bgcolor: value,
-                  cursor: "pointer",
-                  border:
-                    contextMenu.tag?.color === value
-                      ? "2px solid black"
-                      : "1px solid #ddd",
-                  "&:hover": { transform: "scale(1.2)" },
-                  transition: "transform 0.2s",
-                }}
-                title={key}
-              />
-            ))}
-          </Box>
-        </Box>
-      </Menu>
-    </Box>
+    </div>
   );
 }

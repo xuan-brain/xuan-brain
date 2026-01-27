@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { CssBaseline, Box } from "@mui/material";
-import { lightTheme, darkTheme } from "./theme";
+import { ConfigProvider } from "antd";
+import { createDynamicTheme } from "./theme";
 import { I18nProvider } from "./lib/i18n";
 import Layout from "./components/layout/Layout";
 import { useAppStore } from "./stores/useAppStore";
+
+// 引入 Ant Design 默认样式
+import "antd/dist/reset.css";
 
 function App() {
   const { isDark, accentColor, setTheme, setAccentColor } = useAppStore();
@@ -64,58 +66,26 @@ function App() {
   }, [setTheme, setAccentColor]);
 
   // Create theme with dynamic accent color
-  const theme = createTheme({
-    ...(isDark ? darkTheme : lightTheme),
-    palette: {
-      ...(isDark ? darkTheme.palette : lightTheme.palette),
-      primary: {
-        main: accentColor,
-        light: adjustBrightness(accentColor, 20),
-        dark: adjustBrightness(accentColor, -20),
-        contrastText: isDark ? "#000" : "#fff",
-      },
-    },
-  });
-
-  // Helper function to adjust color brightness
-  function adjustBrightness(color: string, percent: number): string {
-    const num = parseInt(color.replace("#", ""), 16);
-    const amt = Math.round(2.55 * percent);
-    const R = (num >> 16) + amt;
-    const G = ((num >> 8) & 0x00ff) + amt;
-    const B = (num & 0x0000ff) + amt;
-    return (
-      "#" +
-      (
-        0x1000000 +
-        (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
-        (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
-        (B < 255 ? (B < 1 ? 0 : B) : 255)
-      )
-        .toString(16)
-        .slice(1)
-    );
-  }
+  const antdTheme = createDynamicTheme(accentColor, isDark);
 
   return (
     <I18nProvider>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+      <ConfigProvider theme={antdTheme}>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route
                 path="reader/:id"
-                element={<Box sx={{ p: 2 }}>PDF 阅读器（待实现）</Box>}
+                element={<div style={{ padding: 16 }}>PDF 阅读器（待实现）</div>}
               />
               <Route
                 path="settings"
-                element={<Box sx={{ p: 2 }}>设置页面（待实现）</Box>}
+                element={<div style={{ padding: 16 }}>设置页面（待实现）</div>}
               />
             </Route>
           </Routes>
         </BrowserRouter>
-      </ThemeProvider>
+      </ConfigProvider>
     </I18nProvider>
   );
 }

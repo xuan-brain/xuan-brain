@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { Box, Chip } from "@mui/material";
+import { Table, Tag, Space } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { useI18n } from "../../lib/i18n";
 import DocumentToolbar from "./DocumentToolbar";
 
@@ -94,87 +94,68 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
     }
   };
 
-  const columns: GridColDef[] = [
-    { field: "title", headerName: t("document.title"), flex: 2, minWidth: 200 },
+  const columns: ColumnsType<PaperDto> = [
     {
-      field: "authors",
-      headerName: t("document.authors"),
-      flex: 1,
-      minWidth: 150,
-      renderCell: (params) => {
-        return (
-          <Box
-            sx={{
-              display: "flex",
-              gap: 0.5,
-              flexWrap: "wrap",
-              alignItems: "center",
-              height: "100%",
-            }}
-          >
-            {params.row.authors?.map((author: string, index: number) => (
-              <Chip
-                key={index}
-                label={author}
-                size="small"
-                sx={{ fontSize: "0.875rem" }}
-              />
-            ))}
-          </Box>
-        );
-      },
+      title: t("document.title"),
+      dataIndex: "title",
+      key: "title",
+      width: 200,
+      ellipsis: true,
     },
     {
-      field: "source",
-      headerName: t("document.source"),
-      flex: 1,
-      minWidth: 150,
-      valueGetter: (_value: unknown, row: PaperDto) =>
-        row.journal_name || row.conference_name || "",
+      title: t("document.authors"),
+      dataIndex: "authors",
+      key: "authors",
+      width: 150,
+      render: (authors: string[]) => (
+        <Space size="small" wrap>
+          {authors?.map((author, index) => (
+            <Tag key={index}>{author}</Tag>
+          ))}
+        </Space>
+      ),
     },
-    { field: "publication_year", headerName: t("document.year"), width: 90 },
     {
-      field: "labels",
-      headerName: t("document.labels"),
-      flex: 1,
-      minWidth: 150,
-      renderCell: (params) => {
-        return (
-          <Box
-            sx={{
-              display: "flex",
-              gap: 0.5,
-              flexWrap: "wrap",
-              alignItems: "center",
-              height: "100%",
-            }}
-          >
-            {params.row.labels?.map((label: LabelDto) => (
-              <Chip
-                key={label.id}
-                label={label.name}
-                size="small"
-                sx={{
-                  fontSize: "0.75rem",
-                  maxWidth: "100px",
-                  backgroundColor: TAG_COLORS[label.color] || TAG_COLORS.blue,
-                  color: "#fff",
-                  "& .MuiChip-label": {
-                    paddingLeft: "4px",
-                    paddingRight: "4px",
-                  },
-                }}
-              />
-            ))}
-          </Box>
-        );
-      },
+      title: t("document.source"),
+      dataIndex: "source",
+      key: "source",
+      width: 150,
+      render: (_value, record: PaperDto) =>
+        record.journal_name || record.conference_name || "",
+    },
+    {
+      title: t("document.year"),
+      dataIndex: "publication_year",
+      key: "publication_year",
+      width: 90,
+    },
+    {
+      title: t("document.labels"),
+      dataIndex: "labels",
+      key: "labels",
+      width: 150,
+      render: (labels: LabelDto[]) => (
+        <Space size="small" wrap>
+          {labels?.map((label) => (
+            <Tag
+              key={label.id}
+              style={{
+                backgroundColor: TAG_COLORS[label.color] || TAG_COLORS.blue,
+                color: "#fff",
+                maxWidth: "100px",
+              }}
+            >
+              {label.name}
+            </Tag>
+          ))}
+        </Space>
+      ),
     },
   ];
 
   return (
-    <Box
-      sx={{
+    <div
+      style={{
         height: "100%",
         width: "100%",
         display: "flex",
@@ -184,32 +165,23 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       {/* Toolbar */}
       <DocumentToolbar onRefresh={loadPapers} />
 
-      {/* DataGrid */}
-      <DataGrid
-        rows={rows}
+      {/* Table */}
+      <Table
+        dataSource={rows}
         columns={columns}
         loading={loading}
-        density="compact"
-        onRowClick={(params) => {
-          onDocumentSelect(params.row);
-        }}
-        pageSizeOptions={[]}
-        hideFooter
-        disableColumnFilter
-        disableColumnMenu
-        disableColumnSelector
-        sx={{
-          "& .MuiDataGrid-cell": {
-            borderBottom: "1px solid rgba(224, 224, 224, 0.5)",
+        rowKey="id"
+        size="small"
+        pagination={false}
+        onRow={(record) => ({
+          onClick: () => {
+            onDocumentSelect(record);
           },
-          "& .MuiDataGrid-cell:focus": {
-            outline: "none",
-          },
-          "& .MuiDataGrid-cell:focus-within": {
-            outline: "none",
-          },
-        }}
+          style: { cursor: "pointer" },
+        })}
+        style={{ flex: 1 }}
+        scroll={{ y: "calc(100vh - 200px)" }}
       />
-    </Box>
+    </div>
   );
 }

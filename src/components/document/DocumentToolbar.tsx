@@ -1,15 +1,5 @@
 import { useState } from "react";
-import {
-  Button,
-  Toolbar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Typography,
-  Box,
-} from "@mui/material";
+import { Button, Space, Modal, Input } from "antd";
 import { useI18n } from "../../lib/i18n";
 
 // Lazy load invoke helper - works in both Tauri and browser
@@ -97,104 +87,81 @@ export default function DocumentToolbar({ onRefresh }: DocumentToolbarProps) {
   return (
     <>
       {/* Toolbar */}
-      <Toolbar
-        variant="dense"
-        sx={{
-          bgcolor: "background.paper",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          minHeight: "48px",
-          px: 2,
+      <div
+        style={{
+          borderBottom: "1px solid var(--ant-color-border)",
+          minHeight: 48,
+          padding: "8px 16px",
+          backgroundColor: "var(--ant-color-bg-container)",
         }}
       >
-        <Button variant="outlined" size="small" onClick={handleDoiButtonClick}>
-          {t("toolbar.doi")}
-        </Button>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleArxivButtonClick}
-          sx={{ ml: 1 }}
-        >
-          {t("toolbar.arxiv")}
-        </Button>
-      </Toolbar>
+        <Space size="small">
+          <Button size="small" onClick={handleDoiButtonClick}>
+            {t("toolbar.doi")}
+          </Button>
+          <Button size="small" onClick={handleArxivButtonClick}>
+            {t("toolbar.arxiv")}
+          </Button>
+        </Space>
+      </div>
 
       {/* DOI Import Dialog */}
-      <Dialog
+      <Modal
         open={doiDialogOpen}
-        onClose={handleDoiDialogClose}
-        maxWidth="sm"
-        fullWidth
+        onCancel={handleDoiDialogClose}
+        title={t("toolbar.importByDoi")}
+        width={480}
+        footer={
+          <>
+            <Button onClick={handleDoiDialogClose}>{t("dialog.cancel")}</Button>
+            <Button type="primary" onClick={handleDoiSubmit}>
+              {t("toolbar.import")}
+            </Button>
+          </>
+        }
       >
-        <DialogTitle>{t("toolbar.importByDoi")}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t("toolbar.doiDescription")}
-            </Typography>
-            <TextField
-              autoFocus
-              margin="dense"
-              label={t("toolbar.doi")}
-              fullWidth
-              variant="outlined"
-              placeholder={t("toolbar.doiPlaceholder")}
-              value={doiInput}
-              onChange={(e) => setDoiInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleDoiSubmit();
-                }
-              }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDoiDialogClose}>{t("dialog.cancel")}</Button>
-          <Button onClick={handleDoiSubmit} variant="contained">
-            {t("toolbar.import")}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <div style={{ marginTop: 16 }}>
+          <div style={{ marginBottom: 16, display: "block" }}>
+            {t("toolbar.doiDescription")}
+          </div>
+          <Input
+            autoFocus
+            placeholder={t("toolbar.doiPlaceholder")}
+            value={doiInput}
+            onChange={(e) => setDoiInput(e.target.value)}
+            onPressEnter={handleDoiSubmit}
+          />
+        </div>
+      </Modal>
 
       {/* arXiv Import Dialog */}
-      <Dialog
+      <Modal
         open={arxivDialogOpen}
-        onClose={handleArxivDialogClose}
-        maxWidth="sm"
-        fullWidth
+        onCancel={handleArxivDialogClose}
+        title={t("toolbar.importByArxiv")}
+        width={480}
+        footer={
+          <>
+            <Button onClick={handleArxivDialogClose}>{t("dialog.cancel")}</Button>
+            <Button type="primary" onClick={handleArxivSubmit}>
+              {t("toolbar.import")}
+            </Button>
+          </>
+        }
       >
-        <DialogTitle>{t("toolbar.importByArxiv")}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t("toolbar.arxivDescription")}
-            </Typography>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="arXiv ID"
-              fullWidth
-              variant="outlined"
-              placeholder={t("toolbar.arxivPlaceholder")}
-              value={arxivInput}
-              onChange={(e) => setArxivInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleArxivSubmit();
-                }
-              }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleArxivDialogClose}>{t("dialog.cancel")}</Button>
-          <Button onClick={handleArxivSubmit} variant="contained">
-            {t("toolbar.import")}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <div style={{ marginTop: 16 }}>
+          <div style={{ marginBottom: 16, display: "block" }}>
+            {t("toolbar.arxivDescription")}
+          </div>
+          <Input
+            autoFocus
+            placeholder={t("toolbar.arxivPlaceholder")}
+            value={arxivInput}
+            onChange={(e) => setArxivInput(e.target.value)}
+            onPressEnter={handleArxivSubmit}
+          />
+        </div>
+      </Modal>
     </>
   );
 }

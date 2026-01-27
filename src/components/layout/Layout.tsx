@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { Box } from "@mui/material";
 import Navigation from "../navigation/Navigation";
 import StatusBar from "./StatusBar";
 import DocumentList from "../document/DocumentList";
@@ -127,103 +126,94 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <Box
-      sx={{
+    <div
+      style={{
         display: "flex",
         flexDirection: "column",
         height: "100vh",
         overflow: "hidden",
       }}
     >
-      <Box
-        sx={{
+      <div
+        style={{
           display: "flex",
           flex: 1,
           overflow: "hidden",
         }}
       >
         {/* Left Sidebar - Navigation */}
-        <Box
-          sx={{
+        <div
+          style={{
             width: `${leftWidth}%`,
             minWidth: `${MIN_WIDTH_PERCENT}%`,
             maxWidth: `${MAX_WIDTH_PERCENT}%`,
-            bgcolor: "background.paper",
-            borderRight: 1,
-            borderColor: "divider",
+            borderRight: "1px solid var(--ant-color-border)",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
           }}
         >
           <Navigation />
-        </Box>
+        </div>
 
         {/* Left Resizer */}
-        <Box
+        <div
           onMouseDown={handleLeftResizerMouseDown}
-          sx={{
+          style={{
             width: "2px",
             cursor: "col-resize",
-            bgcolor: isDraggingLeft ? "primary.main" : "divider",
-            transition: isDraggingLeft ? "none" : "background-color 0.15s",
-            "&:hover": {
-              bgcolor: "primary.main",
-            },
+            backgroundColor: "var(--ant-color-border)",
             zIndex: 10,
             flexShrink: 0,
           }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--ant-color-primary)"}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--ant-color-border)"}
         />
 
         {/* Main Content Area */}
-        <Box
-          component="main"
-          sx={{
+        <main
+          style={{
             width: `${middleWidth}%`,
             flex: "1 1 auto",
             overflow: "auto",
-            bgcolor: "background.default",
+            backgroundColor: "var(--ant-color-bg-layout)",
             minWidth: 0,
           }}
         >
           {children || <DocumentList onDocumentSelect={setSelectedDocument} />}
-        </Box>
+        </main>
 
         {/* Right Resizer */}
-        <Box
+        <div
           onMouseDown={handleRightResizerMouseDown}
-          sx={{
+          style={{
             width: "2px",
             cursor: "col-resize",
-            bgcolor: isDraggingRight ? "primary.main" : "divider",
-            transition: isDraggingRight ? "none" : "background-color 0.15s",
-            "&:hover": {
-              bgcolor: "primary.main",
-            },
+            backgroundColor: "var(--ant-color-border)",
             zIndex: 10,
             flexShrink: 0,
           }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--ant-color-primary)"}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--ant-color-border)"}
         />
 
         {/* Right Sidebar - Document Details */}
-        <Box
-          sx={{
+        <div
+          style={{
             width: `${rightWidth}%`,
             minWidth: `${MIN_WIDTH_PERCENT}%`,
             maxWidth: `${MAX_WIDTH_PERCENT}%`,
-            bgcolor: "background.paper",
-            borderLeft: 1,
-            borderColor: "divider",
+            borderLeft: "1px solid var(--ant-color-border)",
             overflow: "auto",
             flexShrink: 0,
           }}
         >
           <DocumentDetails document={selectedDocument} />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Bottom Status Bar */}
       <StatusBar />
-    </Box>
+    </div>
   );
 }

@@ -1,22 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button, Divider } from "antd";
 import {
-  Box,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
-  Divider,
-} from "@mui/material";
-import {
-  MenuBook as LibraryIcon,
-  Star,
-  Delete,
-  LocalOffer as TagIcon,
-  Add,
-} from "@mui/icons-material";
+  BookOutlined as LibraryIcon,
+  StarOutlined,
+  DeleteOutlined,
+  TagOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import { useI18n } from "../../lib/i18n";
 import CategoryTree from "./CategoryTree";
 import TagsSection from "./TagsSection";
@@ -50,113 +41,116 @@ export default function Navigation() {
   const isActive = (item: string) => activeItem === item;
 
   return (
-    <Box
-      sx={{
-        bgcolor: "background.paper",
-        borderRight: 1,
-        borderColor: "divider",
+    <div
+      style={{
+        borderRight: "1px solid var(--ant-color-border)",
         display: "flex",
         flexDirection: "column",
         height: "100%",
       }}
     >
       {/* 上部：文献库和分类树 */}
-      <List sx={{ flex: 1, overflow: "auto", py: 0.5 }}>
+      <div style={{ flex: 1, overflow: "auto", padding: "4px 0" }}>
         {/* 文献库 */}
-        <ListItem disablePadding>
-          <ListItemButton
-            selected={isActive("library")}
-            onClick={() => handleNavClick("library")}
-            sx={{ pl: 1.5, py: 0.5 }}
-          >
-            <ListItemIcon sx={{ minWidth: 32 }}>
-              <LibraryIcon />
-            </ListItemIcon>
-            <ListItemText primary={t("navigation.library")} />
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAddCategory();
-              }}
-              sx={{ ml: 1 }}
-              edge="end"
-            >
-              <Add />
-            </IconButton>
-          </ListItemButton>
-        </ListItem>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "4px 12px",
+            cursor: "pointer",
+            backgroundColor: isActive("library")
+              ? "var(--ant-primary-color-deprecated)"
+              : "transparent",
+            transition: "background-color 0.2s",
+          }}
+          onClick={() => handleNavClick("library")}
+        >
+          <LibraryIcon style={{ marginRight: 8, minWidth: 20 }} />
+          <span style={{ flex: 1 }}>{t("navigation.library")}</span>
+          <Button
+            type="text"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAddCategory();
+            }}
+            style={{ marginLeft: 8 }}
+          />
+        </div>
 
         {/* 分类树 */}
-        <Box sx={{ pl: 0.5, py: 0.5, pr: 0.5 }}>
+        <div style={{ padding: "4px 2px" }}>
           <CategoryTree key={categoryTreeKey} />
-        </Box>
-      </List>
+        </div>
+      </div>
 
       {/* 下部：停靠区域（标签、收藏夹、回收站） */}
-      <Box
-        sx={{
-          borderTop: 1,
-          borderColor: "divider",
-          bgcolor: "background.paper",
+      <div
+        style={{
+          borderTop: "1px solid var(--ant-color-border)",
         }}
       >
-        <List sx={{ py: 0.5 }}>
+        <div style={{ padding: "4px 0" }}>
           {/* 标签 */}
-          <ListItem disablePadding>
-            <ListItemButton sx={{ pl: 1.5, py: 0.5 }}>
-              <ListItemIcon sx={{ minWidth: 32 }}>
-                <TagIcon />
-              </ListItemIcon>
-              <ListItemText primary={t("navigation.tags")} />
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddTag();
-                }}
-                sx={{ ml: 1 }}
-                edge="end"
-              >
-                <Add />
-              </IconButton>
-            </ListItemButton>
-          </ListItem>
-          <Box sx={{ pl: 1, py: 0.5 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "4px 12px",
+            }}
+          >
+            <TagOutlined style={{ marginRight: 8, minWidth: 20 }} />
+            <span style={{ flex: 1 }}>{t("navigation.tags")}</span>
+            <Button
+              type="text"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddTag();
+              }}
+              style={{ marginLeft: 8 }}
+            />
+          </div>
+          <div style={{ padding: "4px 4px" }}>
             <TagsSection key={tagsSectionKey} onAddTag={handleAddTag} />
-          </Box>
+          </div>
 
-          <Divider sx={{ my: 0.5 }} />
+          <Divider style={{ margin: "4px 0" }} />
 
           {/* 收藏夹 */}
-          <ListItem disablePadding>
-            <ListItemButton
-              onClick={() => handleNavClick("favorites")}
-              sx={{ pl: 1.5, py: 0.5 }}
-            >
-              <ListItemIcon sx={{ minWidth: 32 }}>
-                <Star />
-              </ListItemIcon>
-              <ListItemText primary={t("navigation.favorites")} />
-            </ListItemButton>
-          </ListItem>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "4px 12px",
+              cursor: "pointer",
+              transition: "background-color 0.2s",
+            }}
+            onClick={() => handleNavClick("favorites")}
+          >
+            <StarOutlined style={{ marginRight: 8, minWidth: 20 }} />
+            <span>{t("navigation.favorites")}</span>
+          </div>
 
-          <Divider sx={{ my: 0.5 }} />
+          <Divider style={{ margin: "4px 0" }} />
 
           {/* 回收站 */}
-          <ListItem disablePadding>
-            <ListItemButton
-              onClick={() => handleNavClick("trash")}
-              sx={{ pl: 1.5, py: 0.5 }}
-            >
-              <ListItemIcon sx={{ minWidth: 32 }}>
-                <Delete />
-              </ListItemIcon>
-              <ListItemText primary={t("navigation.trash")} />
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Box>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "4px 12px",
+              cursor: "pointer",
+            }}
+            onClick={() => handleNavClick("trash")}
+          >
+            <DeleteOutlined style={{ marginRight: 8, minWidth: 20 }} />
+            <span>{t("navigation.trash")}</span>
+          </div>
+        </div>
+      </div>
 
       {/* 对话框 */}
       <AddCategoryDialog
@@ -176,6 +170,6 @@ export default function Navigation() {
           setTagsSectionKey((prev) => prev + 1);
         }}
       />
-    </Box>
+    </div>
   );
 }

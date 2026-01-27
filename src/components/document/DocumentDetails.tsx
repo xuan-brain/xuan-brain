@@ -1,14 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  Divider,
-  Chip,
-  Stack,
-  Link,
-  CircularProgress,
-} from "@mui/material";
+import { Typography, Tag, Space, Divider, Spin, Card } from "antd";
 import { useI18n } from "../../lib/i18n";
 
 // Helper for invoke (duplicate from DocumentList, maybe should move to a shared lib later)
@@ -94,156 +85,148 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
 
   if (!document) {
     return (
-      <Box
-        sx={{
-          p: 2,
+      <div
+        style={{
+          padding: 16,
           height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ fontStyle: "italic" }}
-        >
+        <Typography.Text type="secondary" italic>
           {t("document.select_to_view") || "Select a document to view details"}
-        </Typography>
-      </Box>
+        </Typography.Text>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          p: 2,
+      <div
+        style={{
+          padding: 16,
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           height: "100%",
         }}
       >
-        <CircularProgress />
-      </Box>
+        <Spin />
+      </div>
     );
   }
 
   if (!details) {
     return (
-      <Box sx={{ p: 2, display: "flex", justifyContent: "center" }}>
-        <Typography variant="body2" color="error">
-          Failed to load details.
-        </Typography>
-      </Box>
+      <div style={{ padding: 16, display: "flex", justifyContent: "center" }}>
+        <Typography.Text type="danger">Failed to load details.</Typography.Text>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3, height: "100%", overflow: "auto" }}>
-      <Typography variant="h5" gutterBottom fontWeight="bold" component="div">
+    <div style={{ padding: 24, height: "100%", overflow: "auto" }}>
+      <Typography.Title level={5} style={{ marginBottom: 16 }}>
         {details.title}
-      </Typography>
+      </Typography.Title>
 
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{ mb: 2, flexWrap: "wrap", gap: 1 }}
-        alignItems="center"
-        useFlexGap
-      >
+      <Space size="small" wrap style={{ marginBottom: 16 }}>
         {details.publication_year && (
-          <Chip
-            label={details.publication_year}
-            size="small"
-            variant="outlined"
-          />
+          <Tag>{details.publication_year}</Tag>
         )}
         {(details.journal_name || details.conference_name) && (
-          <Chip
-            label={details.journal_name || details.conference_name}
-            size="small"
-            color="primary"
-            variant="outlined"
-          />
+          <Tag color="blue">
+            {details.journal_name || details.conference_name}
+          </Tag>
         )}
         {details.read_status && (
-          <Chip
-            label={details.read_status}
-            size="small"
-            color={details.read_status === "read" ? "success" : "default"}
-          />
+          <Tag color={details.read_status === "read" ? "success" : "default"}>
+            {details.read_status}
+          </Tag>
         )}
-      </Stack>
+      </Space>
 
-      <Typography
-        variant="subtitle1"
-        gutterBottom
-        sx={{ fontWeight: "medium" }}
+      <Typography.Text
+        style={{
+          display: "block",
+          marginBottom: 16,
+          fontWeight: 500,
+        }}
       >
         {details.authors.join(", ")}
-      </Typography>
+      </Typography.Text>
 
       {(details.doi || details.url) && (
-        <Box sx={{ mb: 2 }}>
+        <div style={{ marginBottom: 16 }}>
           {details.doi && (
-            <Typography variant="body2">
+            <Typography.Text style={{ fontSize: 12 }}>
               DOI:{" "}
-              <Link
+              <a
                 href={`https://doi.org/${details.doi}`}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
               >
                 {details.doi}
-              </Link>
-            </Typography>
+              </a>
+            </Typography.Text>
           )}
           {details.url && (
-            <Typography variant="body2">
+            <Typography.Text style={{ fontSize: 12, display: "block" }}>
               URL:{" "}
-              <Link href={details.url} target="_blank" rel="noopener">
+              <a href={details.url} target="_blank" rel="noopener noreferrer">
                 {details.url}
-              </Link>
-            </Typography>
+              </a>
+            </Typography.Text>
           )}
-        </Box>
+        </div>
       )}
 
-      <Divider sx={{ my: 2 }} />
+      <Divider style={{ margin: "16px 0" }} />
 
       {details.abstract_text && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Abstract
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+        <div style={{ marginBottom: 24 }}>
+          <Typography.Text strong>Abstract</Typography.Text>
+          <Typography.Paragraph
+            style={{
+              whiteSpace: "pre-wrap",
+              lineHeight: 1.6,
+              marginTop: 8,
+            }}
           >
             {details.abstract_text}
-          </Typography>
-        </Box>
+          </Typography.Paragraph>
+        </div>
       )}
 
       {details.notes && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Notes
-          </Typography>
-          <Paper variant="outlined" sx={{ p: 2, bgcolor: "action.hover" }}>
-            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+        <div style={{ marginBottom: 24 }}>
+          <Typography.Text strong>Notes</Typography.Text>
+          <Card
+            size="small"
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.02)",
+              marginTop: 8,
+            }}
+          >
+            <Typography.Text style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>
               {details.notes}
-            </Typography>
-          </Paper>
-        </Box>
+            </Typography.Text>
+          </Card>
+        </div>
       )}
 
-      <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: "divider" }}>
-        <Typography variant="caption" display="block" color="text.secondary">
+      <div
+        style={{
+          marginTop: 32,
+          paddingTop: 16,
+          borderTop: "1px solid rgba(0, 0, 0, 0.06)",
+        }}
+      >
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           ID: {details.id} | Citations: {details.citation_count || 0}
-        </Typography>
-      </Box>
-    </Box>
+        </Typography.Text>
+      </div>
+    </div>
   );
 }

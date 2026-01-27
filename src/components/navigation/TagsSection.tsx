@@ -132,7 +132,14 @@ export default function TagsSection(_props: TagsSectionProps) {
           <Typography.Text type="secondary">暂无标签</Typography.Text>
         </div>
       ) : (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, padding: "0 4px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 4,
+            padding: "0 4px",
+          }}
+        >
           {tags.map((tag) => {
             const menuItems: MenuProps["items"] = [
               {
@@ -151,7 +158,11 @@ export default function TagsSection(_props: TagsSectionProps) {
                   <div>
                     <Typography.Text
                       type="secondary"
-                      style={{ fontSize: 12, marginBottom: 8, display: "block" }}
+                      style={{
+                        fontSize: 12,
+                        marginBottom: 8,
+                        display: "block",
+                      }}
                     >
                       修改颜色
                     </Typography.Text>
@@ -172,7 +183,7 @@ export default function TagsSection(_props: TagsSectionProps) {
                             border:
                               tag.color === value
                                 ? "2px solid currentColor"
-                                : "1px solid #ddd",
+                                : "1px solid var(--ant-color-border, #ddd)",
                             transition: "transform 0.2s",
                           }}
                           title={key}
@@ -185,7 +196,11 @@ export default function TagsSection(_props: TagsSectionProps) {
             ];
 
             return (
-              <Dropdown key={tag.id} menu={{ items: menuItems }} trigger={["click"]}>
+              <Dropdown
+                key={tag.id}
+                menu={{ items: menuItems }}
+                trigger={["click"]}
+              >
                 <Tag
                   style={{
                     backgroundColor: tag.color,

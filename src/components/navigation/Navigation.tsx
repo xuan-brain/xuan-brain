@@ -59,18 +59,26 @@ export default function Navigation() {
             padding: "4px 12px",
             cursor: "pointer",
             backgroundColor: isActive("library")
-              ? "var(--ant-primary-color-deprecated)"
+              ? "var(--ant-color-primary-bg, rgba(24, 144, 255, 0.1))"
               : "transparent",
             transition: "background-color 0.2s",
           }}
           onClick={() => handleNavClick("library")}
         >
-          <LibraryIcon style={{ marginRight: 8, minWidth: 20 }} />
-          <span style={{ flex: 1 }}>{t("navigation.library")}</span>
+          <LibraryIcon
+            style={{
+              marginRight: 8,
+              minWidth: 20,
+              color: "var(--ant-color-text)",
+            }}
+          />
+          <span style={{ flex: 1, color: "var(--ant-color-text)" }}>
+            {t("navigation.library")}
+          </span>
           <Button
             type="text"
             size="small"
-            icon={<PlusOutlined />}
+            icon={<PlusOutlined style={{ color: "var(--ant-color-text)" }} />}
             onClick={(e) => {
               e.stopPropagation();
               handleAddCategory();
@@ -100,12 +108,20 @@ export default function Navigation() {
               padding: "4px 12px",
             }}
           >
-            <TagOutlined style={{ marginRight: 8, minWidth: 20 }} />
-            <span style={{ flex: 1 }}>{t("navigation.tags")}</span>
+            <TagOutlined
+              style={{
+                marginRight: 8,
+                minWidth: 20,
+                color: "var(--ant-color-text)",
+              }}
+            />
+            <span style={{ flex: 1, color: "var(--ant-color-text)" }}>
+              {t("navigation.tags")}
+            </span>
             <Button
               type="text"
               size="small"
-              icon={<PlusOutlined />}
+              icon={<PlusOutlined style={{ color: "var(--ant-color-text)" }} />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleAddTag();
@@ -130,8 +146,16 @@ export default function Navigation() {
             }}
             onClick={() => handleNavClick("favorites")}
           >
-            <StarOutlined style={{ marginRight: 8, minWidth: 20 }} />
-            <span>{t("navigation.favorites")}</span>
+            <StarOutlined
+              style={{
+                marginRight: 8,
+                minWidth: 20,
+                color: "var(--ant-color-text)",
+              }}
+            />
+            <span style={{ color: "var(--ant-color-text)" }}>
+              {t("navigation.favorites")}
+            </span>
           </div>
 
           <Divider style={{ margin: "4px 0" }} />
@@ -146,8 +170,16 @@ export default function Navigation() {
             }}
             onClick={() => handleNavClick("trash")}
           >
-            <DeleteOutlined style={{ marginRight: 8, minWidth: 20 }} />
-            <span>{t("navigation.trash")}</span>
+            <DeleteOutlined
+              style={{
+                marginRight: 8,
+                minWidth: 20,
+                color: "var(--ant-color-text)",
+              }}
+            />
+            <span style={{ color: "var(--ant-color-text)" }}>
+              {t("navigation.trash")}
+            </span>
           </div>
         </div>
       </div>

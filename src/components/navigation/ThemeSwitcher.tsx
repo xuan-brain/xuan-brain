@@ -25,7 +25,12 @@ const accentColors = [
 
 export default function ThemeSwitcher() {
   const { locale, setLocale, t, isLoading: isI18nLoading } = useI18n();
-  const { isDark: isDarkMode, accentColor, setTheme, setAccentColor } = useAppStore();
+  const {
+    isDark: isDarkMode,
+    accentColor,
+    setTheme,
+    setAccentColor,
+  } = useAppStore();
 
   // Initialize theme from store on mount
   useEffect(() => {
@@ -116,7 +121,7 @@ export default function ThemeSwitcher() {
                     border:
                       accentColor === color.value
                         ? "2px solid currentColor"
-                        : "2px solid transparent",
+                        : "2px solid var(--ant-color-border, transparent)",
                     transition: "all 0.2s",
                   }}
                 >
@@ -149,13 +154,7 @@ export default function ThemeSwitcher() {
         <Button
           type="text"
           size="small"
-          icon={
-            isI18nLoading ? (
-              <Spin size="small" />
-            ) : (
-              <GlobalOutlined />
-            )
-          }
+          icon={isI18nLoading ? <Spin size="small" /> : <GlobalOutlined />}
           title={t("language.selectLanguage")}
           disabled={isI18nLoading}
           style={{ height: 24, padding: "0 4px" }}

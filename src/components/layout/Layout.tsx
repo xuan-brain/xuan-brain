@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
+import { Layout } from "antd";
 import Navigation from "../navigation/Navigation";
 import StatusBar from "./StatusBar";
 import DocumentList from "../document/DocumentList";
 import DocumentDetails from "../document/DocumentDetails";
 import { useAppStore } from "../../stores/useAppStore";
+import "./Layout.css";
 
-interface LayoutProps {
+const { Sider, Content, Footer } = Layout;
+
+interface MainLayoutProps {
   children?: React.ReactNode;
 }
 
@@ -35,7 +39,7 @@ function loadWidths(): { left: number; right: number } {
   return { left: 15, right: 15 };
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function MainLayout({ children }: MainLayoutProps) {
   const { selectedDocument, setSelectedDocument } = useAppStore();
   const savedWidths = loadWidths();
   const [leftWidth, setLeftWidth] = useState(savedWidths.left);
@@ -126,94 +130,49 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          flex: 1,
-          overflow: "hidden",
-        }}
-      >
+    <Layout className="main-layout">
+      {/* Main Content Area with Sidebars */}
+      <Layout className="main-content-area">
         {/* Left Sidebar - Navigation */}
-        <div
-          style={{
-            width: `${leftWidth}%`,
-            minWidth: `${MIN_WIDTH_PERCENT}%`,
-            maxWidth: `${MAX_WIDTH_PERCENT}%`,
-            borderRight: "1px solid var(--ant-color-border)",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
+        <Sider width={`${leftWidth}%`} className="left-sidebar">
           <Navigation />
-        </div>
+        </Sider>
 
         {/* Left Resizer */}
         <div
+          className="resizer"
           onMouseDown={handleLeftResizerMouseDown}
-          style={{
-            width: "2px",
-            cursor: "col-resize",
-            backgroundColor: "var(--ant-color-border)",
-            zIndex: 10,
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--ant-color-primary)"}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--ant-color-border)"}
+          onMouseEnter={(e) => e.currentTarget.classList.add("resizer-hover")}
+          onMouseLeave={(e) =>
+            e.currentTarget.classList.remove("resizer-hover")
+          }
         />
 
         {/* Main Content Area */}
-        <main
-          style={{
-            width: `${middleWidth}%`,
-            flex: "1 1 auto",
-            overflow: "auto",
-            backgroundColor: "var(--ant-color-bg-layout)",
-            minWidth: 0,
-          }}
-        >
+        <Content style={{ width: `${middleWidth}%` }} className="main-content">
           {children || <DocumentList onDocumentSelect={setSelectedDocument} />}
-        </main>
+        </Content>
 
         {/* Right Resizer */}
         <div
+          className="resizer"
           onMouseDown={handleRightResizerMouseDown}
-          style={{
-            width: "2px",
-            cursor: "col-resize",
-            backgroundColor: "var(--ant-color-border)",
-            zIndex: 10,
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--ant-color-primary)"}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--ant-color-border)"}
+          onMouseEnter={(e) => e.currentTarget.classList.add("resizer-hover")}
+          onMouseLeave={(e) =>
+            e.currentTarget.classList.remove("resizer-hover")
+          }
         />
 
         {/* Right Sidebar - Document Details */}
-        <div
-          style={{
-            width: `${rightWidth}%`,
-            minWidth: `${MIN_WIDTH_PERCENT}%`,
-            maxWidth: `${MAX_WIDTH_PERCENT}%`,
-            borderLeft: "1px solid var(--ant-color-border)",
-            overflow: "auto",
-            flexShrink: 0,
-          }}
-        >
+        <Sider width={`${rightWidth}%`} className="right-sidebar">
           <DocumentDetails document={selectedDocument} />
-        </div>
-      </div>
+        </Sider>
+      </Layout>
 
       {/* Bottom Status Bar */}
-      <StatusBar />
-    </div>
+      <Footer className="status-bar">
+        <StatusBar />
+      </Footer>
+    </Layout>
   );
 }

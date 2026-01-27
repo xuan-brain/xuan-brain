@@ -132,9 +132,7 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
       </Typography.Title>
 
       <Space size="small" wrap style={{ marginBottom: 16 }}>
-        {details.publication_year && (
-          <Tag>{details.publication_year}</Tag>
-        )}
+        {details.publication_year && <Tag>{details.publication_year}</Tag>}
         {(details.journal_name || details.conference_name) && (
           <Tag color="blue">
             {details.journal_name || details.conference_name}
@@ -205,7 +203,8 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
           <Card
             size="small"
             style={{
-              backgroundColor: "rgba(0, 0, 0, 0.02)",
+              backgroundColor:
+                "var(--ant-color-fill-alter, rgba(0, 0, 0, 0.02))",
               marginTop: 8,
             }}
           >
@@ -220,7 +219,8 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
         style={{
           marginTop: 32,
           paddingTop: 16,
-          borderTop: "1px solid rgba(0, 0, 0, 0.06)",
+          borderTop:
+            "1px solid var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06))",
         }}
       >
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>

@@ -1,0 +1,71 @@
+/* Main layout container */
+.main-layout {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Content area with sidebars */
+.main-content-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Left sidebar */
+.left-sidebar {
+  min-width: 10%;
+  max-width: 40%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--ant-color-border);
+  background-color: transparent;
+}
+
+/* Right sidebar */
+.right-sidebar {
+  min-width: 10%;
+  max-width: 40%;
+  overflow: auto;
+  border-left: 1px solid var(--ant-color-border);
+  background-color: transparent;
+}
+
+/* Main content area */
+.main-content {
+  min-width: 0;
+  overflow: auto;
+  background-color: var(--ant-color-bg-layout);
+  flex: 1;
+}
+
+/* Resizer bar */
+.resizer {
+  width: 2px;
+  cursor: col-resize;
+  background-color: var(--ant-color-border);
+  z-index: 10;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Resizer hover state */
+.resizer:hover,
+.resizer-hover {
+  background-color: var(--ant-color-primary);
+}
+
+/* Resizer active state */
+.resizer:active {
+  background-color: var(--ant-color-primary-bg-hover);
+}
+
+/* Status bar footer */
+.status-bar {
+  padding: 0;
+  height: 32px;
+  line-height: 32px;
+  flex-shrink: 0;
+}

@@ -57,6 +57,7 @@ export const lightTheme: ThemeConfig = {
     colorBgElevated: "#ffffff",
     colorBgLayout: "#f5f5f5",
     colorBgSpotlight: "#ffffff",
+    colorPrimaryBgHover: "rgba(24, 144, 255, 0.15)",
   },
   components: {
     // 按钮组件
@@ -157,6 +158,7 @@ export const darkTheme: ThemeConfig = {
     colorText: "rgba(255, 255, 255, 0.85)",
     colorTextSecondary: "rgba(255, 255, 255, 0.65)",
     colorTextTertiary: "rgba(255, 255, 255, 0.45)",
+    colorPrimaryBgHover: "rgba(24, 144, 255, 0.25)",
   },
   components: {
     // 按钮组件
@@ -239,7 +241,7 @@ export const darkTheme: ThemeConfig = {
  */
 export function createDynamicTheme(
   accentColor: string,
-  isDark: boolean
+  isDark: boolean,
 ): ThemeConfig {
   const baseTheme = isDark ? darkTheme : lightTheme;
 
@@ -248,6 +250,9 @@ export function createDynamicTheme(
     token: {
       ...baseTheme.token,
       colorPrimary: accentColor,
+      colorPrimaryBgHover: isDark
+        ? "rgba(24, 144, 255, 0.25)"
+        : "rgba(24, 144, 255, 0.15)",
     },
     algorithm: isDark ? theme.darkAlgorithm : undefined,
   };

@@ -321,7 +321,7 @@ function CategoryTreeContent({
                   cursor: "pointer",
                   transition: "background-color 150ms",
                   backgroundColor: isSelected
-                    ? "rgba(0, 0, 0, 0.06)"
+                    ? "var(--ant-color-primary-bg, rgba(24, 144, 255, 0.1))"
                     : "transparent",
                 }}
                 onContextMenu={(e: React.MouseEvent) =>

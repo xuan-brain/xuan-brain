@@ -13,16 +13,16 @@ async function invokeCommand<T = unknown>(
 
 interface EditCategoryDialogProps {
   open: boolean;
-  categoryPath: string;
-  currentName: string;
+  path: string;
+  name: string;
   onCategoryUpdated?: () => void;
   onClose?: () => void;
 }
 
 export default function EditCategoryDialog({
   open,
-  categoryPath,
-  currentName,
+  path,
+  name,
   onCategoryUpdated,
   onClose,
 }: EditCategoryDialogProps) {
@@ -30,16 +30,16 @@ export default function EditCategoryDialog({
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Update form when currentName changes or dialog opens
+  // Update form when name changes or dialog opens
   useEffect(() => {
     if (open) {
-      setCategoryName(currentName);
+      setCategoryName(name);
       setErrorMessage("");
     }
-  }, [open, currentName]);
+  }, [open, name]);
 
   const resetForm = () => {
-    setCategoryName(currentName);
+    setCategoryName(name);
     setErrorMessage("");
   };
 
@@ -63,7 +63,7 @@ export default function EditCategoryDialog({
     }
 
     // Check if name changed
-    if (categoryName.trim() === currentName.trim()) {
+    if (categoryName.trim() === name.trim()) {
       closeDialog();
       return;
     }
@@ -71,12 +71,12 @@ export default function EditCategoryDialog({
     setLoading(true);
     try {
       await invokeCommand("update_category", {
-        path: categoryPath,
+        path: path,
         name: categoryName.trim(),
       });
       console.info(
         "Category updated successfully:",
-        categoryPath,
+        path,
         "to",
         categoryName.trim(),
       );
@@ -153,7 +153,7 @@ export default function EditCategoryDialog({
               borderRadius: 4,
             }}
           >
-            {categoryPath}
+            {path}
           </code>
         </Typography.Text>
       </div>

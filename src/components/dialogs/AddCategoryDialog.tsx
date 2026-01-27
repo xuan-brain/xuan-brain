@@ -12,20 +12,23 @@ async function invokeCommand<T = unknown>(
   return invoke<T>(cmd, args);
 }
 
-interface AddCategoryDialogProps {
+export interface CategoryDialogData {
+  parentPath?: string;
+  parentName?: string;
+}
+
+export interface AddCategoryDialogProps {
   open: boolean;
   onClose: () => void;
   onCategoryCreated: () => void;
-  parentPath?: string;
-  parentName?: string;
+  data?: CategoryDialogData;
 }
 
 export default function AddCategoryDialog({
   open,
   onClose,
   onCategoryCreated,
-  parentPath,
-  parentName,
+  data,
 }: AddCategoryDialogProps) {
   const { t } = useI18n();
   const [name, setName] = useState("");
@@ -55,7 +58,7 @@ export default function AddCategoryDialog({
     try {
       await invokeCommand("create_category", {
         name: name.trim(),
-        parentPath: parentPath || null,
+        parentPath: data?.parentPath || null,
       });
       console.info("Category created successfully:", name.trim());
       setName("");
@@ -88,11 +91,13 @@ export default function AddCategoryDialog({
       title={
         <div style={{ position: "relative", paddingRight: 32 }}>
           <Typography.Text strong>
-            {parentPath ? t("dialog.addSubcategory") : t("dialog.addCategory")}
+            {data?.parentPath
+              ? t("dialog.addSubcategory")
+              : t("dialog.addCategory")}
           </Typography.Text>
         </div>
       }
-      closeIcon={<CloseOutlined />}
+      closeIcon={<CloseOutlined style={{ color: "var(--ant-color-text)" }} />}
       width={480}
       footer={
         <>
@@ -129,19 +134,18 @@ export default function AddCategoryDialog({
           </Typography.Text>
         )}
       </div>
-      {parentName && (
+
+      {data?.parentName && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 4 }}>
             <Typography.Text type="secondary">
               {t("dialog.parentCategory")}
             </Typography.Text>
           </div>
-          <Input
-            value={parentName}
-            disabled
-          />
+          <Input value={data.parentName} disabled />
         </div>
       )}
+
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
         {t("dialog.categoryNameRules")}
       </Typography.Text>

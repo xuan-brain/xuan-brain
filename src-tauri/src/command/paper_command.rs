@@ -2,7 +2,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, LoaderTrait, ModelTrait,
     QueryFilter, QueryOrder, Set,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::State;
 use tracing::{info, instrument};
 
@@ -48,6 +48,23 @@ pub struct PaperDetailDto {
     pub notes: Option<String>,
     pub authors: Vec<String>,
     pub labels: Vec<LabelDto>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct UpdatePaperDto {
+    pub id: i64,
+    pub title: String,
+    pub publication_year: Option<i64>,
+    pub journal_name: Option<String>,
+    pub conference_name: Option<String>,
+    pub volume: Option<String>,
+    pub issue: Option<String>,
+    pub pages: Option<String>,
+    pub url: Option<String>,
+    pub doi: Option<String>,
+    pub abstract_text: Option<String>,
+    pub notes: Option<String>,
+    pub read_status: Option<String>,
 }
 
 #[tauri::command]
@@ -138,6 +155,39 @@ pub async fn get_paper(
         info!("Paper id {} not found", id);
         Ok(None)
     }
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn update_paper_details(
+    db: State<'_, DatabaseConnection>,
+    payload: UpdatePaperDto,
+) -> Result<()> {
+    info!("Updating paper details for id {}", payload.id);
+
+    let paper = Papers::find_by_id(payload.id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", payload.id.to_string()))?;
+
+    let mut active: papers::ActiveModel = paper.into();
+
+    active.title = Set(payload.title);
+    active.publication_year = Set(payload.publication_year);
+    active.journal_name = Set(payload.journal_name);
+    active.conference_name = Set(payload.conference_name);
+    active.volume = Set(payload.volume);
+    active.issue = Set(payload.issue);
+    active.pages = Set(payload.pages);
+    active.url = Set(payload.url);
+    active.doi = Set(payload.doi);
+    active.r#abstract = Set(payload.abstract_text);
+    active.notes = Set(payload.notes);
+    active.read_status = Set(payload.read_status);
+
+    active.update(db.inner()).await?;
+
+    Ok(())
 }
 
 #[tauri::command]

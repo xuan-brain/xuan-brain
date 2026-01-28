@@ -9,9 +9,20 @@ import {
   Select,
   Button,
   message,
+  Input,
+  InputNumber,
+  Row,
+  Col,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  EditOutlined,
+  SaveOutlined,
+  CloseOutlined,
+} from "@ant-design/icons";
 import { useI18n } from "../../lib/i18n";
+
+const { TextArea } = Input;
 
 // Helper for invoke (duplicate from DocumentList, maybe should move to a shared lib later)
 async function invokeCommand<T = unknown>(
@@ -71,12 +82,17 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
   const [addingLabel, setAddingLabel] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<PaperDetailDto | null>(null);
+
   useEffect(() => {
     if (document?.id) {
       loadPaperDetails(document.id);
       loadAllLabels();
     } else {
       setDetails(null);
+      setIsEditing(false);
     }
   }, [document]);
 
@@ -94,10 +110,13 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
     try {
       const data = await invokeCommand<PaperDetailDto>("get_paper", { id });
       setDetails(data);
+      // If we were editing, update the form too or exit edit mode?
+      // Usually exit edit mode on reload or re-init form.
+      // But if this is called after add label, we don't want to lose edit state if we were editing?
+      // Actually add label is separate.
     } catch (error) {
       console.error("Failed to load paper details:", error);
-      // Fallback for dev/demo without backend
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Fallback for dev/demo
       if (!(window as any).__TAURI_INTERNALS__) {
         setDetails({
           id: id,
@@ -149,6 +168,48 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
     }
   };
 
+  const startEdit = () => {
+    setEditForm(JSON.parse(JSON.stringify(details))); // Deep copy
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditForm(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editForm || !details) return;
+    setActionLoading(true);
+    try {
+      await invokeCommand("update_paper_details", {
+        payload: {
+          id: details.id,
+          title: editForm.title,
+          publication_year: editForm.publication_year,
+          journal_name: editForm.journal_name,
+          conference_name: editForm.conference_name,
+          volume: editForm.volume,
+          issue: editForm.issue,
+          pages: editForm.pages,
+          url: editForm.url,
+          doi: editForm.doi,
+          abstract_text: editForm.abstract_text,
+          notes: editForm.notes,
+          read_status: editForm.read_status,
+        },
+      });
+      await loadPaperDetails(details.id);
+      setIsEditing(false);
+      message.success("Saved successfully");
+    } catch (error) {
+      console.error("Failed to save details:", error);
+      message.error("Failed to save details");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (!document) {
     return (
       <div
@@ -167,7 +228,7 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
     );
   }
 
-  if (loading) {
+  if (loading && !details) {
     return (
       <div
         style={{
@@ -191,27 +252,120 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
     );
   }
 
+  // Helper to handle input change
+  const handleInputChange = (field: keyof PaperDetailDto, value: any) => {
+    if (editForm) {
+      setEditForm({ ...editForm, [field]: value });
+    }
+  };
+
   return (
     <div style={{ padding: 24, height: "100%", overflow: "auto" }}>
-      <Typography.Title level={5} style={{ marginBottom: 16 }}>
-        {details.title}
-      </Typography.Title>
-
-      <Space size="small" wrap style={{ marginBottom: 16 }}>
-        {details.publication_year && <Tag>{details.publication_year}</Tag>}
-        {(details.journal_name || details.conference_name) && (
-          <Tag color="blue">
-            {details.journal_name || details.conference_name}
-          </Tag>
+      {/* Header Actions */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 16,
+        }}
+      >
+        {isEditing ? (
+          <Space>
+            <Button onClick={cancelEdit} icon={<CloseOutlined />}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={saveEdit}
+              icon={<SaveOutlined />}
+              loading={actionLoading}
+            >
+              Save
+            </Button>
+          </Space>
+        ) : (
+          <Button onClick={startEdit} icon={<EditOutlined />} type="text">
+            Edit
+          </Button>
         )}
-        {details.read_status && (
-          <Tag color={details.read_status === "read" ? "success" : "default"}>
-            {details.read_status}
-          </Tag>
+      </div>
+
+      {/* Title */}
+      <div style={{ marginBottom: 16 }}>
+        {isEditing ? (
+          <TextArea
+            value={editForm?.title}
+            onChange={(e) => handleInputChange("title", e.target.value)}
+            autoSize={{ minRows: 1, maxRows: 3 }}
+            style={{ fontSize: "16px", fontWeight: "bold" }}
+          />
+        ) : (
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            {details.title}
+          </Typography.Title>
+        )}
+      </div>
+
+      {/* Metadata Tags */}
+      <Space size="small" wrap style={{ marginBottom: 16 }}>
+        {isEditing ? (
+          <>
+            <InputNumber
+              placeholder="Year"
+              value={editForm?.publication_year}
+              onChange={(v) => handleInputChange("publication_year", v)}
+              size="small"
+              style={{ width: 80 }}
+            />
+            <Input
+              placeholder="Journal/Conf"
+              value={editForm?.journal_name || editForm?.conference_name}
+              onChange={(e) => {
+                // Heuristic: if existing journal, update journal; if conf, update conf.
+                // Or just separate inputs. Simple input: Update journal_name by default?
+                // Better: Show separate inputs in a form layout below.
+                // For this quick edit line, let's keep it simple or hide specific fields in edit mode here and show full form below.
+                handleInputChange("journal_name", e.target.value);
+              }}
+              size="small"
+              style={{ width: 120 }}
+            />
+            <Select
+              value={editForm?.read_status}
+              onChange={(v) => handleInputChange("read_status", v)}
+              size="small"
+              style={{ width: 100 }}
+              options={[
+                { value: "unread", label: "Unread" },
+                { value: "reading", label: "Reading" },
+                { value: "read", label: "Read" },
+              ]}
+            />
+          </>
+        ) : (
+          <>
+            {details.publication_year && <Tag>{details.publication_year}</Tag>}
+            {(details.journal_name || details.conference_name) && (
+              <Tag color="blue">
+                {details.journal_name || details.conference_name}
+              </Tag>
+            )}
+            {details.read_status && (
+              <Tag
+                color={details.read_status === "read" ? "success" : "default"}
+              >
+                {details.read_status}
+              </Tag>
+            )}
+          </>
         )}
       </Space>
 
-      {/* Labels/Tags Section */}
+      {/* Labels/Tags Section - Always editable or edit mode only?
+          User said "all info can be modified", so existing tag edit logic is fine.
+          Maybe disable tag adding when in global edit mode to avoid confusion?
+          Or keep it independent. Let's keep it independent for now.
+      */}
       <div style={{ marginBottom: 16 }}>
         <Space size={[0, 8]} wrap>
           {details.labels &&
@@ -219,7 +373,7 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
               <Tag
                 key={label.id}
                 color={label.color}
-                closable
+                closable={!isEditing} // Allow removing via normal flow, or maybe block during edit
                 onClose={(e) => {
                   e.preventDefault();
                   handleRemoveLabel(label.id);
@@ -228,6 +382,7 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
                 {label.name}
               </Tag>
             ))}
+          {/* Tag adding logic */}
           {addingLabel ? (
             <Select
               style={{ width: 120 }}
@@ -246,7 +401,7 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
             <Tag
               onClick={() => {
                 setAddingLabel(true);
-                loadAllLabels(); // Refresh labels when opening
+                loadAllLabels();
               }}
               style={{
                 borderStyle: "dashed",
@@ -270,7 +425,63 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
         {details.authors.join(", ")}
       </Typography.Text>
 
-      {(details.doi || details.url) && (
+      {/* Additional Fields Form in Edit Mode */}
+      {isEditing && (
+        <div
+          style={{
+            marginBottom: 16,
+            backgroundColor: "#f5f5f5",
+            padding: 12,
+            borderRadius: 4,
+          }}
+        >
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Input
+                placeholder="DOI"
+                prefix="DOI: "
+                value={editForm?.doi}
+                onChange={(e) => handleInputChange("doi", e.target.value)}
+              />
+            </Col>
+            <Col span={12}>
+              <Input
+                placeholder="URL"
+                prefix="URL: "
+                value={editForm?.url}
+                onChange={(e) => handleInputChange("url", e.target.value)}
+              />
+            </Col>
+            <Col span={8}>
+              <Input
+                placeholder="Volume"
+                prefix="Vol: "
+                value={editForm?.volume}
+                onChange={(e) => handleInputChange("volume", e.target.value)}
+              />
+            </Col>
+            <Col span={8}>
+              <Input
+                placeholder="Issue"
+                prefix="Issue: "
+                value={editForm?.issue}
+                onChange={(e) => handleInputChange("issue", e.target.value)}
+              />
+            </Col>
+            <Col span={8}>
+              <Input
+                placeholder="Pages"
+                prefix="PP: "
+                value={editForm?.pages}
+                onChange={(e) => handleInputChange("pages", e.target.value)}
+              />
+            </Col>
+          </Row>
+        </div>
+      )}
+
+      {/* View Mode DOI/URL */}
+      {!isEditing && (details.doi || details.url) && (
         <div style={{ marginBottom: 16 }}>
           {details.doi && (
             <Typography.Text style={{ fontSize: 12 }}>
@@ -297,38 +508,59 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
 
       <Divider style={{ margin: "16px 0" }} />
 
-      {details.abstract_text && (
-        <div style={{ marginBottom: 24 }}>
-          <Typography.Text strong>Abstract</Typography.Text>
-          <Typography.Paragraph
-            style={{
-              whiteSpace: "pre-wrap",
-              lineHeight: 1.6,
-              marginTop: 8,
-            }}
-          >
-            {details.abstract_text}
-          </Typography.Paragraph>
-        </div>
-      )}
+      {/* Abstract */}
+      <div style={{ marginBottom: 24 }}>
+        <Typography.Text strong>Abstract</Typography.Text>
+        {isEditing ? (
+          <TextArea
+            value={editForm?.abstract_text}
+            onChange={(e) => handleInputChange("abstract_text", e.target.value)}
+            autoSize={{ minRows: 3, maxRows: 10 }}
+            style={{ marginTop: 8 }}
+          />
+        ) : (
+          details.abstract_text && (
+            <Typography.Paragraph
+              style={{
+                whiteSpace: "pre-wrap",
+                lineHeight: 1.6,
+                marginTop: 8,
+              }}
+            >
+              {details.abstract_text}
+            </Typography.Paragraph>
+          )
+        )}
+      </div>
 
-      {details.notes && (
-        <div style={{ marginBottom: 24 }}>
-          <Typography.Text strong>Notes</Typography.Text>
-          <Card
-            size="small"
-            style={{
-              backgroundColor:
-                "var(--ant-color-fill-alter, rgba(0, 0, 0, 0.02))",
-              marginTop: 8,
-            }}
-          >
-            <Typography.Text style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>
-              {details.notes}
-            </Typography.Text>
-          </Card>
-        </div>
-      )}
+      {/* Notes */}
+      <div style={{ marginBottom: 24 }}>
+        <Typography.Text strong>Notes</Typography.Text>
+        {isEditing ? (
+          <TextArea
+            value={editForm?.notes}
+            onChange={(e) => handleInputChange("notes", e.target.value)}
+            autoSize={{ minRows: 2, maxRows: 6 }}
+            style={{ marginTop: 8 }}
+            placeholder="Add notes..."
+          />
+        ) : (
+          details.notes && (
+            <Card
+              size="small"
+              style={{
+                backgroundColor:
+                  "var(--ant-color-fill-alter, rgba(0, 0, 0, 0.02))",
+                marginTop: 8,
+              }}
+            >
+              <Typography.Text style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>
+                {details.notes}
+              </Typography.Text>
+            </Card>
+          )
+        )}
+      </div>
 
       <div
         style={{

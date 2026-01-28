@@ -110,15 +110,12 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
     try {
       const data = await invokeCommand<PaperDetailDto>("get_paper", { id });
       setDetails(data);
-      // If we were editing, update the form too or exit edit mode?
-      // Usually exit edit mode on reload or re-init form.
-      // But if this is called after add label, we don't want to lose edit state if we were editing?
-      // Actually add label is separate.
+      return data;
     } catch (error) {
       console.error("Failed to load paper details:", error);
       // Fallback for dev/demo
       if (!(window as any).__TAURI_INTERNALS__) {
-        setDetails({
+        const demoData = {
           id: id,
           title: "Demo Paper Title",
           abstract_text:
@@ -127,11 +124,18 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
           publication_year: 2024,
           journal_name: "Demo Journal",
           labels: [],
-        });
+        };
+        setDetails(demoData);
+        return demoData;
       }
+      return null;
     } finally {
       setLoading(false);
     }
+  };
+
+  const notifyUpdate = (data: PaperDetailDto) => {
+    window.dispatchEvent(new CustomEvent("paper-updated", { detail: data }));
   };
 
   const handleAddLabel = async (labelId: number) => {
@@ -142,7 +146,8 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
         paperId: details.id,
         labelId: labelId,
       });
-      await loadPaperDetails(details.id);
+      const updated = await loadPaperDetails(details.id);
+      if (updated) notifyUpdate(updated);
       setAddingLabel(false);
       message.success("Label added");
     } catch (error) {
@@ -160,7 +165,8 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
         paperId: details.id,
         labelId: labelId,
       });
-      await loadPaperDetails(details.id);
+      const updated = await loadPaperDetails(details.id);
+      if (updated) notifyUpdate(updated);
       message.success("Label removed");
     } catch (error) {
       console.error("Failed to remove label:", error);
@@ -199,7 +205,8 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
           read_status: editForm.read_status,
         },
       });
-      await loadPaperDetails(details.id);
+      const updated = await loadPaperDetails(details.id);
+      if (updated) notifyUpdate(updated);
       setIsEditing(false);
       message.success("Saved successfully");
     } catch (error) {
@@ -321,10 +328,6 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
               placeholder="Journal/Conf"
               value={editForm?.journal_name || editForm?.conference_name}
               onChange={(e) => {
-                // Heuristic: if existing journal, update journal; if conf, update conf.
-                // Or just separate inputs. Simple input: Update journal_name by default?
-                // Better: Show separate inputs in a form layout below.
-                // For this quick edit line, let's keep it simple or hide specific fields in edit mode here and show full form below.
                 handleInputChange("journal_name", e.target.value);
               }}
               size="small"
@@ -361,11 +364,7 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
         )}
       </Space>
 
-      {/* Labels/Tags Section - Always editable or edit mode only?
-          User said "all info can be modified", so existing tag edit logic is fine.
-          Maybe disable tag adding when in global edit mode to avoid confusion?
-          Or keep it independent. Let's keep it independent for now.
-      */}
+      {/* Labels/Tags Section */}
       <div style={{ marginBottom: 16 }}>
         <Space size={[0, 8]} wrap>
           {details.labels &&
@@ -373,7 +372,7 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
               <Tag
                 key={label.id}
                 color={label.color}
-                closable={!isEditing} // Allow removing via normal flow, or maybe block during edit
+                closable={!isEditing}
                 onClose={(e) => {
                   e.preventDefault();
                   handleRemoveLabel(label.id);

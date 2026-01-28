@@ -61,6 +61,16 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
 
   useEffect(() => {
     loadPapers();
+
+    const handlePaperUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail as PaperDto;
+      setRows((prev) =>
+        prev.map((row) => (row.id === detail.id ? { ...row, ...detail } : row)),
+      );
+    };
+
+    window.addEventListener("paper-updated", handlePaperUpdate);
+    return () => window.removeEventListener("paper-updated", handlePaperUpdate);
   }, []);
 
   const loadPapers = async () => {
@@ -99,15 +109,15 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       title: t("document.title"),
       dataIndex: "title",
       key: "title",
-      width: 200,
       ellipsis: true,
+      width: 250,
     },
     {
       title: t("document.authors"),
       dataIndex: "authors",
       key: "authors",
-      width: 150,
       ellipsis: true,
+      width: 200,
       render: (authors: string[]) => (
         <div style={{ overflow: "hidden", whiteSpace: "nowrap" }}>
           <Space size="small" style={{ flexWrap: "nowrap" }}>
@@ -122,8 +132,8 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       title: t("document.source"),
       dataIndex: "source",
       key: "source",
-      width: 150,
       ellipsis: true,
+      width: 150,
       render: (_value, record: PaperDto) =>
         record.journal_name || record.conference_name || "",
     },
@@ -131,15 +141,15 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       title: t("document.year"),
       dataIndex: "publication_year",
       key: "publication_year",
-      width: 90,
       ellipsis: true,
+      width: 80,
     },
     {
       title: t("document.labels"),
       dataIndex: "labels",
       key: "labels",
-      width: 150,
       ellipsis: true,
+      width: 320,
       render: (labels: LabelDto[]) => (
         <div style={{ overflow: "hidden", whiteSpace: "nowrap" }}>
           <Space size="small" style={{ flexWrap: "nowrap" }}>
@@ -171,28 +181,35 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
         width: "100%",
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
       }}
     >
       {/* Toolbar */}
       <DocumentToolbar onRefresh={loadPapers} />
 
-      {/* Table */}
-      <Table
-        dataSource={rows}
-        columns={columns}
-        loading={loading}
-        rowKey="id"
-        size="small"
-        pagination={false}
-        onRow={(record) => ({
-          onClick: () => {
-            onDocumentSelect(record);
-          },
-          style: { cursor: "pointer" },
-        })}
-        style={{ flex: 1 }}
-        scroll={{ y: "calc(100vh - 200px)" }}
-      />
+      {/* Table Container */}
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto",
+          minHeight: 0,
+        }}
+      >
+        <Table
+          dataSource={rows}
+          columns={columns}
+          loading={loading}
+          rowKey="id"
+          size="small"
+          pagination={false}
+          onRow={(record) => ({
+            onClick: () => {
+              onDocumentSelect(record);
+            },
+            style: { cursor: "pointer" },
+          })}
+        />
+      </div>
     </div>
   );
 }

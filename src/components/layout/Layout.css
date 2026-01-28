@@ -36,7 +36,7 @@
 /* Main content area */
 .main-content {
   min-width: 0;
-  overflow: auto;
+  overflow: hidden;
   background-color: var(--ant-color-bg-layout);
   flex: 1;
 }

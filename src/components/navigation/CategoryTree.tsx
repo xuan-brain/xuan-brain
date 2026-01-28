@@ -1,12 +1,17 @@
 import { useState, useCallback } from "react";
-import { Tree, Dropdown, Spin } from "antd";
-import { FolderOutlined } from "@ant-design/icons";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Tree, Dropdown, Spin, Modal, Empty, Button, Alert } from "antd";
+import {
+  FolderOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+} from "@ant-design/icons";
 import { useI18n } from "../../lib/i18n";
 import { invoke } from "@tauri-apps/api/core";
-import { useCategoryTree } from "./useCategoryTree";
-import AddCategoryDialog, type { CategoryDialogData } from "../dialogs/AddCategoryDialog";
+import AddCategoryDialog from "../dialogs/AddCategoryDialog";
 import EditCategoryDialog from "../dialogs/EditCategoryDialog";
+import { useCategoryTree } from "./useCategoryTree";
 
 interface ContextMenuState {
   x: number;
@@ -24,8 +29,10 @@ export default function CategoryTree() {
     setExpandedKeys,
     selectedKeys,
     setSelectedKeys,
-    loadCategoriesData,
+    loadCategories, // Fixed: match the name exported from hook
     onDrop,
+    rawCount,
+    errorMsg,
   } = useCategoryTree();
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -34,44 +41,30 @@ export default function CategoryTree() {
     nodeId: null,
     nodeName: null,
   });
+  const [dialog, setDialog] = useState({ open: false, mode: null, data: {} });
 
-  const [dialog, setDialog] = useState<{
-    open: boolean;
-    mode: "add" | "edit" | null;
-    data: CategoryDialogData | { path: string; name: string };
-  }>({
-    open: false,
-    mode: null,
-    data: {},
-  });
-
-  // Handle right-click context menu
   const handleRightClick = useCallback(
     (event: React.MouseEvent, node: any) => {
       event.preventDefault();
       event.stopPropagation();
-
+      // Select the node on right click if not already selected
+      if (!selectedKeys.includes(node.key)) {
+        setSelectedKeys([node.key]);
+      }
       setContextMenu({
         x: event.clientX,
         y: event.clientY,
-        nodeId: node.key as string,
+        nodeId: node.key,
         nodeName: node.title as string,
       });
     },
-    [],
+    [selectedKeys, setSelectedKeys],
   );
 
-  // Close context menu
   const closeContextMenu = useCallback(() => {
-    setContextMenu({
-      x: 0,
-      y: 0,
-      nodeId: null,
-      nodeName: null,
-    });
+    setContextMenu({ x: 0, y: 0, nodeId: null, nodeName: null });
   }, []);
 
-  // Handle add subcategory
   const handleAddSubcategory = useCallback(() => {
     if (contextMenu.nodeId) {
       setDialog({
@@ -84,38 +77,45 @@ export default function CategoryTree() {
       });
       closeContextMenu();
     }
-  }, [contextMenu.nodeId, contextMenu.nodeName]);
+  }, [contextMenu.nodeId, contextMenu.nodeName, closeContextMenu]);
 
-  // Handle edit category
   const handleEditCategory = useCallback(() => {
     if (contextMenu.nodeId && contextMenu.nodeName) {
       setDialog({
         open: true,
         mode: "edit",
-        data: {
-          path: contextMenu.nodeId,
-          name: contextMenu.nodeName,
-        },
+        data: { path: contextMenu.nodeId, name: contextMenu.nodeName },
       });
       closeContextMenu();
     }
-  }, [contextMenu.nodeId, contextMenu.nodeName]);
+  }, [contextMenu.nodeId, contextMenu.nodeName, closeContextMenu]);
 
-  // Handle delete category
-  const handleDeleteCategory = useCallback(async () => {
+  const handleDeleteCategory = useCallback(() => {
     if (!contextMenu.nodeId) return;
 
-    try {
-      await invoke("delete_category", { path: contextMenu.nodeId });
-      console.info("Successfully deleted category:", contextMenu.nodeId);
-      await loadCategoriesData();
-      closeContextMenu();
-    } catch (err) {
-      console.error("Failed to delete category:", err);
-    }
-  }, [contextMenu.nodeId, loadCategoriesData, closeContextMenu]);
+    Modal.confirm({
+      title: t("dialog.deleteCategory"),
+      icon: <ExclamationCircleOutlined />,
+      content: "确定要删除此分类及其所有子分类吗？此操作不可恢复。",
+      okText: t("dialog.delete"),
+      okType: "danger",
+      cancelText: t("dialog.cancel"),
+      onOk: async () => {
+        try {
+          await invoke("delete_category", { path: contextMenu.nodeId });
+          await loadCategories();
+          closeContextMenu();
+        } catch (err) {
+          console.error("Failed to delete category:", err);
+          Modal.error({
+            title: "删除失败",
+            content: String(err),
+          });
+        }
+      },
+    });
+  }, [contextMenu.nodeId, loadCategories, closeContextMenu, t]);
 
-  // Context menu items
   const menuItems = [
     {
       key: "add",
@@ -129,9 +129,7 @@ export default function CategoryTree() {
       icon: <EditOutlined style={{ color: "var(--ant-color-text)" }} />,
       onClick: handleEditCategory,
     },
-    {
-      type: "divider",
-    },
+    { type: "divider" },
     {
       key: "delete",
       label: t("dialog.delete"),
@@ -141,83 +139,126 @@ export default function CategoryTree() {
     },
   ];
 
-  // Handle tree select
   const handleSelect = useCallback(
-    (selectedKeysValue: React.Key[]) => {
-      setSelectedKeys(selectedKeysValue);
-    },
+    (selectedKeysValue: any) => setSelectedKeys(selectedKeysValue),
     [setSelectedKeys],
   );
-
-  // Handle tree expand
   const handleExpand = useCallback(
-    (expandedKeysValue: React.Key[]) => {
-      setExpandedKeys(expandedKeysValue);
-    },
+    (expandedKeysValue: any) => setExpandedKeys(expandedKeysValue),
     [setExpandedKeys],
   );
-
-  // Handle dialog close
-  const closeDialog = useCallback(() => {
-    setDialog({
-      open: false,
-      mode: null,
-      data: {},
-    });
-  }, []);
-
-  // Handle category operation complete
+  const closeDialog = useCallback(
+    () => setDialog({ open: false, mode: null, data: {} }),
+    [],
+  );
   const handleOperationComplete = useCallback(async () => {
     closeDialog();
-    await loadCategoriesData();
-  }, [closeDialog, loadCategoriesData]);
+    await loadCategories();
+  }, [closeDialog, loadCategories]);
 
-  // Convert tree data to Ant Design format
-  const treeRenderData = treeData.map((node) => ({
-    ...node,
-    title: (
+  const titleRender = useCallback((node: any) => {
+    return (
       <span style={{ color: "var(--ant-color-text)", fontSize: 13 }}>
-        {node.title as string}
+        {node.title}
       </span>
-    ),
-    icon: <FolderOutlined style={{ color: "var(--ant-color-text)" }} />,
-  }));
+    );
+  }, []);
+
+  // Add root category handler
+  const handleAddRootCategory = () => {
+    setDialog({
+      open: true,
+      mode: "add",
+      data: { parentPath: undefined, parentName: undefined },
+    });
+  };
 
   if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          padding: 16,
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "center", padding: 16 }}>
         <Spin size="small" />
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div style={{ padding: 16 }}>
+        <Alert
+          message="加载分类失败"
+          description={errorMsg}
+          type="error"
+          showIcon
+          action={
+            <Button size="small" onClick={() => loadCategories()}>
+              重试
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (treeData.length === 0) {
+    return (
+      <div style={{ padding: "16px 8px" }}>
+        {rawCount > 0 && (
+          <Alert
+            message="数据异常"
+            description={`加载了 ${rawCount} 条分类数据，但无法构建树形结构。已尝试自动修复显示。`}
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            <span style={{ color: "var(--ant-color-text-secondary)" }}>
+              暂无分类
+            </span>
+          }
+        >
+          <Button
+            type="dashed"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={handleAddRootCategory}
+          >
+            新建分类
+          </Button>
+        </Empty>
+        <AddCategoryDialog
+          open={dialog.open && dialog.mode === "add"}
+          onClose={closeDialog}
+          onCategoryCreated={handleOperationComplete}
+          parentPath={dialog.data.parentPath}
+          parentName={dialog.data.parentName}
+        />
       </div>
     );
   }
 
   return (
     <div style={{ position: "relative" }}>
-      {/* Tree Component */}
       <Tree
-        treeData={treeRenderData}
+        treeData={treeData}
         expandedKeys={expandedKeys}
         selectedKeys={selectedKeys}
         onExpand={handleExpand}
         onSelect={handleSelect}
-        onRightClick={handleRightClick}
+        onRightClick={(e) => handleRightClick(e.event, e.node)}
         draggable
         onDrop={onDrop}
         showIcon
+        icon={<FolderOutlined style={{ color: "var(--ant-color-text)" }} />}
+        titleRender={titleRender}
         blockNode
         className="category-tree"
       />
-
-      {/* Context Menu */}
       {contextMenu.x !== 0 && contextMenu.y !== 0 && (
         <Dropdown
-          menu={{ items: menuItems }}
+          menu={{ items: menuItems as any }}
           trigger={[]}
           open
           onOpenChange={(open) => {
@@ -241,20 +282,17 @@ export default function CategoryTree() {
           />
         </Dropdown>
       )}
-
-      {/* Add Category Dialog */}
       <AddCategoryDialog
         open={dialog.open && dialog.mode === "add"}
         onClose={closeDialog}
         onCategoryCreated={handleOperationComplete}
-        data={dialog.data as CategoryDialogData}
+        parentPath={dialog.data.parentPath}
+        parentName={dialog.data.parentName}
       />
-
-      {/* Edit Category Dialog */}
       <EditCategoryDialog
         open={dialog.open && dialog.mode === "edit"}
-        path={(dialog.data as { path: string }).path || ""}
-        name={(dialog.data as { name: string }).name || ""}
+        path={dialog.data.path}
+        name={dialog.data.name}
         onClose={closeDialog}
         onCategoryUpdated={handleOperationComplete}
       />

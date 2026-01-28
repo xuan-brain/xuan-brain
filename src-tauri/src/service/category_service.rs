@@ -51,21 +51,31 @@ impl<'a> CategoryService<'a> {
             None => None,
         };
 
-        // 2. 决定新的 ltree_path
-        //  - 如果没有父节点，作为新的根：找 max(id) + 1，path = id.toString
-        //  - 如果有父节点，找父节点的所有子节点中 max(路径最后一段) + 1，path = parent_path + "." + newSeq
-        let new_path = self.calc_new_path(parent_opt.as_ref()).await?;
-
-        // 3. 插入新记录
+        // 2. 插入新记录，使用临时路径 "tmp" (只要符合 ltree 格式即可，字母数字)
+        // 随后立即更新为基于 ID 的路径，确保唯一性和一致性
         let active = entities::category::ActiveModel {
             id: ActiveValue::NotSet,
             name: ActiveValue::Set(name.into()),
-            parent_id: ActiveValue::Set(parent_opt.map(|p| p.id)),
-            ltree_path: ActiveValue::Set(new_path.clone()),
+            parent_id: ActiveValue::Set(parent_opt.as_ref().map(|p| p.id)),
+            ltree_path: ActiveValue::Set("tmp".to_owned()),
             sort_order: ActiveValue::Set(0),
-            created_at: ActiveValue::Set(chrono::Local::now().to_rfc3339()), // 或其他时间格式
+            created_at: ActiveValue::Set(chrono::Local::now().to_rfc3339()),
         };
-        active.insert(self.db).await?;
+
+        let inserted = active.insert(self.db).await?;
+        let new_id = inserted.id;
+
+        // 3. 更新为真正的 ltree_path (基于 ID)
+        let real_path = if let Some(parent) = parent_opt {
+            format!("{}.{}", parent.ltree_path, new_id)
+        } else {
+            new_id.to_string()
+        };
+
+        let mut active_update: entities::category::ActiveModel = inserted.into();
+        active_update.ltree_path = ActiveValue::Set(real_path);
+        active_update.update(self.db).await?;
+
         Ok(())
     }
 
@@ -254,36 +264,5 @@ impl<'a> CategoryService<'a> {
     }
 
     // 工具：计算新建节点的 ltree_path
-    async fn calc_new_path(
-        &self,
-        parent_opt: Option<&entities::category::Model>,
-    ) -> Result<String, DbErr> {
-        if let Some(parent) = parent_opt {
-            // 找到 parent 下所有子节点，解析 path 最后一段，取 max + 1
-            let children = Category::find()
-                .filter(entities::category::Column::ParentId.eq(parent.id))
-                .all(self.db)
-                .await?;
-
-            let max_seq = children
-                .iter()
-                .filter_map(|c| c.ltree_path.rsplit('.').next())
-                .filter_map(|s| s.parse::<i64>().ok())
-                .max()
-                .unwrap_or(0);
-
-            Ok(format!("{}.{}", parent.ltree_path, max_seq + 1))
-        } else {
-            // 没有父节点：找最大 id + 1
-            let max_id = Category::find()
-                .order_by_desc(entities::category::Column::Id)
-                .one(self.db)
-                .await?
-                .map(|m| m.id)
-                .unwrap_or(0);
-
-            Ok((max_id + 1).to_string())
-        }
-    }
+    // 已废弃：现在直接使用 ID 生成路径
 }
-

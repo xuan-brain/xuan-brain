@@ -6,7 +6,7 @@ export interface CategoryNode {
   id: number;
   path: string;
   name: string;
-  parent_id: number | null;
+  parent_id?: number | null;
   sort_order: number;
 }
 
@@ -22,6 +22,8 @@ export function useCategoryTree() {
   const [loading, setLoading] = useState(true);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+  const [rawCount, setRawCount] = useState<number>(0);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Transform backend data to Ant Design Tree format
   const transformToAntTreeData = useCallback(
@@ -47,7 +49,8 @@ export function useCategoryTree() {
       const rootNodes: AntTreeNode[] = [];
       sortedCategories.forEach((cat) => {
         const node = nodeMap.get(cat.path)!;
-        if (cat.parent_id === null) {
+        // Check for null or undefined (backend might skip serializing null fields)
+        if (cat.parent_id === null || cat.parent_id === undefined) {
           // Root level
           rootNodes.push(node);
         } else {
@@ -58,7 +61,19 @@ export function useCategoryTree() {
             if (parentNode) {
               parentNode.children = parentNode.children || [];
               parentNode.children.push(node);
+            } else {
+              // Should not happen if map is built correctly
+              console.warn(
+                `Parent mapped but missing in nodeMap: ${parent.path}`,
+              );
+              rootNodes.push(node);
             }
+          } else {
+            // Parent not found in the list (Orphan node), treat as root
+            console.warn(
+              `Parent ID ${cat.parent_id} not found for category ${cat.name} (${cat.path}), treating as root`,
+            );
+            rootNodes.push(node);
           }
         }
       });
@@ -73,16 +88,34 @@ export function useCategoryTree() {
     setLoading(true);
     try {
       const categories = await invoke<CategoryNode[]>("load_categories");
+      console.log("Loaded categories:", categories);
+      setRawCount(categories.length);
+      setErrorMsg(null);
+
       const transformedData = transformToAntTreeData(categories);
       setTreeData(transformedData);
 
-      // Auto-expand root level nodes
-      const rootKeys = categories
-        .filter((cat) => cat.parent_id === null)
-        .map((cat) => cat.path);
-      setExpandedKeys(rootKeys);
+      // Auto-expand root level (Level 1) and second level (Level 2) nodes
+      const rootLevelNodes = categories.filter(
+        (cat) => cat.parent_id === null || cat.parent_id === undefined,
+      );
+      const rootLevelIds = new Set(rootLevelNodes.map((n) => n.id));
+
+      const secondLevelNodes = categories.filter(
+        (cat) =>
+          cat.parent_id !== null &&
+          cat.parent_id !== undefined &&
+          rootLevelIds.has(cat.parent_id),
+      );
+
+      const keysToExpand = [
+        ...rootLevelNodes.map((n) => n.path),
+        ...secondLevelNodes.map((n) => n.path),
+      ];
+      setExpandedKeys(keysToExpand);
     } catch (err) {
       console.error("Failed to load categories:", err);
+      setErrorMsg(String(err));
       // No demo data fallback - real app behavior
     } finally {
       setLoading(false);
@@ -97,23 +130,32 @@ export function useCategoryTree() {
   // Handle drop event for drag and drop
   const onDrop = useCallback(
     async (info: any) => {
-      const { dragNode, dropNode, dropPosition } = info;
+      const { dragNode, node } = info;
+      const dropNode = node;
 
-      if (!dropNode || dragNode.key === dropNode.key) {
+      if (!dropNode || !dragNode || dragNode.key === dropNode.key) {
         return;
       }
+
+      // Calculate drop position relative to the target node
+      const dropPos = dropNode.pos.split("-");
+      const dropPosition =
+        info.dropPosition - Number(dropPos[dropPos.length - 1]);
 
       const draggedPath = dragNode.key as string;
       const targetPath = dropNode.key as string;
 
-      // Determine position: -1 (above), 0 (inside), 1 (below)
+      // Determine position based on dropToGap and calculated relative position
       let position: "child" | "above" | "below";
-      if (dropPosition === 0) {
+
+      if (!info.dropToGap) {
         position = "child";
-      } else if (dropPosition === -1) {
-        position = "above";
       } else {
-        position = "below";
+        if (dropPosition === -1) {
+          position = "above";
+        } else {
+          position = "below";
+        }
       }
 
       try {
@@ -147,5 +189,7 @@ export function useCategoryTree() {
     setSelectedKeys,
     loadCategories,
     onDrop,
+    rawCount,
+    errorMsg,
   };
 }

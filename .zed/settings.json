@@ -1,0 +1,13 @@
+{
+  "lsp": {
+    "css": {
+      "settings": {
+        "css": {
+          "validate": {
+            "unknownAtRules": "ignore"
+          }
+        }
+      }
+    }
+  }
+}

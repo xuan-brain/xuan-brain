@@ -4,17 +4,18 @@
   "version": "0.1.0",
   "identifier": "org.xuan-brain",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "yarn dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
-    "frontendDist": "../build"
+    "beforeBuildCommand": "yarn build",
+    "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
         "title": "xuan-brain",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "dragDropEnabled": false
       }
     ],
     "security": {

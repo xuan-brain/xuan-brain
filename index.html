@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>璇玑 (xuan-brain)</title>
+    <!-- Prevent flash by setting themes immediately before hydration -->
+    <script>
+      (function () {
+        // Initialize dark mode
+        const darkMode = localStorage.getItem("dark-mode") === "true";
+        document.documentElement.setAttribute(
+          "data-mode",
+          darkMode ? "dark" : "light",
+        );
+
+        // Initialize accent color
+        const accentColor = localStorage.getItem("accent-color") || "#3b82f6";
+        document.documentElement.style.setProperty(
+          "--accent-color",
+          accentColor,
+        );
+
+        // Initialize language
+        const savedLanguage = localStorage.getItem("xuan-brain-locale") || "zh";
+        document.documentElement.setAttribute("lang", savedLanguage);
+        window.__xuan_brain_language = savedLanguage;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

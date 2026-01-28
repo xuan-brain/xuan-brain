@@ -9,57 +9,56 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/your-org/xuan-brain)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-orange.svg)](https://tauri.app/)
-[![SvelteKit](https://img.shields.io/badge/SvelteKit-5.x-ff3e00.svg)](https://kit.svelte.dev/)
+[![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 
 </div>
 
 ## ✨ 特性
 
 ### 📚 智能文献管理
-- **多格式支持**: PDF、DOCX、HTML、EPUB 等主流文献格式
-- **自动解析**: 提取标题、作者、摘要、关键词等元数据
-- **OCR 识别**: 支持扫描版 PDF 文字提取
-- **批量导入**: 高效处理大量文献文件
-
-### 🤖 AI 驱动的智能功能
-- **智能推荐**: 基于内容相似度和引用关系推荐相关论文
-- **自动分类**: AI 自动识别论文主题并归类
-- **关键词提取**: 自动提取代表性关键词
-- **文献摘要**: 集成大语言模型生成论文摘要
-- **语义搜索**: 基于语义理解的文献检索
+- **元数据导入**: 通过 DOI 和 arXiv ID 自动导入文献
+- **自动解析**: 提取标题、作者、摘要、出版信息等元数据
+- **文献管理**: 高效管理文献库，支持添加、编辑、删除
+- **作者关联**: 自动关联作者信息，支持多作者论文
 
 ### 🗂️ 高效组织与检索
-- **知识图谱**: 可视化文献引用关系和主题关联
-- **全文检索**: 快速搜索文献内容
-- **笔记与标注**: PDF 高亮、批注、笔记管理
-- **标签系统**: 多维度标签分类和过滤
-- **引用管理**: 自动生成多种引用格式
+- **分类管理**: 树形分类结构，支持无限层级嵌套
+- **标签系统**: 多维度标签分类，支持自定义颜色
+- **拖拽操作**: 直观的拖拽操作，方便组织文献和分类
+- **三栏布局**: 左侧导航、中间列表、右侧详情，高效浏览
 
-### ☁️ 云同步与备份
-- **官方云同步**: 端到端加密的云端备份
-- **WebDAV 支持**: 连接 NAS 或个人云盘
-- **多设备同步**: 在不同设备间无缝切换
-- **增量同步**: 高效传输,节省带宽
-
-### 🔌 可扩展的插件系统
-- **Rust 插件**: 高性能原生扩展
-- **JavaScript 插件**: 灵活的 Web 技术扩展
-- **开放 API**: 与第三方工具集成
-- **权限控制**: 安全的沙箱机制
+### 🎨 现代化界面
+- **暗色/亮色主题**: 自由切换主题，支持动态强调色
+- **响应式布局**: 自适应窗口大小，可拖拽调整各栏宽度
+- **国际化支持**: 内置中英文界面，一键切换
+- **流畅体验**: 基于 React 19 和 Tauri 2，性能卓越
 
 ### 🔒 安全与隐私
-- **本地优先**: 数据存储在本地,保护隐私
-- **端到端加密**: 云端数据加密存储
-- **安全传输**: HTTPS + TLS 加密通信
-- **开源透明**: 代码开源,可自行审计
+- **本地优先**: 所有数据存储在本地 SQLite 数据库
+- **开源透明**: 代码开源，可自行审计
+- **跨平台**: 支持 Windows、macOS、Linux
+
+### 🔧 开发中功能
+- **PDF 阅读器**: 即将支持内置 PDF 阅读和标注
+- **全文搜索**: 基于关键词的快速文献检索
+- **本地文件导入**: 支持导入 PDF、DOCX 等本地文件
+- **引用管理**: 自动生成多种引用格式
 
 ## 🏗️ 技术架构
 
 ### 技术栈
-- **前端**: [SvelteKit 5](https://kit.svelte.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **前端**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+  - UI 框架: [Ant Design 6](https://ant.design/)
+  - 状态管理: [Zustand](https://zustand-demo.pmnd.rs/)
+  - 路由: [React Router v7](https://reactrouter.com/)
+  - 树形组件: [Headless Tree](https://headless-tree.com/)
+  - 样式: [Tailwind CSS 4](https://tailwindcss.com/)
 - **后端**: [Rust](https://www.rust-lang.org/) + [Tauri 2](https://tauri.app/)
+  - ORM: [SeaORM 2.0](https://www.sea-ql.org/SeaORM/)
+  - 日志: [tracing](https://docs.rs/tracing/)
+  - 异步运行时: [Tokio](https://tokio.rs/)
 - **数据库**: [SQLite](https://www.sqlite.org/)
-- **AI 引擎**: Rust ML 生态 + Python FFI
+  - 迁移: SeaORM Migration
 
 ### 为什么选择 Rust + Tauri?
 - **轻量高效**: 相比 Electron 体积小 80%,内存占用更低
@@ -81,8 +80,11 @@
 git clone https://github.com/your-org/xuan-brain.git
 cd xuan-brain
 
-# 安装依赖
+# 安装前端依赖
 yarn install
+
+# 安装 Rust 工具链（如果尚未安装）
+# 访问 https://www.rust-lang.org/tools/install
 ```
 
 ### 开发
@@ -99,14 +101,19 @@ yarn tauri build
 
 构建产物位于 `src-tauri/target/release/bundle/`
 
+**跨平台支持**:
+- Windows: `.msi` 安装包
+- macOS: `.dmg` 磁盘映像
+- Linux: `.AppImage` / `.deb` / `.rpm`
+
 ## 📖 使用文档
 
 详细的使用文档和开发指南,请参阅:
 
-- [用户手册](docs/user-guide.md) - 安装、配置和使用教程
-- [开发者文档](docs/developer-guide.md) - 架构设计、API 文档
-- [插件开发](docs/plugin-development.md) - 插件开发指南
-- [项目介绍](docs/introduction.md) - 架构设计详解
+- [项目介绍](docs/introduction.md) - 完整的架构设计文档
+- [用户手册](docs/user-guide.md) - 安装、配置和使用教程（待创建）
+- [开发者文档](docs/developer-guide.md) - API 文档、开发指南（待创建）
+- [插件开发](docs/plugin-development.md) - 插件开发教程（待创建）
 
 ## 🤝 贡献
 
@@ -120,29 +127,50 @@ yarn tauri build
 5. 开启 Pull Request
 
 ### 代码规范
-- Rust: 遵循 `rustfmt` 格式化,通过 `clippy` 检查
-- TypeScript: 遵循 ESLint 规则
-- 提交前运行 `yarn check` 和 `cargo test`
+- **Rust**:
+  ```bash
+  cd src-tauri
+  cargo fmt          # 格式化代码
+  cargo clippy       # 代码检查
+  cargo test         # 运行测试
+  cargo audit        # 安全扫描
+  ```
+- **TypeScript**:
+  ```bash
+  yarn tsc --noEmit  # 类型检查
+  yarn lint          # ESLint 检查
+  yarn format        # Prettier 格式化
+  ```
+- **日志规范**: 所有日志消息使用英文
 
 ## 🛣️ 路线图
 
 ### v0.1.0 (当前版本)
-- [x] 基础文献导入和管理
-- [x] PDF 解析和元数据提取
-- [x] 基础搜索和过滤
-- [x] 本地数据存储
+- [x] 基础文献管理（通过 DOI 和 arXiv ID 导入）
+- [x] 分类树管理（树形结构、拖拽操作）
+- [x] 标签系统（自定义颜色、多维度分类）
+- [x] 三栏布局（可调整宽度）
+- [x] 主题切换（暗色/亮色模式）
+- [x] 国际化支持（中英文）
+- [x] 本地数据存储（SeaORM + SQLite）
 
 ### v0.2.0 (计划中)
+- [ ] PDF 阅读器实现
+- [ ] 本地文件导入（PDF、DOCX 等）
+- [ ] 全文搜索功能
+- [ ] 作者管理
+- [ ] 关键词管理
+- [ ] 附件管理
+- [ ] 设置页面
+
+### v0.3.0 (未来版本)
 - [ ] AI 智能推荐和分类
 - [ ] 关键词自动提取
 - [ ] 笔记和标注功能
 - [ ] 引用格式生成
-
-### v0.3.0 (未来版本)
 - [ ] 云同步服务
 - [ ] WebDAV 支持
 - [ ] 插件系统
-- [ ] 知识图谱可视化
 - [ ] RESTful API
 
 ## 📄 许可证
@@ -152,7 +180,9 @@ yarn tauri build
 ## 🙏 致谢
 
 - [Tauri](https://tauri.app/) - 跨平台桌面应用框架
-- [SvelteKit](https://kit.svelte.dev/) - Web 应用框架
+- [React](https://react.dev/) - React 框架
+- [Ant Design](https://ant.design/) - 企业级 UI 组件库
+- [SeaORM](https://www.sea-ql.org/SeaORM/) - 异步 Rust ORM
 - [Zotero](https://www.zotero.org/) - 灵感来源
 
 ## 📮 联系方式

@@ -1,12 +1,12 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, LoaderTrait, QueryFilter,
-    QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, LoaderTrait, ModelTrait,
+    QueryFilter, QueryOrder, Set,
 };
 use serde::Serialize;
 use tauri::State;
 use tracing::{info, instrument};
 
-use crate::database::entities::{authors, paper_authors, papers, prelude::*};
+use crate::database::entities::{authors, paper_authors, paper_labels, papers, prelude::*};
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
 use crate::sys::error::{AppError, Result};
@@ -47,6 +47,7 @@ pub struct PaperDetailDto {
     pub read_status: Option<String>,
     pub notes: Option<String>,
     pub authors: Vec<String>,
+    pub labels: Vec<LabelDto>,
 }
 
 #[tauri::command]
@@ -105,6 +106,8 @@ pub async fn get_paper(
         .await?;
 
     if let Some((paper, authors)) = paper_with_authors.into_iter().next() {
+        let labels = paper.find_related(Label).all(db.inner()).await?;
+
         Ok(Some(PaperDetailDto {
             id: paper.id,
             title: paper.title,
@@ -122,6 +125,14 @@ pub async fn get_paper(
             read_status: paper.read_status,
             notes: paper.notes,
             authors: authors.into_iter().map(|a| a.name).collect(),
+            labels: labels
+                .into_iter()
+                .map(|l| LabelDto {
+                    id: l.id,
+                    name: l.name,
+                    color: l.color,
+                })
+                .collect(),
         }))
     } else {
         info!("Paper id {} not found", id);
@@ -327,4 +338,47 @@ pub async fn import_paper_by_arxiv_id(
         authors: metadata.authors,
         labels: vec![],
     })
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn add_paper_label(
+    db: State<'_, DatabaseConnection>,
+    paper_id: i64,
+    label_id: i64,
+) -> Result<()> {
+    info!("Adding label {} to paper {}", label_id, paper_id);
+
+    // Check if relation already exists to prevent duplicates (though SeaORM might error or ignore)
+    // For now, let's just try to insert. If it exists, handle error?
+    // Postgres with ON CONFLICT would be nice, but active model insert is basic.
+
+    if (paper_labels::Entity::find_by_id((paper_id, label_id))
+        .one(db.inner())
+        .await?)
+        .is_none()
+    {
+        paper_labels::ActiveModel {
+            paper_id: Set(paper_id),
+            label_id: Set(label_id),
+        }
+        .insert(db.inner())
+        .await?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn remove_paper_label(
+    db: State<'_, DatabaseConnection>,
+    paper_id: i64,
+    label_id: i64,
+) -> Result<()> {
+    info!("Removing label {} from paper {}", label_id, paper_id);
+    paper_labels::Entity::delete_by_id((paper_id, label_id))
+        .exec(db.inner())
+        .await?;
+    Ok(())
 }

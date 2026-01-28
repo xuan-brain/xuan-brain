@@ -82,7 +82,7 @@ struct ArxivFeed {
 
 impl ArxivEntry {
     /// Convert arXiv entry to metadata
-    fn to_metadata(self) -> Result<ArxivMetadata, ArxivError> {
+    fn to_metadata(&self) -> Result<ArxivMetadata, ArxivError> {
         // Clean up title (remove whitespace and newlines)
         let title = self
             .title
@@ -94,9 +94,9 @@ impl ArxivEntry {
             return Err(ArxivError::ParseError("Title is empty".to_string()));
         }
 
-        let authors = self.author.into_iter().map(|a| a.name).collect();
+        let authors = self.author.iter().map(|a| a.name.clone()).collect();
 
-        let categories = self.category.into_iter().map(|c| c.term).collect();
+        let categories = self.category.iter().map(|c| c.term.clone()).collect();
 
         // Find PDF URL
         let pdf_url = self
@@ -115,13 +115,13 @@ impl ArxivEntry {
             title,
             authors,
             summary: self.summary.trim().to_string(),
-            published: self.published,
-            updated: self.updated,
-            primary_category: self.primary_category.term,
+            published: self.published.clone(),
+            updated: self.updated.clone(),
+            primary_category: self.primary_category.term.clone(),
             categories,
             pdf_url,
-            doi: self.doi,
-            journal_ref: self.journal_ref,
+            doi: self.doi.clone(),
+            journal_ref: self.journal_ref.clone(),
         })
     }
 }
@@ -156,7 +156,7 @@ pub fn extract_arxiv_id(arxiv_input: &str) -> Option<String> {
             // Remove .pdf extension
             let id = remaining.strip_suffix(".pdf").unwrap_or(remaining);
             // Remove version suffix (e.g., v2)
-            if let Some(pos) = id.rfind(|c| c == 'v') {
+            if let Some(pos) = id.rfind('v') {
                 // Check if version is followed by digits
                 if id.len() > pos + 1
                     && id[pos + 1..]

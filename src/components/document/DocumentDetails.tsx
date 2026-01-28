@@ -1,5 +1,16 @@
-import { useEffect, useState } from "react";
-import { Typography, Tag, Space, Divider, Spin, Card } from "antd";
+import { useEffect, useState, useCallback } from "react";
+import {
+  Typography,
+  Tag,
+  Space,
+  Divider,
+  Spin,
+  Card,
+  Select,
+  Button,
+  message,
+} from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import { useI18n } from "../../lib/i18n";
 
 // Helper for invoke (duplicate from DocumentList, maybe should move to a shared lib later)
@@ -9,6 +20,12 @@ async function invokeCommand<T = unknown>(
 ): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>(cmd, args);
+}
+
+interface LabelDto {
+  id: number;
+  name: string;
+  color: string;
 }
 
 interface PaperDetailDto {
@@ -28,6 +45,7 @@ interface PaperDetailDto {
   read_status?: string;
   notes?: string;
   authors: string[];
+  labels: LabelDto[];
 }
 
 interface DocumentDetailsProps {
@@ -49,14 +67,27 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
   const { t } = useI18n();
   const [details, setDetails] = useState<PaperDetailDto | null>(null);
   const [loading, setLoading] = useState(false);
+  const [allLabels, setAllLabels] = useState<LabelDto[]>([]);
+  const [addingLabel, setAddingLabel] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (document?.id) {
       loadPaperDetails(document.id);
+      loadAllLabels();
     } else {
       setDetails(null);
     }
   }, [document]);
+
+  const loadAllLabels = async () => {
+    try {
+      const labels = await invokeCommand<LabelDto[]>("get_all_labels");
+      setAllLabels(labels);
+    } catch (error) {
+      console.error("Failed to load labels:", error);
+    }
+  };
 
   const loadPaperDetails = async (id: number) => {
     setLoading(true);
@@ -76,10 +107,45 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
           authors: ["Demo Author"],
           publication_year: 2024,
           journal_name: "Demo Journal",
+          labels: [],
         });
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddLabel = async (labelId: number) => {
+    if (!details) return;
+    setActionLoading(true);
+    try {
+      await invokeCommand("add_paper_label", {
+        paperId: details.id,
+        labelId: labelId,
+      });
+      await loadPaperDetails(details.id);
+      setAddingLabel(false);
+      message.success("Label added");
+    } catch (error) {
+      console.error("Failed to add label:", error);
+      message.error("Failed to add label");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRemoveLabel = async (labelId: number) => {
+    if (!details) return;
+    try {
+      await invokeCommand("remove_paper_label", {
+        paperId: details.id,
+        labelId: labelId,
+      });
+      await loadPaperDetails(details.id);
+      message.success("Label removed");
+    } catch (error) {
+      console.error("Failed to remove label:", error);
+      message.error("Failed to remove label");
     }
   };
 
@@ -144,6 +210,55 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
           </Tag>
         )}
       </Space>
+
+      {/* Labels/Tags Section */}
+      <div style={{ marginBottom: 16 }}>
+        <Space size={[0, 8]} wrap>
+          {details.labels &&
+            details.labels.map((label) => (
+              <Tag
+                key={label.id}
+                color={label.color}
+                closable
+                onClose={(e) => {
+                  e.preventDefault();
+                  handleRemoveLabel(label.id);
+                }}
+              >
+                {label.name}
+              </Tag>
+            ))}
+          {addingLabel ? (
+            <Select
+              style={{ width: 120 }}
+              size="small"
+              autoFocus
+              defaultOpen
+              onBlur={() => setAddingLabel(false)}
+              onChange={handleAddLabel}
+              loading={actionLoading}
+              placeholder="Select label"
+              options={allLabels
+                .filter((l) => !details.labels?.some((pl) => pl.id === l.id))
+                .map((l) => ({ label: l.name, value: l.id }))}
+            />
+          ) : (
+            <Tag
+              onClick={() => {
+                setAddingLabel(true);
+                loadAllLabels(); // Refresh labels when opening
+              }}
+              style={{
+                borderStyle: "dashed",
+                cursor: "pointer",
+                backgroundColor: "transparent",
+              }}
+            >
+              <PlusOutlined /> {t("dialog.addTag") || "Add Tag"}
+            </Tag>
+          )}
+        </Space>
+      </div>
 
       <Typography.Text
         style={{

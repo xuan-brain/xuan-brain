@@ -199,7 +199,7 @@ export default function TagsSection(_props: TagsSectionProps) {
               <Dropdown
                 key={tag.id}
                 menu={{ items: menuItems }}
-                trigger={["click"]}
+                trigger={["contextMenu"]}
               >
                 <Tag
                   style={{

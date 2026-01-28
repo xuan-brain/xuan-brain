@@ -47,6 +47,8 @@ pub enum Relation {
     PaperKeywords,
     #[sea_orm(has_many = "super::paper_labels::Entity")]
     PaperLabels,
+    #[sea_orm(has_many = "super::paper_category::Entity")]
+    PaperCategory,
 }
 
 impl Related<super::attachments::Entity> for Entity {
@@ -70,6 +72,12 @@ impl Related<super::paper_keywords::Entity> for Entity {
 impl Related<super::paper_labels::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::PaperLabels.def()
+    }
+}
+
+impl Related<super::paper_category::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::PaperCategory.def()
     }
 }
 
@@ -97,6 +105,15 @@ impl Related<super::label::Entity> for Entity {
     }
     fn via() -> Option<RelationDef> {
         Some(super::paper_labels::Relation::Papers.def().rev())
+    }
+}
+
+impl Related<super::category::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::paper_category::Relation::Category.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::paper_category::Relation::Papers.def().rev())
     }
 }
 

@@ -1,12 +1,14 @@
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, LoaderTrait, ModelTrait,
-    QueryFilter, QueryOrder, Set,
+    QueryFilter, QueryOrder, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use tracing::{info, instrument};
 
-use crate::database::entities::{authors, paper_authors, paper_labels, papers, prelude::*};
+use crate::database::entities::{
+    authors, paper_authors, paper_category, paper_labels, papers, prelude::*,
+};
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
 use crate::sys::error::{AppError, Result};
@@ -48,6 +50,9 @@ pub struct PaperDetailDto {
     pub notes: Option<String>,
     pub authors: Vec<String>,
     pub labels: Vec<LabelDto>,
+    pub category_id: Option<i64>,
+    pub category_name: Option<String>,
+    pub category_path: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -124,6 +129,8 @@ pub async fn get_paper(
 
     if let Some((paper, authors)) = paper_with_authors.into_iter().next() {
         let labels = paper.find_related(Label).all(db.inner()).await?;
+        let categories = paper.find_related(Category).all(db.inner()).await?;
+        let category = categories.first();
 
         Ok(Some(PaperDetailDto {
             id: paper.id,
@@ -150,6 +157,9 @@ pub async fn get_paper(
                     color: l.color,
                 })
                 .collect(),
+            category_id: category.map(|c| c.id),
+            category_name: category.map(|c| c.name.clone()),
+            category_path: category.map(|c| c.ltree_path.clone()),
         }))
     } else {
         info!("Paper id {} not found", id);
@@ -430,5 +440,41 @@ pub async fn remove_paper_label(
     paper_labels::Entity::delete_by_id((paper_id, label_id))
         .exec(db.inner())
         .await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn update_paper_category(
+    db: State<'_, DatabaseConnection>,
+    paper_id: i64,
+    category_id: Option<i64>,
+) -> Result<()> {
+    info!(
+        "Updating category for paper {}: {:?}",
+        paper_id, category_id
+    );
+
+    // Transaction?
+    let txn = db.begin().await?;
+
+    // 1. Remove all existing categories for this paper (enforce single category)
+    paper_category::Entity::delete_many()
+        .filter(paper_category::Column::PaperId.eq(paper_id))
+        .exec(&txn)
+        .await?;
+
+    // 2. Insert new category if provided
+    if let Some(cat_id) = category_id {
+        paper_category::ActiveModel {
+            paper_id: Set(paper_id),
+            category_id: Set(cat_id),
+        }
+        .insert(&txn)
+        .await?;
+    }
+
+    txn.commit().await?;
+
     Ok(())
 }

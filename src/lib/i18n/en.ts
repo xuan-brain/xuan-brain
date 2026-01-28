@@ -107,6 +107,7 @@ export default {
     categoryNameRequired: "Category name is required",
     categoryNameMaxLength: "Category name cannot exceed 50 characters",
     categoryNameRules: "Category name is required, maximum 50 characters",
+    selectCategory: "Select Category",
     tagNameRequired: "Tag name is required",
     tagNameMaxLength: "Tag name cannot exceed 30 characters",
     tagNameRules: "Tag name is required, maximum 30 characters",

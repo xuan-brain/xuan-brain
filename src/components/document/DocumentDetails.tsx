@@ -13,12 +13,14 @@ import {
   InputNumber,
   Row,
   Col,
+  TreeSelect,
 } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
   SaveOutlined,
   CloseOutlined,
+  FolderOpenOutlined,
 } from "@ant-design/icons";
 import { useI18n } from "../../lib/i18n";
 
@@ -39,6 +41,14 @@ interface LabelDto {
   color: string;
 }
 
+interface CategoryNode {
+  id: number;
+  path: string;
+  name: string;
+  parent_id?: number | null;
+  sort_order: number;
+}
+
 interface PaperDetailDto {
   id: number;
   title: string;
@@ -57,6 +67,8 @@ interface PaperDetailDto {
   notes?: string;
   authors: string[];
   labels: LabelDto[];
+  category_id?: number;
+  category_name?: string;
 }
 
 interface DocumentDetailsProps {
@@ -74,12 +86,43 @@ interface DocumentDetailsProps {
   } | null;
 }
 
+// Helper to build tree data for TreeSelect
+function buildTreeData(categories: CategoryNode[]) {
+  const nodeMap = new Map<number, any>();
+  const rootNodes: any[] = [];
+
+  // First pass: create nodes
+  categories.forEach((cat) => {
+    nodeMap.set(cat.id, {
+      title: cat.name,
+      value: cat.id,
+      key: cat.id,
+      children: [],
+    });
+  });
+
+  // Second pass: build hierarchy
+  categories.forEach((cat) => {
+    const node = nodeMap.get(cat.id);
+    if (cat.parent_id && nodeMap.has(cat.parent_id)) {
+      const parent = nodeMap.get(cat.parent_id);
+      parent.children.push(node);
+    } else {
+      rootNodes.push(node);
+    }
+  });
+
+  return rootNodes;
+}
+
 export default function DocumentDetails({ document }: DocumentDetailsProps) {
   const { t } = useI18n();
   const [details, setDetails] = useState<PaperDetailDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [allLabels, setAllLabels] = useState<LabelDto[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [addingLabel, setAddingLabel] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Edit mode state
@@ -90,9 +133,11 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
     if (document?.id) {
       loadPaperDetails(document.id);
       loadAllLabels();
+      loadCategories();
     } else {
       setDetails(null);
       setIsEditing(false);
+      setAddingCategory(false);
     }
   }, [document]);
 
@@ -102,6 +147,15 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
       setAllLabels(labels);
     } catch (error) {
       console.error("Failed to load labels:", error);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const cats = await invokeCommand<CategoryNode[]>("load_categories");
+      setCategories(buildTreeData(cats));
+    } catch (error) {
+      console.error("Failed to load categories:", error);
     }
   };
 
@@ -136,6 +190,26 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
 
   const notifyUpdate = (data: PaperDetailDto) => {
     window.dispatchEvent(new CustomEvent("paper-updated", { detail: data }));
+  };
+
+  const handleSetCategory = async (categoryId: number) => {
+    if (!details) return;
+    setActionLoading(true);
+    try {
+      await invokeCommand("update_paper_category", {
+        paperId: details.id,
+        categoryId: categoryId,
+      });
+      const updated = await loadPaperDetails(details.id);
+      if (updated) notifyUpdate(updated);
+      setAddingCategory(false);
+      message.success("Category updated");
+    } catch (error) {
+      console.error("Failed to update category:", error);
+      message.error("Failed to update category");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleAddLabel = async (labelId: number) => {
@@ -188,6 +262,7 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
     if (!editForm || !details) return;
     setActionLoading(true);
     try {
+      // 1. Update basic details
       await invokeCommand("update_paper_details", {
         payload: {
           id: details.id,
@@ -205,6 +280,15 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
           read_status: editForm.read_status,
         },
       });
+
+      // 2. Update category if changed
+      if (editForm.category_id !== details.category_id) {
+        await invokeCommand("update_paper_category", {
+          paperId: details.id,
+          categoryId: editForm.category_id || null,
+        });
+      }
+
       const updated = await loadPaperDetails(details.id);
       if (updated) notifyUpdate(updated);
       setIsEditing(false);
@@ -317,6 +401,17 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
       <Space size="small" wrap style={{ marginBottom: 16 }}>
         {isEditing ? (
           <>
+            <TreeSelect
+              style={{ width: 200 }}
+              value={editForm?.category_id}
+              dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
+              treeData={categories}
+              placeholder={t("dialog.selectCategory") || "Select Category"}
+              treeDefaultExpandAll
+              allowClear
+              onChange={(value) => handleInputChange("category_id", value)}
+              size="small"
+            />
             <InputNumber
               placeholder="Year"
               value={editForm?.publication_year}
@@ -347,6 +442,35 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
           </>
         ) : (
           <>
+            {details.category_name ? (
+              <Tag icon={<FolderOpenOutlined />} color="orange">
+                {details.category_name}
+              </Tag>
+            ) : addingCategory ? (
+              <TreeSelect
+                style={{ width: 200 }}
+                dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
+                treeData={categories}
+                placeholder={t("dialog.selectCategory") || "Select Category"}
+                treeDefaultExpandAll
+                autoFocus
+                defaultOpen
+                onBlur={() => setAddingCategory(false)}
+                onChange={handleSetCategory}
+                size="small"
+              />
+            ) : (
+              <Tag
+                onClick={() => setAddingCategory(true)}
+                style={{
+                  borderStyle: "dashed",
+                  cursor: "pointer",
+                  backgroundColor: "transparent",
+                }}
+              >
+                <PlusOutlined /> {t("dialog.addCategory") || "Add Category"}
+              </Tag>
+            )}
             {details.publication_year && <Tag>{details.publication_year}</Tag>}
             {(details.journal_name || details.conference_name) && (
               <Tag color="blue">

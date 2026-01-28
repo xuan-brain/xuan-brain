@@ -107,6 +107,7 @@ export default {
     categoryNameRequired: "名称不能为空",
     categoryNameMaxLength: "名称最多50个字符",
     categoryNameRules: "分类名称不能为空，最多50个字符",
+    selectCategory: "选择分类",
     tagNameRequired: "标签名称不能为空",
     tagNameMaxLength: "标签名称最多30个字符",
     tagNameRules: "标签名称不能为空，最多30个字符",

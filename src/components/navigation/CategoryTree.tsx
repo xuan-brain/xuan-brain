@@ -20,6 +20,17 @@ interface ContextMenuState {
   nodeName: string | null;
 }
 
+interface DialogState {
+  open: boolean;
+  mode: "add" | "edit" | null;
+  data: {
+    parentPath?: string;
+    parentName?: string;
+    path?: string;
+    name?: string;
+  };
+}
+
 export default function CategoryTree() {
   const { t } = useI18n();
   const {
@@ -41,7 +52,11 @@ export default function CategoryTree() {
     nodeId: null,
     nodeName: null,
   });
-  const [dialog, setDialog] = useState({ open: false, mode: null, data: {} });
+  const [dialog, setDialog] = useState<DialogState>({
+    open: false,
+    mode: null,
+    data: {},
+  });
 
   const handleRightClick = useCallback(
     (event: React.MouseEvent, node: any) => {
@@ -291,8 +306,8 @@ export default function CategoryTree() {
       />
       <EditCategoryDialog
         open={dialog.open && dialog.mode === "edit"}
-        path={dialog.data.path}
-        name={dialog.data.name}
+        path={dialog.data.path || ""}
+        name={dialog.data.name || ""}
         onClose={closeDialog}
         onCategoryUpdated={handleOperationComplete}
       />

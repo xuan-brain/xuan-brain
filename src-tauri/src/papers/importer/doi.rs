@@ -104,6 +104,7 @@ struct CrossrefAuthor {
 
 impl CrossrefWork {
     /// Convert Crossref response to DoiMetadata
+    #[allow(clippy::wrong_self_convention)]
     fn to_metadata(self) -> Result<DoiMetadata, DoiError> {
         let title = self
             .title

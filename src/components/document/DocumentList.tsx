@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Table, Tag, Space } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useI18n } from "../../lib/i18n";
+import { useAppStore } from "../../stores/useAppStore";
 import DocumentToolbar from "./DocumentToolbar";
 
 // Lazy load invoke helper - works in both Tauri and browser
@@ -56,8 +57,12 @@ interface DocumentListProps {
 
 export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
   const { t } = useI18n();
+  const { accentColor } = useAppStore();
   const [rows, setRows] = useState<PaperDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     loadPapers();
@@ -81,6 +86,7 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       setRows(papers);
       if (papers.length > 0) {
         onDocumentSelect(papers[0]);
+        setSelectedDocumentId(papers[0].id);
       }
     } catch (error) {
       console.error("Failed to load papers:", error);
@@ -98,6 +104,7 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       setRows(demoData);
       if (demoData.length > 0) {
         onDocumentSelect(demoData[0]);
+        setSelectedDocumentId(demoData[0].id);
       }
     } finally {
       setLoading(false);
@@ -205,8 +212,17 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
           onRow={(record) => ({
             onClick: () => {
               onDocumentSelect(record);
+              setSelectedDocumentId(record.id);
             },
-            style: { cursor: "pointer" },
+            style: {
+              cursor: "pointer",
+              backgroundColor:
+                selectedDocumentId === record.id
+                  ? `${accentColor}20`
+                  : undefined,
+              color: selectedDocumentId === record.id ? accentColor : undefined,
+              transition: "background-color 0.2s, color 0.2s",
+            },
           })}
         />
       </div>

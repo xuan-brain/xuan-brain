@@ -107,12 +107,15 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       dataIndex: "authors",
       key: "authors",
       width: 150,
+      ellipsis: true,
       render: (authors: string[]) => (
-        <Space size="small" wrap>
-          {authors?.map((author, index) => (
-            <Tag key={index}>{author}</Tag>
-          ))}
-        </Space>
+        <div style={{ overflow: "hidden", whiteSpace: "nowrap" }}>
+          <Space size="small" style={{ flexWrap: "nowrap" }}>
+            {authors?.map((author, index) => (
+              <Tag key={index}>{author}</Tag>
+            ))}
+          </Space>
+        </div>
       ),
     },
     {
@@ -120,6 +123,7 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       dataIndex: "source",
       key: "source",
       width: 150,
+      ellipsis: true,
       render: (_value, record: PaperDto) =>
         record.journal_name || record.conference_name || "",
     },
@@ -128,27 +132,34 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
       dataIndex: "publication_year",
       key: "publication_year",
       width: 90,
+      ellipsis: true,
     },
     {
       title: t("document.labels"),
       dataIndex: "labels",
       key: "labels",
       width: 150,
+      ellipsis: true,
       render: (labels: LabelDto[]) => (
-        <Space size="small" wrap>
-          {labels?.map((label) => (
-            <Tag
-              key={label.id}
-              style={{
-                backgroundColor: TAG_COLORS[label.color] || TAG_COLORS.blue,
-                color: "#fff",
-                maxWidth: "100px",
-              }}
-            >
-              {label.name}
-            </Tag>
-          ))}
-        </Space>
+        <div style={{ overflow: "hidden", whiteSpace: "nowrap" }}>
+          <Space size="small" style={{ flexWrap: "nowrap" }}>
+            {labels?.map((label) => (
+              <Tag
+                key={label.id}
+                style={{
+                  backgroundColor: TAG_COLORS[label.color] || TAG_COLORS.blue,
+                  color: "#fff",
+                  maxWidth: "100px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  verticalAlign: "top",
+                }}
+              >
+                {label.name}
+              </Tag>
+            ))}
+          </Space>
+        </div>
       ),
     },
   ];

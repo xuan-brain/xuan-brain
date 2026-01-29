@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Tree, Dropdown, Spin, Modal, Empty, Button, Alert } from "antd";
 import {
   FolderOutlined,
@@ -12,6 +12,7 @@ import { invoke } from "@tauri-apps/api/core";
 import AddCategoryDialog from "../dialogs/AddCategoryDialog";
 import EditCategoryDialog from "../dialogs/EditCategoryDialog";
 import { useCategoryTree } from "./useCategoryTree";
+import { useAppStore } from "../../stores/useAppStore";
 
 interface ContextMenuState {
   x: number;
@@ -37,6 +38,7 @@ interface CategoryTreeProps {
 
 export default function CategoryTree({ onCategorySelect }: CategoryTreeProps) {
   const { t } = useI18n();
+  const { accentColor } = useAppStore();
   const {
     treeData,
     loading,
@@ -83,6 +85,16 @@ export default function CategoryTree({ onCategorySelect }: CategoryTreeProps) {
   const closeContextMenu = useCallback(() => {
     setContextMenu({ x: 0, y: 0, nodeId: null, nodeName: null });
   }, []);
+
+  useEffect(() => {
+    const handleClick = () => closeContextMenu();
+    if (contextMenu.nodeId) {
+      window.addEventListener("click", handleClick);
+    }
+    return () => {
+      window.removeEventListener("click", handleClick);
+    };
+  }, [contextMenu.nodeId, closeContextMenu]);
 
   const handleAddSubcategory = useCallback(() => {
     if (contextMenu.nodeId) {
@@ -268,6 +280,13 @@ export default function CategoryTree({ onCategorySelect }: CategoryTreeProps) {
 
   return (
     <div style={{ position: "relative" }}>
+      <style>
+        {`
+          .category-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+            background-color: ${accentColor}40 !important;
+          }
+        `}
+      </style>
       <Tree
         treeData={treeData}
         expandedKeys={expandedKeys}

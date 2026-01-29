@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { Table, Tag, Space } from "antd";
+import { useState, useEffect, useCallback } from "react";
+import { Table, Tag, Space, Dropdown, type MenuProps } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useI18n } from "../../lib/i18n";
+import { useAppStore } from "../../stores/useAppStore";
 
 import DocumentToolbar from "./DocumentToolbar";
 
@@ -61,6 +62,7 @@ export default function DocumentList({
   categoryId,
 }: DocumentListProps) {
   const { t } = useI18n();
+  const { selectedDocument, accentColor } = useAppStore();
   const [rows, setRows] = useState<PaperDto[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -187,6 +189,29 @@ export default function DocumentList({
     },
   ];
 
+  const TableRow = useCallback(
+    ({ children, ...props }: any) => {
+      const rowId = props["data-row-key"];
+      const menuItems: MenuProps["items"] = [
+        {
+          key: "delete",
+          label: t("dialog.delete"),
+          danger: true,
+          onClick: () => {
+            console.log("Delete row with ID:", rowId);
+          },
+        },
+      ];
+
+      return (
+        <Dropdown menu={{ items: menuItems }} trigger={["contextMenu"]}>
+          <tr {...props}>{children}</tr>
+        </Dropdown>
+      );
+    },
+    [t],
+  );
+
   return (
     <div
       style={{
@@ -215,12 +240,23 @@ export default function DocumentList({
           rowKey="id"
           size="small"
           pagination={false}
-          onRow={(record) => ({
-            onClick: () => {
-              onDocumentSelect(record);
+          components={{
+            body: {
+              row: TableRow,
             },
-            style: { cursor: "pointer" },
-          })}
+          }}
+          onRow={(record) => {
+            const isSelected = selectedDocument?.id === record.id;
+            return {
+              onClick: () => {
+                onDocumentSelect(record);
+              },
+              style: {
+                cursor: "pointer",
+                backgroundColor: isSelected ? `${accentColor}40` : undefined,
+              },
+            };
+          }}
         />
       </div>
     </div>

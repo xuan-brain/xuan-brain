@@ -4,6 +4,7 @@ mod m20220101_000001_create_table;
 mod m20260122_050159_create_categories;
 mod m20260123_161037_create_paper;
 mod m20260128_153129_create_paper_category;
+mod m20260129_101358_create_paper_detele;
 
 pub struct Migrator;
 
@@ -15,6 +16,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260122_050159_create_categories::Migration),
             Box::new(m20260123_161037_create_paper::Migration),
             Box::new(m20260128_153129_create_paper_category::Migration),
+            Box::new(m20260129_101358_create_paper_detele::Migration),
         ]
     }
 }

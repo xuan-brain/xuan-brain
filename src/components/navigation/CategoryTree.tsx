@@ -31,7 +31,11 @@ interface DialogState {
   };
 }
 
-export default function CategoryTree() {
+interface CategoryTreeProps {
+  onCategorySelect?: (categoryId: string | null) => void;
+}
+
+export default function CategoryTree({ onCategorySelect }: CategoryTreeProps) {
   const { t } = useI18n();
   const {
     treeData,
@@ -155,8 +159,16 @@ export default function CategoryTree() {
   ];
 
   const handleSelect = useCallback(
-    (selectedKeysValue: any) => setSelectedKeys(selectedKeysValue),
-    [setSelectedKeys],
+    (selectedKeysValue: any) => {
+      setSelectedKeys(selectedKeysValue);
+      // Notify parent component about category selection
+      if (onCategorySelect) {
+        const categoryId =
+          selectedKeysValue.length > 0 ? selectedKeysValue[0] : null;
+        onCategorySelect(categoryId);
+      }
+    },
+    [setSelectedKeys, onCategorySelect],
   );
   const handleExpand = useCallback(
     (expandedKeysValue: any) => setExpandedKeys(expandedKeysValue),

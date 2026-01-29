@@ -14,7 +14,11 @@ import TagsSection from "./TagsSection";
 import AddCategoryDialog from "../dialogs/AddCategoryDialog";
 import AddTagDialog from "../dialogs/AddTagDialog";
 
-export default function Navigation() {
+interface NavigationProps {
+  onCategorySelect?: (categoryId: string | null) => void;
+}
+
+export default function Navigation({ onCategorySelect }: NavigationProps) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState("library");
@@ -89,7 +93,10 @@ export default function Navigation() {
 
         {/* 分类树 */}
         <div style={{ padding: "4px 2px" }}>
-          <CategoryTree key={categoryTreeKey} />
+          <CategoryTree
+            key={categoryTreeKey}
+            onCategorySelect={onCategorySelect}
+          />
         </div>
       </div>
 

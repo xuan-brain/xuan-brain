@@ -46,6 +46,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [rightWidth, setRightWidth] = useState(savedWidths.right);
   const middleWidth = 100 - leftWidth - rightWidth;
 
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
+
   const [isDraggingLeft, setIsDraggingLeft] = useState(false);
   const [isDraggingRight, setIsDraggingRight] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -135,7 +139,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       <Layout className="main-content-area">
         {/* Left Sidebar - Navigation */}
         <Sider width={`${leftWidth}%`} className="left-sidebar">
-          <Navigation />
+          <Navigation onCategorySelect={setSelectedCategoryId} />
         </Sider>
 
         {/* Left Resizer */}
@@ -150,7 +154,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
         {/* Main Content Area */}
         <Content style={{ width: `${middleWidth}%` }} className="main-content">
-          {children || <DocumentList onDocumentSelect={setSelectedDocument} />}
+          {children || (
+            <DocumentList
+              onDocumentSelect={setSelectedDocument}
+              categoryId={selectedCategoryId}
+            />
+          )}
         </Content>
 
         {/* Right Resizer */}

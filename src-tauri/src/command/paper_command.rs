@@ -7,7 +7,7 @@ use tauri::State;
 use tracing::{info, instrument};
 
 use crate::database::entities::{
-    authors, paper_authors, paper_category, paper_labels, papers, prelude::*,
+    authors, category, paper_authors, paper_category, paper_labels, papers, prelude::*,
 };
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
@@ -441,6 +441,67 @@ pub async fn remove_paper_label(
         .exec(db.inner())
         .await?;
     Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn get_papers_by_category(
+    db: State<'_, DatabaseConnection>,
+    category_path: String,
+) -> Result<Vec<PaperDto>> {
+    info!("Fetching papers for category path: {}", category_path);
+
+    // First, get the category ID by path
+    let category_entity = Category::find()
+        .filter(category::Column::LtreePath.eq(&category_path))
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Category", category_path.clone()))?;
+
+    // Then get papers associated with this category
+    let papers = Papers::find()
+        .inner_join(PaperCategory)
+        .filter(paper_category::Column::CategoryId.eq(category_entity.id))
+        .order_by_desc(papers::Column::Id)
+        .all(db.inner())
+        .await?;
+
+    let authors = papers
+        .load_many_to_many(Authors, PaperAuthors, db.inner())
+        .await?;
+
+    let labels = papers
+        .load_many_to_many(Label, PaperLabels, db.inner())
+        .await?;
+
+    let dtos: Vec<PaperDto> = papers
+        .into_iter()
+        .zip(authors.into_iter())
+        .zip(labels.into_iter())
+        .map(|((paper, authors), labels)| PaperDto {
+            id: paper.id,
+            title: paper.title,
+            publication_year: paper.publication_year,
+            journal_name: paper.journal_name,
+            conference_name: paper.conference_name,
+            authors: authors.into_iter().map(|a| a.name).collect(),
+            labels: labels
+                .into_iter()
+                .map(|l| LabelDto {
+                    id: l.id,
+                    name: l.name,
+                    color: l.color,
+                })
+                .collect(),
+        })
+        .collect();
+
+    info!(
+        "Fetched {} papers for category {}",
+        dtos.len(),
+        category_path
+    );
+    Ok(dtos)
 }
 
 #[tauri::command]

@@ -53,9 +53,13 @@ interface PaperDto {
 
 interface DocumentListProps {
   onDocumentSelect: (document: any) => void;
+  categoryId?: string | null;
 }
 
-export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
+export default function DocumentList({
+  onDocumentSelect,
+  categoryId,
+}: DocumentListProps) {
   const { t } = useI18n();
   const [rows, setRows] = useState<PaperDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,13 +76,21 @@ export default function DocumentList({ onDocumentSelect }: DocumentListProps) {
 
     window.addEventListener("paper-updated", handlePaperUpdate);
     return () => window.removeEventListener("paper-updated", handlePaperUpdate);
-  }, []);
+  }, [categoryId]); // Add categoryId as dependency
 
   const loadPapers = async () => {
     setLoading(true);
     try {
-      const papers = await invokeCommand<PaperDto[]>("get_all_papers");
-      console.info("Loaded papers:", papers.length);
+      let papers: PaperDto[];
+      if (categoryId) {
+        // Load papers for specific category
+        papers = await invokeCommand<PaperDto[]>("get_papers_by_category", {
+          categoryPath: categoryId,
+        });
+      } else {
+        // Load all papers
+        papers = await invokeCommand<PaperDto[]>("get_all_papers");
+      }
       setRows(papers);
       if (papers.length > 0) {
         onDocumentSelect(papers[0]);

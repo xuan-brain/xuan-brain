@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 pub mod entities;
 
 use std::{path::PathBuf, time::Duration};

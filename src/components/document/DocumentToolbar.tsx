@@ -13,9 +13,13 @@ async function invokeCommand<T = unknown>(
 
 interface DocumentToolbarProps {
   onRefresh?: () => void;
+  selectedCategoryId?: string | null;
 }
 
-export default function DocumentToolbar({ onRefresh }: DocumentToolbarProps) {
+export default function DocumentToolbar({
+  onRefresh,
+  selectedCategoryId,
+}: DocumentToolbarProps) {
   const { t } = useI18n();
   const [doiDialogOpen, setDoiDialogOpen] = useState(false);
   const [doiInput, setDoiInput] = useState("");
@@ -51,6 +55,7 @@ export default function DocumentToolbar({ onRefresh }: DocumentToolbarProps) {
       console.info("Importing paper with arXiv ID:", arxivInput.trim());
       await invokeCommand("import_paper_by_arxiv_id", {
         arxivId: arxivInput.trim(),
+        categoryPath: selectedCategoryId,
       });
 
       // Refresh the document list
@@ -71,7 +76,10 @@ export default function DocumentToolbar({ onRefresh }: DocumentToolbarProps) {
     try {
       // Import paper by DOI
       console.info("Importing paper with DOI:", doiInput.trim());
-      await invokeCommand("import_paper_by_doi", { doi: doiInput.trim() });
+      await invokeCommand("import_paper_by_doi", {
+        doi: doiInput.trim(),
+        categoryPath: selectedCategoryId,
+      });
 
       // Refresh the document list
       if (onRefresh) {
@@ -142,7 +150,9 @@ export default function DocumentToolbar({ onRefresh }: DocumentToolbarProps) {
         width={480}
         footer={
           <>
-            <Button onClick={handleArxivDialogClose}>{t("dialog.cancel")}</Button>
+            <Button onClick={handleArxivDialogClose}>
+              {t("dialog.cancel")}
+            </Button>
             <Button type="primary" onClick={handleArxivSubmit}>
               {t("toolbar.import")}
             </Button>

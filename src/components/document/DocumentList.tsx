@@ -303,7 +303,7 @@ export default function DocumentList({
       }}
     >
       {/* Toolbar */}
-      <DocumentToolbar onRefresh={loadPapers} />
+      <DocumentToolbar onRefresh={loadPapers} selectedCategoryId={categoryId} />
 
       {/* Table Container */}
       <div

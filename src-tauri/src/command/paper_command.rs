@@ -1,4 +1,3 @@
-use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, LoaderTrait, ModelTrait,
     QueryFilter, QueryOrder, Set, TransactionTrait,
@@ -268,6 +267,7 @@ pub async fn delete_paper(db: State<'_, DatabaseConnection>, id: i64) -> Result<
 #[instrument(skip(db))]
 pub async fn import_paper_by_doi(
     doi: String,
+    category_path: Option<String>,
     db: State<'_, DatabaseConnection>,
 ) -> Result<PaperDto> {
     info!("Importing paper with DOI: {}", doi);
@@ -346,6 +346,22 @@ pub async fn import_paper_by_doi(
         .await?;
     }
 
+    // Link category if provided
+    if let Some(path) = category_path {
+        if let Some(cat) = Category::find()
+            .filter(category::Column::LtreePath.eq(&path))
+            .one(db.inner())
+            .await?
+        {
+            paper_category::ActiveModel {
+                paper_id: Set(paper.id),
+                category_id: Set(cat.id),
+            }
+            .insert(db.inner())
+            .await?;
+        }
+    }
+
     info!(
         "Successfully imported paper: {} (id: {}, doi: {})",
         metadata.title, paper.id, metadata.doi
@@ -366,6 +382,7 @@ pub async fn import_paper_by_doi(
 #[instrument(skip(db))]
 pub async fn import_paper_by_arxiv_id(
     arxiv_id: String,
+    category_path: Option<String>,
     db: State<'_, DatabaseConnection>,
 ) -> Result<PaperDto> {
     info!("Importing paper with arXiv ID: {}", arxiv_id);
@@ -446,6 +463,22 @@ pub async fn import_paper_by_arxiv_id(
         }
         .insert(db.inner())
         .await?;
+    }
+
+    // Link category if provided
+    if let Some(path) = category_path {
+        if let Some(cat) = Category::find()
+            .filter(category::Column::LtreePath.eq(&path))
+            .one(db.inner())
+            .await?
+        {
+            paper_category::ActiveModel {
+                paper_id: Set(paper.id),
+                category_id: Set(cat.id),
+            }
+            .insert(db.inner())
+            .await?;
+        }
     }
 
     info!(

@@ -442,11 +442,7 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
           </>
         ) : (
           <>
-            {details.category_name ? (
-              <Tag icon={<FolderOpenOutlined />} color="orange">
-                {details.category_name}
-              </Tag>
-            ) : addingCategory ? (
+            {addingCategory ? (
               <TreeSelect
                 style={{ width: 200 }}
                 dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
@@ -455,10 +451,20 @@ export default function DocumentDetails({ document }: DocumentDetailsProps) {
                 treeDefaultExpandAll
                 autoFocus
                 defaultOpen
+                value={details.category_id}
                 onBlur={() => setAddingCategory(false)}
                 onChange={handleSetCategory}
                 size="small"
               />
+            ) : details.category_name ? (
+              <Tag
+                icon={<FolderOpenOutlined />}
+                color="orange"
+                onClick={() => setAddingCategory(true)}
+                style={{ cursor: "pointer" }}
+              >
+                {details.category_name}
+              </Tag>
             ) : (
               <Tag
                 onClick={() => setAddingCategory(true)}

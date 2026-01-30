@@ -13,6 +13,7 @@ import CategoryTree from "./CategoryTree";
 import TagsSection from "./TagsSection";
 import AddCategoryDialog from "../dialogs/AddCategoryDialog";
 import AddTagDialog from "../dialogs/AddTagDialog";
+import { useAppStore } from "../../stores/useAppStore";
 
 interface NavigationProps {
   onCategorySelect?: (categoryId: string | null) => void;
@@ -20,6 +21,7 @@ interface NavigationProps {
 
 export default function Navigation({ onCategorySelect }: NavigationProps) {
   const { t } = useI18n();
+  const { accentColor } = useAppStore();
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState("library");
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
@@ -31,6 +33,16 @@ export default function Navigation({ onCategorySelect }: NavigationProps) {
     setActiveItem(itemId);
     if (itemId === "library") {
       navigate("/");
+      if (onCategorySelect) onCategorySelect(null);
+    } else if (itemId === "trash") {
+      if (onCategorySelect) onCategorySelect("trash");
+    }
+  };
+
+  const handleCategorySelect = (categoryId: string | null) => {
+    setActiveItem("library");
+    if (onCategorySelect) {
+      onCategorySelect(categoryId);
     }
   };
 
@@ -63,7 +75,7 @@ export default function Navigation({ onCategorySelect }: NavigationProps) {
             padding: "4px 12px",
             cursor: "pointer",
             backgroundColor: isActive("library")
-              ? "var(--ant-color-primary-bg, rgba(24, 144, 255, 0.1))"
+              ? `${accentColor}26`
               : "transparent",
             transition: "background-color 0.2s",
           }}
@@ -73,10 +85,20 @@ export default function Navigation({ onCategorySelect }: NavigationProps) {
             style={{
               marginRight: 8,
               minWidth: 20,
-              color: "var(--ant-color-text)",
+              color: isActive("library")
+                ? accentColor
+                : "var(--ant-color-text)",
             }}
           />
-          <span style={{ flex: 1, color: "var(--ant-color-text)" }}>
+          <span
+            style={{
+              flex: 1,
+              color: isActive("library")
+                ? accentColor
+                : "var(--ant-color-text)",
+              fontWeight: isActive("library") ? 500 : 400,
+            }}
+          >
             {t("navigation.library")}
           </span>
           <Button
@@ -95,7 +117,7 @@ export default function Navigation({ onCategorySelect }: NavigationProps) {
         <div style={{ padding: "4px 2px" }}>
           <CategoryTree
             key={categoryTreeKey}
-            onCategorySelect={onCategorySelect}
+            onCategorySelect={handleCategorySelect}
           />
         </div>
       </div>
@@ -150,6 +172,9 @@ export default function Navigation({ onCategorySelect }: NavigationProps) {
               padding: "4px 12px",
               cursor: "pointer",
               transition: "background-color 0.2s",
+              backgroundColor: isActive("favorites")
+                ? `${accentColor}26`
+                : "transparent",
             }}
             onClick={() => handleNavClick("favorites")}
           >
@@ -157,10 +182,19 @@ export default function Navigation({ onCategorySelect }: NavigationProps) {
               style={{
                 marginRight: 8,
                 minWidth: 20,
-                color: "var(--ant-color-text)",
+                color: isActive("favorites")
+                  ? accentColor
+                  : "var(--ant-color-text)",
               }}
             />
-            <span style={{ color: "var(--ant-color-text)" }}>
+            <span
+              style={{
+                color: isActive("favorites")
+                  ? accentColor
+                  : "var(--ant-color-text)",
+                fontWeight: isActive("favorites") ? 500 : 400,
+              }}
+            >
               {t("navigation.favorites")}
             </span>
           </div>
@@ -174,6 +208,10 @@ export default function Navigation({ onCategorySelect }: NavigationProps) {
               alignItems: "center",
               padding: "4px 12px",
               cursor: "pointer",
+              backgroundColor: isActive("trash")
+                ? `${accentColor}26`
+                : "transparent",
+              transition: "background-color 0.2s",
             }}
             onClick={() => handleNavClick("trash")}
           >
@@ -181,10 +219,19 @@ export default function Navigation({ onCategorySelect }: NavigationProps) {
               style={{
                 marginRight: 8,
                 minWidth: 20,
-                color: "var(--ant-color-text)",
+                color: isActive("trash")
+                  ? accentColor
+                  : "var(--ant-color-text)",
               }}
             />
-            <span style={{ color: "var(--ant-color-text)" }}>
+            <span
+              style={{
+                color: isActive("trash")
+                  ? accentColor
+                  : "var(--ant-color-text)",
+                fontWeight: isActive("trash") ? 500 : 400,
+              }}
+            >
               {t("navigation.trash")}
             </span>
           </div>

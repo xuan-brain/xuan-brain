@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { Table, Tag, Space, Dropdown, type MenuProps } from "antd";
+import { Table, Tag, Space, Dropdown, type MenuProps, Modal } from "antd";
+import {
+  ExclamationCircleOutlined,
+  UndoOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
@@ -84,7 +89,9 @@ export default function DocumentList({
     setLoading(true);
     try {
       let papers: PaperDto[];
-      if (categoryId) {
+      if (categoryId === "trash") {
+        papers = await invokeCommand<PaperDto[]>("get_deleted_papers");
+      } else if (categoryId) {
         // Load papers for specific category
         papers = await invokeCommand<PaperDto[]>("get_papers_by_category", {
           categoryPath: categoryId,
@@ -192,16 +199,89 @@ export default function DocumentList({
   const TableRow = useCallback(
     ({ children, ...props }: any) => {
       const rowId = props["data-row-key"];
-      const menuItems: MenuProps["items"] = [
-        {
-          key: "delete",
-          label: t("dialog.delete"),
-          danger: true,
-          onClick: () => {
-            console.log("Delete row with ID:", rowId);
+      let menuItems: MenuProps["items"] = [];
+
+      if (categoryId === "trash") {
+        menuItems = [
+          {
+            key: "restore",
+            label: t("dialog.restore"),
+            icon: <UndoOutlined />,
+            onClick: async () => {
+              try {
+                await invokeCommand("restore_paper", { id: rowId });
+                await loadPapers();
+              } catch (error) {
+                console.error("Failed to restore paper:", error);
+                Modal.error({
+                  title: t("dialog.restoreFailed"),
+                  content: String(error),
+                });
+              }
+            },
           },
-        },
-      ];
+          {
+            key: "permanently_delete",
+            label: t("dialog.permanentlyDelete"),
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: () => {
+              Modal.confirm({
+                title: t("dialog.permanentlyDelete"),
+                icon: <ExclamationCircleOutlined />,
+                content: t("dialog.confirmPermanentlyDelete"),
+                okText: t("dialog.permanentlyDelete"),
+                okType: "danger",
+                cancelText: t("dialog.cancel"),
+                onOk: async () => {
+                  try {
+                    await invokeCommand("permanently_delete_paper", {
+                      id: rowId,
+                    });
+                    await loadPapers();
+                  } catch (error) {
+                    console.error("Failed to delete paper:", error);
+                    Modal.error({
+                      title: t("dialog.deleteFailed"),
+                      content: String(error),
+                    });
+                  }
+                },
+              });
+            },
+          },
+        ];
+      } else {
+        menuItems = [
+          {
+            key: "delete",
+            label: t("dialog.delete"),
+            danger: true,
+            onClick: () => {
+              Modal.confirm({
+                title: t("dialog.delete"),
+                icon: <ExclamationCircleOutlined />,
+                content: "确定要删除此文档吗？此操作将把文档移入回收站。",
+                okText: t("dialog.delete"),
+                okType: "danger",
+                cancelText: t("dialog.cancel"),
+                onOk: async () => {
+                  try {
+                    await invokeCommand("delete_paper", { id: rowId });
+                    await loadPapers();
+                  } catch (error) {
+                    console.error("Failed to delete paper:", error);
+                    Modal.error({
+                      title: t("dialog.deleteFailed"),
+                      content: String(error),
+                    });
+                  }
+                },
+              });
+            },
+          },
+        ];
+      }
 
       return (
         <Dropdown menu={{ items: menuItems }} trigger={["contextMenu"]}>
@@ -209,7 +289,7 @@ export default function DocumentList({
         </Dropdown>
       );
     },
-    [t],
+    [t, categoryId],
   );
 
   return (

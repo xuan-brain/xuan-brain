@@ -115,6 +115,12 @@ export default {
     saving: "Saving...",
     deleting: "Deleting...",
     rename: "Rename",
+    restore: "Restore",
+    permanentlyDelete: "Permanently Delete",
+    confirmPermanentlyDelete:
+      "Are you sure you want to permanently delete this document? This action cannot be undone.",
+    restoreFailed: "Restore Failed",
+    deleteFailed: "Delete Failed",
   },
 
   // Toolbar

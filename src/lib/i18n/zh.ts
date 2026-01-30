@@ -115,6 +115,11 @@ export default {
     saving: "保存中...",
     deleting: "删除中...",
     rename: "重命名",
+    restore: "恢复",
+    permanentlyDelete: "彻底删除",
+    confirmPermanentlyDelete: "确定要彻底删除此文档吗？此操作不可恢复。",
+    restoreFailed: "恢复失败",
+    deleteFailed: "删除失败",
   },
 
   // Toolbar

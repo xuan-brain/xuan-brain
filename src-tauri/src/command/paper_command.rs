@@ -1,3 +1,4 @@
+use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, LoaderTrait, ModelTrait,
     QueryFilter, QueryOrder, Set, TransactionTrait,
@@ -77,6 +78,7 @@ pub struct UpdatePaperDto {
 pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<PaperDto>> {
     info!("Fetching all papers");
     let papers = Papers::find()
+        .filter(papers::Column::DeletedAt.is_null())
         .order_by_desc(papers::Column::Id)
         .all(db.inner())
         .await?;
@@ -117,12 +119,57 @@ pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<Pap
 
 #[tauri::command]
 #[instrument(skip(db))]
+pub async fn get_deleted_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<PaperDto>> {
+    info!("Fetching deleted papers");
+    let papers = Papers::find()
+        .filter(papers::Column::DeletedAt.is_not_null())
+        .order_by_desc(papers::Column::DeletedAt)
+        .all(db.inner())
+        .await?;
+
+    let authors = papers
+        .load_many_to_many(Authors, PaperAuthors, db.inner())
+        .await?;
+
+    let labels = papers
+        .load_many_to_many(Label, PaperLabels, db.inner())
+        .await?;
+
+    let dtos: Vec<PaperDto> = papers
+        .into_iter()
+        .zip(authors.into_iter())
+        .zip(labels.into_iter())
+        .map(|((paper, authors), labels)| PaperDto {
+            id: paper.id,
+            title: paper.title,
+            publication_year: paper.publication_year,
+            journal_name: paper.journal_name,
+            conference_name: paper.conference_name,
+            authors: authors.into_iter().map(|a| a.name).collect(),
+            labels: labels
+                .into_iter()
+                .map(|l| LabelDto {
+                    id: l.id,
+                    name: l.name,
+                    color: l.color,
+                })
+                .collect(),
+        })
+        .collect();
+
+    info!("Fetched {} deleted papers", dtos.len());
+    Ok(dtos)
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
 pub async fn get_paper(
     id: i64,
     db: State<'_, DatabaseConnection>,
 ) -> Result<Option<PaperDetailDto>> {
     info!("Fetching details for paper id {}", id);
     let paper_with_authors = Papers::find_by_id(id)
+        .filter(papers::Column::DeletedAt.is_null())
         .find_with_related(Authors)
         .all(db.inner())
         .await?;
@@ -176,6 +223,7 @@ pub async fn update_paper_details(
     info!("Updating paper details for id {}", payload.id);
 
     let paper = Papers::find_by_id(payload.id)
+        .filter(papers::Column::DeletedAt.is_null())
         .one(db.inner())
         .await?
         .ok_or_else(|| AppError::not_found("Paper", payload.id.to_string()))?;
@@ -195,6 +243,22 @@ pub async fn update_paper_details(
     active.notes = Set(payload.notes);
     active.read_status = Set(payload.read_status);
 
+    active.update(db.inner()).await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn delete_paper(db: State<'_, DatabaseConnection>, id: i64) -> Result<()> {
+    info!("Soft deleting paper with id {}", id);
+    let paper = Papers::find_by_id(id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
+
+    let mut active: papers::ActiveModel = paper.into();
+    active.deleted_at = Set(Some(chrono::Utc::now()));
     active.update(db.inner()).await?;
 
     Ok(())
@@ -462,6 +526,7 @@ pub async fn get_papers_by_category(
     let papers = Papers::find()
         .inner_join(PaperCategory)
         .filter(paper_category::Column::CategoryId.eq(category_entity.id))
+        .filter(papers::Column::DeletedAt.is_null())
         .order_by_desc(papers::Column::Id)
         .all(db.inner())
         .await?;
@@ -536,6 +601,36 @@ pub async fn update_paper_category(
     }
 
     txn.commit().await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn restore_paper(db: State<'_, DatabaseConnection>, id: i64) -> Result<()> {
+    info!("Restoring paper with id {}", id);
+    let paper = Papers::find_by_id(id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
+
+    let mut active: papers::ActiveModel = paper.into();
+    active.deleted_at = Set(None);
+    active.update(db.inner()).await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn permanently_delete_paper(db: State<'_, DatabaseConnection>, id: i64) -> Result<()> {
+    info!("Permanently deleting paper with id {}", id);
+    let paper = Papers::find_by_id(id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
+
+    paper.delete(db.inner()).await?;
 
     Ok(())
 }

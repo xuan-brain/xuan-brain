@@ -9,8 +9,6 @@ pub struct Model {
     pub id: i64,
     pub paper_id: i64,
     #[sea_orm(column_type = "Text")]
-    pub file_path: String,
-    #[sea_orm(column_type = "Text", nullable)]
     pub file_type: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
     pub file_name: Option<String>,

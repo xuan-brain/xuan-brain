@@ -3,14 +3,17 @@ use sea_orm::{
     QueryFilter, QueryOrder, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
+use sha1::{Digest, Sha1};
+use std::path::PathBuf;
 use tauri::State;
 use tracing::{info, instrument};
 
 use crate::database::entities::{
-    authors, category, paper_authors, paper_category, paper_labels, papers, prelude::*,
+    attachments, authors, category, paper_authors, paper_category, paper_labels, papers, prelude::*,
 };
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
+use crate::sys::dirs::AppDirs;
 use crate::sys::error::{AppError, Result};
 
 #[derive(Serialize)]
@@ -18,6 +21,15 @@ pub struct LabelDto {
     pub id: i64,
     pub name: String,
     pub color: String,
+}
+
+#[derive(Serialize)]
+pub struct AttachmentDto {
+    pub id: i64,
+    pub paper_id: i64,
+    pub file_name: Option<String>,
+    pub file_type: Option<String>,
+    pub created_at: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -666,4 +678,102 @@ pub async fn permanently_delete_paper(db: State<'_, DatabaseConnection>, id: i64
     paper.delete(db.inner()).await?;
 
     Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(db, app_dirs))]
+pub async fn add_attachment(
+    db: State<'_, DatabaseConnection>,
+    app_dirs: State<'_, AppDirs>,
+    paper_id: i64,
+    file_path: String,
+) -> Result<AttachmentDto> {
+    info!("Adding attachment for paper {}: {}", paper_id, file_path);
+
+    // 1. Get paper to calculate SHA1 of title
+    let paper = Papers::find_by_id(paper_id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
+
+    // 2. Calculate SHA1
+    let mut hasher = Sha1::new();
+    hasher.update(paper.title.as_bytes());
+    let result = hasher.finalize();
+    let hash_string = format!("{:x}", result);
+
+    // 3. Create target directory
+    let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);
+    if !target_dir.exists() {
+        std::fs::create_dir_all(&target_dir).map_err(|e| {
+            AppError::file_system(
+                target_dir.to_string_lossy().to_string(),
+                format!("Failed to create directory: {}", e),
+            )
+        })?;
+    }
+
+    // 4. Copy file
+    let source_path = PathBuf::from(&file_path);
+    let file_name = source_path
+        .file_name()
+        .ok_or_else(|| AppError::validation("file_path", "Invalid file path"))?
+        .to_string_lossy()
+        .to_string();
+    let target_path = target_dir.join(&file_name);
+
+    std::fs::copy(&source_path, &target_path).map_err(|e| {
+        AppError::file_system(
+            target_path.to_string_lossy().to_string(),
+            format!("Failed to copy file: {}", e),
+        )
+    })?;
+
+    // 5. Save to DB
+    let attachment = attachments::ActiveModel {
+        paper_id: Set(paper_id),
+        file_name: Set(Some(file_name.clone())),
+        file_type: Set(Some(
+            source_path
+                .extension()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default(),
+        )),
+        created_at: Set(Some(chrono::Utc::now())),
+        ..Default::default()
+    }
+    .insert(db.inner())
+    .await?;
+
+    Ok(AttachmentDto {
+        id: attachment.id,
+        paper_id: attachment.paper_id,
+        file_name: attachment.file_name,
+        file_type: attachment.file_type,
+        created_at: attachment.created_at.map(|d| d.to_string()),
+    })
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn get_attachments(
+    db: State<'_, DatabaseConnection>,
+    paper_id: i64,
+) -> Result<Vec<AttachmentDto>> {
+    info!("Fetching attachments for paper {}", paper_id);
+    let attachments = attachments::Entity::find()
+        .filter(attachments::Column::PaperId.eq(paper_id))
+        .all(db.inner())
+        .await?;
+
+    Ok(attachments
+        .into_iter()
+        .map(|a| AttachmentDto {
+            id: a.id,
+            paper_id: a.paper_id,
+            file_name: a.file_name,
+            file_type: a.file_type,
+            created_at: a.created_at.map(|d| d.to_string()),
+        })
+        .collect())
 }

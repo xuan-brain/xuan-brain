@@ -1,10 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
-import { Table, Tag, Space, Dropdown, type MenuProps, Modal } from "antd";
+import {
+  Table,
+  Tag,
+  Space,
+  Dropdown,
+  type MenuProps,
+  Modal,
+  Button,
+} from "antd";
 import {
   ExclamationCircleOutlined,
   UndoOutlined,
   DeleteOutlined,
+  PaperClipOutlined,
+  FileOutlined,
 } from "@ant-design/icons";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { ColumnsType } from "antd/es/table";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
@@ -47,6 +58,14 @@ interface LabelDto {
   color: string;
 }
 
+interface AttachmentDto {
+  id: number;
+  paper_id: number;
+  file_name: string;
+  file_type: string;
+  created_at: string;
+}
+
 interface PaperDto {
   id: number;
   title: string;
@@ -61,6 +80,71 @@ interface DocumentListProps {
   onDocumentSelect: (document: any) => void;
   categoryId?: string | null;
 }
+
+const AttachmentList = ({ paperId }: { paperId: number }) => {
+  const [attachments, setAttachments] = useState<AttachmentDto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadAttachments = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await invokeCommand<AttachmentDto[]>("get_attachments", {
+        paper_id: paperId,
+      });
+      setAttachments(data);
+    } catch (error) {
+      console.error("Failed to load attachments:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [paperId]);
+
+  useEffect(() => {
+    loadAttachments();
+
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.paperId === paperId) {
+        loadAttachments();
+      }
+    };
+
+    window.addEventListener("attachment-updated", handleUpdate);
+    return () => window.removeEventListener("attachment-updated", handleUpdate);
+  }, [loadAttachments, paperId]);
+
+  if (loading) return <div style={{ padding: "8px 0" }}>Loading...</div>;
+  if (attachments.length === 0)
+    return (
+      <div style={{ color: "#999", padding: "8px 0" }}>No attachments</div>
+    );
+
+  return (
+    <div style={{ padding: "8px 0" }}>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        {attachments.map((att) => (
+          <div
+            key={att.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "4px 8px",
+              backgroundColor: "#f5f5f5",
+              borderRadius: "4px",
+            }}
+          >
+            <FileOutlined />
+            <span style={{ flex: 1 }}>{att.file_name}</span>
+            <span style={{ color: "#999", fontSize: "12px" }}>
+              {new Date(att.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        ))}
+      </Space>
+    </div>
+  );
+};
 
 export default function DocumentList({
   onDocumentSelect,
@@ -254,9 +338,49 @@ export default function DocumentList({
       } else {
         menuItems = [
           {
+            key: "add_attachment",
+            label: "添加附件",
+            icon: <PaperClipOutlined />,
+            onClick: async () => {
+              try {
+                const selected = await open({
+                  multiple: false,
+                  directory: false,
+                });
+                if (selected) {
+                  const filePath = Array.isArray(selected)
+                    ? selected[0]
+                    : selected;
+                  if (filePath) {
+                    await invokeCommand("add_attachment", {
+                      paper_id: rowId,
+                      file_path: filePath,
+                    });
+                    window.dispatchEvent(
+                      new CustomEvent("attachment-updated", {
+                        detail: { paperId: rowId },
+                      }),
+                    );
+                    Modal.success({ content: "Attachment added successfully" });
+                  }
+                }
+              } catch (error) {
+                console.error("Failed to add attachment:", error);
+                Modal.error({
+                  title: "Failed to add attachment",
+                  content: String(error),
+                });
+              }
+            },
+          },
+          {
+            type: "divider",
+          },
+          {
             key: "delete",
             label: t("dialog.delete"),
             danger: true,
+            icon: <DeleteOutlined />,
             onClick: () => {
               Modal.confirm({
                 title: t("dialog.delete"),
@@ -320,6 +444,14 @@ export default function DocumentList({
           rowKey="id"
           size="small"
           pagination={false}
+          expandable={{
+            expandedRowRender: (record) => (
+              <div style={{ marginLeft: "50px" }}>
+                <AttachmentList paperId={record.id} />
+              </div>
+            ),
+            rowExpandable: (record) => true,
+          }}
           components={{
             body: {
               row: TableRow,

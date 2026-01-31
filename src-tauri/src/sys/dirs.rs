@@ -6,7 +6,7 @@ use crate::sys::{
 };
 
 /// Application directory structure
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, Clone)]
 pub struct AppDirs {
     /// Configuration file directory
     pub config: String,
@@ -16,6 +16,8 @@ pub struct AppDirs {
     pub cache: String,
     /// Logs directory
     pub logs: String,
+    /// Files directory
+    pub files: String,
 }
 
 /// Initialize application data directories
@@ -25,6 +27,7 @@ pub struct AppDirs {
 /// - data/: database and documents
 /// - cache/: cache files
 /// - logs/: application logs
+/// - files/: user files
 ///
 /// Returns the path of each directory
 pub async fn init_app_dirs() -> Result<AppDirs> {
@@ -43,6 +46,7 @@ pub async fn init_app_dirs() -> Result<AppDirs> {
         ("data", "Data files"),
         ("cache", "Cache files"),
         ("logs", "Log files"),
+        ("files", "User files"),
     ];
 
     // Create all subdirectories
@@ -76,5 +80,6 @@ pub async fn init_app_dirs() -> Result<AppDirs> {
         data: data_dir.join("data").to_string_lossy().to_string(),
         cache: data_dir.join("cache").to_string_lossy().to_string(),
         logs: data_dir.join("logs").to_string_lossy().to_string(),
+        files: data_dir.join("files").to_string_lossy().to_string(),
     })
 }

@@ -1,13 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Table,
-  Tag,
-  Space,
-  Dropdown,
-  type MenuProps,
-  Modal,
-  Button,
-} from "antd";
+import { Table, Tag, Space, Dropdown, type MenuProps, Modal } from "antd";
 import {
   ExclamationCircleOutlined,
   UndoOutlined,
@@ -74,6 +66,7 @@ interface PaperDto {
   conference_name?: string;
   authors: string[];
   labels: LabelDto[];
+  attachment_count?: number;
 }
 
 interface DocumentListProps {
@@ -89,7 +82,7 @@ const AttachmentList = ({ paperId }: { paperId: number }) => {
     setLoading(true);
     try {
       const data = await invokeCommand<AttachmentDto[]>("get_attachments", {
-        paper_id: paperId,
+        paperId: paperId,
       });
       setAttachments(data);
     } catch (error) {
@@ -353,14 +346,15 @@ export default function DocumentList({
                     : selected;
                   if (filePath) {
                     await invokeCommand("add_attachment", {
-                      paper_id: rowId,
-                      file_path: filePath,
+                      paperId: rowId,
+                      filePath: filePath,
                     });
                     window.dispatchEvent(
                       new CustomEvent("attachment-updated", {
                         detail: { paperId: rowId },
                       }),
                     );
+                    await loadPapers();
                     Modal.success({ content: "Attachment added successfully" });
                   }
                 }
@@ -450,7 +444,18 @@ export default function DocumentList({
                 <AttachmentList paperId={record.id} />
               </div>
             ),
-            rowExpandable: (record) => true,
+            rowExpandable: (record) => (record.attachment_count || 0) > 0,
+            expandIcon: ({ expanded, onExpand, record }) =>
+              (record.attachment_count || 0) > 0 ? (
+                <FileOutlined
+                  onClick={(e) => onExpand(record, e)}
+                  style={{
+                    cursor: "pointer",
+                    marginRight: 8,
+                    color: expanded ? accentColor : undefined,
+                  }}
+                />
+              ) : null,
           }}
           components={{
             body: {

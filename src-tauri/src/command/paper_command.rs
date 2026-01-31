@@ -41,6 +41,7 @@ pub struct PaperDto {
     pub conference_name: Option<String>,
     pub authors: Vec<String>,
     pub labels: Vec<LabelDto>,
+    pub attachment_count: usize,
 }
 
 #[derive(Serialize)]
@@ -102,11 +103,14 @@ pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<Pap
         .load_many_to_many(Label, PaperLabels, db.inner())
         .await?;
 
+    let attachments = papers.load_many(Attachments, db.inner()).await?;
+
     let dtos: Vec<PaperDto> = papers
         .into_iter()
         .zip(authors.into_iter())
         .zip(labels.into_iter())
-        .map(|((paper, authors), labels)| PaperDto {
+        .zip(attachments.into_iter())
+        .map(|(((paper, authors), labels), attachments)| PaperDto {
             id: paper.id,
             title: paper.title,
             publication_year: paper.publication_year,
@@ -121,6 +125,7 @@ pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<Pap
                     color: l.color,
                 })
                 .collect(),
+            attachment_count: attachments.len(),
         })
         .collect();
 
@@ -146,11 +151,14 @@ pub async fn get_deleted_papers(db: State<'_, DatabaseConnection>) -> Result<Vec
         .load_many_to_many(Label, PaperLabels, db.inner())
         .await?;
 
+    let attachments = papers.load_many(Attachments, db.inner()).await?;
+
     let dtos: Vec<PaperDto> = papers
         .into_iter()
         .zip(authors.into_iter())
         .zip(labels.into_iter())
-        .map(|((paper, authors), labels)| PaperDto {
+        .zip(attachments.into_iter())
+        .map(|(((paper, authors), labels), attachments)| PaperDto {
             id: paper.id,
             title: paper.title,
             publication_year: paper.publication_year,
@@ -165,6 +173,7 @@ pub async fn get_deleted_papers(db: State<'_, DatabaseConnection>) -> Result<Vec
                     color: l.color,
                 })
                 .collect(),
+            attachment_count: attachments.len(),
         })
         .collect();
 
@@ -317,6 +326,12 @@ pub async fn import_paper_by_doi(
         .publication_year
         .and_then(|y| y.parse::<i64>().ok());
 
+    // Calculate attachment path hash
+    let mut hasher = Sha1::new();
+    hasher.update(metadata.title.as_bytes());
+    let result = hasher.finalize();
+    let hash_string = format!("{:x}", result);
+
     // Create paper
     let paper = papers::ActiveModel {
         title: Set(metadata.title.clone()),
@@ -325,6 +340,7 @@ pub async fn import_paper_by_doi(
         journal_name: Set(metadata.journal_name.clone()),
         url: Set(metadata.url.clone()),
         r#abstract: Set(metadata.abstract_text.clone()),
+        attachment_path: Set(Some(hash_string)),
         ..Default::default()
     }
     .insert(db.inner())
@@ -387,6 +403,7 @@ pub async fn import_paper_by_doi(
         conference_name: paper.conference_name,
         authors: metadata.authors,
         labels: vec![],
+        attachment_count: 0,
     })
 }
 
@@ -436,6 +453,12 @@ pub async fn import_paper_by_arxiv_id(
         .next()
         .and_then(|y| y.parse::<i64>().ok());
 
+    // Calculate attachment path hash
+    let mut hasher = Sha1::new();
+    hasher.update(metadata.title.as_bytes());
+    let result = hasher.finalize();
+    let hash_string = format!("{:x}", result);
+
     // Create paper
     let paper = papers::ActiveModel {
         title: Set(metadata.title.clone()),
@@ -444,6 +467,7 @@ pub async fn import_paper_by_arxiv_id(
         url: Set(Some(metadata.pdf_url.clone())),
         r#abstract: Set(Some(metadata.summary.clone())),
         journal_name: Set(metadata.journal_ref.clone()),
+        attachment_path: Set(Some(hash_string)),
         ..Default::default()
     }
     .insert(db.inner())
@@ -506,6 +530,7 @@ pub async fn import_paper_by_arxiv_id(
         conference_name: paper.conference_name,
         authors: metadata.authors,
         labels: vec![],
+        attachment_count: 0,
     })
 }
 
@@ -584,11 +609,14 @@ pub async fn get_papers_by_category(
         .load_many_to_many(Label, PaperLabels, db.inner())
         .await?;
 
+    let attachments = papers.load_many(Attachments, db.inner()).await?;
+
     let dtos: Vec<PaperDto> = papers
         .into_iter()
         .zip(authors.into_iter())
         .zip(labels.into_iter())
-        .map(|((paper, authors), labels)| PaperDto {
+        .zip(attachments.into_iter())
+        .map(|(((paper, authors), labels), attachments)| PaperDto {
             id: paper.id,
             title: paper.title,
             publication_year: paper.publication_year,
@@ -603,6 +631,7 @@ pub async fn get_papers_by_category(
                     color: l.color,
                 })
                 .collect(),
+            attachment_count: attachments.len(),
         })
         .collect();
 
@@ -696,11 +725,22 @@ pub async fn add_attachment(
         .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
 
-    // 2. Calculate SHA1
-    let mut hasher = Sha1::new();
-    hasher.update(paper.title.as_bytes());
-    let result = hasher.finalize();
-    let hash_string = format!("{:x}", result);
+    // 2. Get or calculate attachment path
+    let hash_string = if let Some(path) = &paper.attachment_path {
+        path.clone()
+    } else {
+        let mut hasher = Sha1::new();
+        hasher.update(paper.title.as_bytes());
+        let result = hasher.finalize();
+        let hash_string = format!("{:x}", result);
+
+        // Update paper with new attachment path
+        let mut active: papers::ActiveModel = paper.clone().into();
+        active.attachment_path = Set(Some(hash_string.clone()));
+        active.update(db.inner()).await?;
+
+        hash_string
+    };
 
     // 3. Create target directory
     let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);

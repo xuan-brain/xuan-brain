@@ -5,7 +5,8 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use std::path::PathBuf;
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_opener::OpenerExt;
 use tracing::{info, instrument};
 
 use crate::database::entities::{
@@ -816,4 +817,53 @@ pub async fn get_attachments(
             created_at: a.created_at.map(|d| d.to_string()),
         })
         .collect())
+}
+
+#[tauri::command]
+#[instrument(skip(db, app_dirs, app))]
+pub async fn open_paper_folder(
+    app: AppHandle,
+    db: State<'_, DatabaseConnection>,
+    app_dirs: State<'_, AppDirs>,
+    paper_id: i64,
+) -> Result<()> {
+    info!("Opening folder for paper {}", paper_id);
+    let paper = Papers::find_by_id(paper_id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
+
+    // Get attachment path hash
+    let hash_string = if let Some(path) = &paper.attachment_path {
+        path.clone()
+    } else {
+        let mut hasher = Sha1::new();
+        hasher.update(paper.title.as_bytes());
+        let result = hasher.finalize();
+        format!("{:x}", result)
+    };
+
+    let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);
+
+    // Ensure directory exists before opening
+    if !target_dir.exists() {
+        std::fs::create_dir_all(&target_dir).map_err(|e| {
+            AppError::file_system(
+                target_dir.to_string_lossy().to_string(),
+                format!("Failed to create directory: {}", e),
+            )
+        })?;
+    }
+
+    // Use opener plugin
+    app.opener()
+        .open_path(target_dir.to_string_lossy().to_string(), None::<&str>)
+        .map_err(|e| {
+            AppError::file_system(
+                target_dir.to_string_lossy().to_string(),
+                format!("Failed to open folder: {}", e),
+            )
+        })?;
+
+    Ok(())
 }

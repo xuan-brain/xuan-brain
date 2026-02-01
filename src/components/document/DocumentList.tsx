@@ -6,6 +6,7 @@ import {
   DeleteOutlined,
   PaperClipOutlined,
   FileOutlined,
+  FolderOpenOutlined,
 } from "@ant-design/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { ColumnsType } from "antd/es/table";
@@ -362,6 +363,22 @@ export default function DocumentList({
                 console.error("Failed to add attachment:", error);
                 Modal.error({
                   title: "Failed to add attachment",
+                  content: String(error),
+                });
+              }
+            },
+          },
+          {
+            key: "open_folder",
+            label: "打开附件文件夹",
+            icon: <FolderOpenOutlined />,
+            onClick: async () => {
+              try {
+                await invokeCommand("open_paper_folder", { paperId: rowId });
+              } catch (error) {
+                console.error("Failed to open folder:", error);
+                Modal.error({
+                  title: "Failed to open folder",
                   content: String(error),
                 });
               }

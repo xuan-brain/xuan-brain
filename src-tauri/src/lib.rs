@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use crate::command::category_command::{
     create_category, delete_category, load_categories, move_category, update_category,
 };
+use crate::command::config_command::{get_app_config, save_app_config};
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
 use crate::command::paper_command::{
     add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
@@ -97,7 +98,9 @@ pub fn run() -> Result<()> {
             permanently_delete_paper,
             add_attachment,
             get_attachments,
-            open_paper_folder
+            open_paper_folder,
+            get_app_config,
+            save_app_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -72,6 +72,7 @@ export default function SystemSettings() {
     try {
       await invokeCommand("save_app_config", { config: newConfig });
       setConfig(newConfig);
+      window.dispatchEvent(new CustomEvent("config-updated"));
       message.success("Configuration saved");
     } catch (error) {
       console.error("Failed to save config:", error);
@@ -101,7 +102,10 @@ export default function SystemSettings() {
         const newProviders = config.system.llm_providers.filter(
           (p) => p.id !== id,
         );
-        handleSave({ ...config, system: { ...config.system, llm_providers: newProviders } });
+        handleSave({
+          ...config,
+          system: { ...config.system, llm_providers: newProviders },
+        });
       },
     });
   };
@@ -112,7 +116,10 @@ export default function SystemSettings() {
       ...p,
       is_default: p.id === id,
     }));
-    handleSave({ ...config, system: { ...config.system, llm_providers: newProviders } });
+    handleSave({
+      ...config,
+      system: { ...config.system, llm_providers: newProviders },
+    });
   };
 
   const onModalOk = async () => {
@@ -137,7 +144,10 @@ export default function SystemSettings() {
         newProviders.push(newProvider);
       }
 
-      await handleSave({ ...config, system: { ...config.system, llm_providers: newProviders } });
+      await handleSave({
+        ...config,
+        system: { ...config.system, llm_providers: newProviders },
+      });
       setIsModalOpen(false);
     } catch (error) {
       console.error("Validation failed:", error);
@@ -203,12 +213,20 @@ export default function SystemSettings() {
                 </Space>
               }
             >
-              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "8px 16px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr",
+                  gap: "8px 16px",
+                }}
+              >
                 <Typography.Text type="secondary">Model:</Typography.Text>
                 <Typography.Text>{item.model_name}</Typography.Text>
 
                 <Typography.Text type="secondary">Base URL:</Typography.Text>
-                <Typography.Text ellipsis={{ tooltip: item.base_url }}>{item.base_url}</Typography.Text>
+                <Typography.Text ellipsis={{ tooltip: item.base_url }}>
+                  {item.base_url}
+                </Typography.Text>
               </div>
             </Card>
           </List.Item>

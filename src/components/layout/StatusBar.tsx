@@ -8,6 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useI18n } from "../../lib/i18n";
 import ThemeSwitcher from "../navigation/ThemeSwitcher";
+import LlmSwitcher from "./LlmSwitcher";
 
 export default function StatusBar() {
   const { t } = useI18n();
@@ -92,11 +93,7 @@ export default function StatusBar() {
         </Space>
 
         {/* Search status */}
-        <Space
-          size="small"
-          style={{ fontSize: 12 }}
-          className="hidden-md-down"
-        >
+        <Space size="small" style={{ fontSize: 12 }} className="hidden-md-down">
           <SearchOutlined />
           <Typography.Text style={{ fontSize: 12 }}>
             {t("status.searchStatus")}
@@ -104,11 +101,7 @@ export default function StatusBar() {
         </Space>
 
         {/* Memory usage */}
-        <Space
-          size="small"
-          style={{ fontSize: 12 }}
-          className="hidden-lg-down"
-        >
+        <Space size="small" style={{ fontSize: 12 }} className="hidden-lg-down">
           <ApiOutlined />
           <Typography.Text style={{ fontSize: 12 }}>
             {memoryUsage}
@@ -118,14 +111,14 @@ export default function StatusBar() {
 
       {/* Right section */}
       <Space size="middle">
+        {/* LLM Switcher */}
+        <LlmSwitcher />
+
         {/* Theme Switcher (Dark Mode, Language, Theme, Accent Color) */}
         <ThemeSwitcher />
 
         {/* Version */}
-        <Typography.Text
-          style={{ fontSize: 12 }}
-          className="hidden-sm-down"
-        >
+        <Typography.Text style={{ fontSize: 12 }} className="hidden-sm-down">
           {t("status.version")} 0.1.0
         </Typography.Text>
 

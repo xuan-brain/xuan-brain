@@ -4,6 +4,7 @@ use quick_xml::reader::Reader;
 use reqwest::multipart;
 use std::path::Path;
 use tokio::fs;
+use tracing::info;
 
 #[derive(Debug, Default)]
 pub struct GrobidMetadata {
@@ -34,7 +35,10 @@ pub async fn process_header_document(file_path: &Path, server_url: &str) -> Resu
     let form = multipart::Form::new().part("input", file_part);
 
     // 2. Send request
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().no_proxy().build().map_err(|e| {
+        AppError::network_error(server_url, format!("Failed to create client: {}", e))
+    })?;
+
     let url = format!(
         "{}/api/processHeaderDocument",
         server_url.trim_end_matches('/')
@@ -42,6 +46,7 @@ pub async fn process_header_document(file_path: &Path, server_url: &str) -> Resu
 
     let response = client
         .post(&url)
+        .header("Accept", "application/xml")
         .multipart(form)
         .send()
         .await
@@ -57,6 +62,8 @@ pub async fn process_header_document(file_path: &Path, server_url: &str) -> Resu
     let xml_content = response.text().await.map_err(|e| {
         AppError::network_error(&url, format!("Failed to read GROBID response: {}", e))
     })?;
+
+    info!("GROBID Response: {}", xml_content);
 
     // 3. Parse XML
     parse_tei_xml(&xml_content)

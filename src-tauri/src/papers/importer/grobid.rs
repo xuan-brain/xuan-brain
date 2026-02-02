@@ -118,12 +118,10 @@ fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
                 }
                 b"idno" => {
                     let mut is_doi = false;
-                    for attr in e.attributes() {
-                        if let Ok(a) = attr {
-                            if a.key.as_ref() == b"type" && a.value.as_ref() == b"DOI" {
-                                is_doi = true;
-                                break;
-                            }
+                    for a in e.attributes().flatten() {
+                        if a.key.as_ref() == b"type" && a.value.as_ref() == b"DOI" {
+                            is_doi = true;
+                            break;
                         }
                     }
                     if is_doi {
@@ -134,7 +132,7 @@ fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
                 }
                 b"date" => {
                     if in_monogr {
-                        for attr in e.attributes() {
+                        e.attributes().for_each(|attr| {
                             if let Ok(a) = attr {
                                 if a.key.as_ref() == b"when" {
                                     let date_str = String::from_utf8_lossy(a.value.as_ref());
@@ -143,7 +141,7 @@ fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
                                     }
                                 }
                             }
-                        }
+                        });
                     }
                 }
                 _ => (),

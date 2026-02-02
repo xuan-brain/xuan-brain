@@ -15,8 +15,8 @@ use crate::command::label_command::{create_label, delete_label, get_all_labels, 
 use crate::command::paper_command::{
     add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
     get_deleted_papers, get_paper, get_papers_by_category, import_paper_by_arxiv_id,
-    import_paper_by_doi, open_paper_folder, permanently_delete_paper, remove_paper_label,
-    restore_paper, update_paper_category, update_paper_details,
+    import_paper_by_doi, import_paper_by_pdf, open_paper_folder, permanently_delete_paper,
+    remove_paper_label, restore_paper, update_paper_category, update_paper_details,
 };
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
@@ -89,6 +89,7 @@ pub fn run() -> Result<()> {
             get_paper,
             import_paper_by_doi,
             import_paper_by_arxiv_id,
+            import_paper_by_pdf,
             add_paper_label,
             remove_paper_label,
             update_paper_details,

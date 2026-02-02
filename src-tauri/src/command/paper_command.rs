@@ -14,6 +14,8 @@ use crate::database::entities::{
 };
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
+use crate::papers::importer::grobid::process_header_document;
+use crate::sys::config::AppConfig;
 use crate::sys::dirs::AppDirs;
 use crate::sys::error::{AppError, Result};
 
@@ -817,6 +819,146 @@ pub async fn get_attachments(
             created_at: a.created_at.map(|d| d.to_string()),
         })
         .collect())
+}
+
+#[tauri::command]
+#[instrument(skip(db, app_dirs))]
+pub async fn import_paper_by_pdf(
+    db: State<'_, DatabaseConnection>,
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+    category_path: Option<String>,
+) -> Result<PaperDto> {
+    info!("Importing paper from PDF: {}", file_path);
+    let path = PathBuf::from(&file_path);
+    if !path.exists() {
+        return Err(AppError::file_system(file_path, "File not found"));
+    }
+
+    // 1. Get GROBID URL from config
+    let config = AppConfig::load(&app_dirs.config)?;
+    let grobid_url = config
+        .paper
+        .grobid
+        .servers
+        .iter()
+        .find(|s| s.is_active)
+        .map(|s| s.url.clone())
+        .unwrap_or_else(|| "https://kermitt2-grobid.hf.space".to_string());
+
+    // 2. Process with GROBID
+    let metadata_result = process_header_document(&path, &grobid_url).await;
+
+    // 3. Prepare paper data
+    let (title, mut metadata) = match metadata_result {
+        Ok(m) if !m.title.is_empty() => (m.title.clone(), m),
+        _ => {
+            info!("GROBID failed or returned empty title, using filename");
+            let filename = path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let mut m = crate::papers::importer::grobid::GrobidMetadata::default();
+            m.title = filename.clone();
+            (filename, m)
+        }
+    };
+
+    // 4. Calculate attachment path hash
+    let mut hasher = Sha1::new();
+    hasher.update(title.as_bytes());
+    let result = hasher.finalize();
+    let hash_string = format!("{:x}", result);
+
+    // 5. Create paper
+    let paper = papers::ActiveModel {
+        title: Set(title.clone()),
+        doi: Set(metadata.doi),
+        publication_year: Set(metadata.publication_year),
+        journal_name: Set(metadata.journal_name),
+        r#abstract: Set(metadata.abstract_text),
+        attachment_path: Set(Some(hash_string.clone())),
+        ..Default::default()
+    }
+    .insert(db.inner())
+    .await?;
+
+    // 6. Link authors
+    for author_name in metadata.authors {
+        let author = if let Some(existing) = Authors::find()
+            .filter(authors::Column::Name.eq(&author_name))
+            .one(db.inner())
+            .await?
+        {
+            existing
+        } else {
+            authors::ActiveModel {
+                name: Set(author_name),
+                ..Default::default()
+            }
+            .insert(db.inner())
+            .await?
+        };
+        paper_authors::ActiveModel {
+            paper_id: Set(paper.id),
+            author_id: Set(author.id),
+            ..Default::default()
+        }
+        .insert(db.inner())
+        .await?;
+    }
+
+    // 7. Link category
+    if let Some(path_str) = category_path {
+        if let Some(cat) = Category::find()
+            .filter(category::Column::LtreePath.eq(&path_str))
+            .one(db.inner())
+            .await?
+        {
+            paper_category::ActiveModel {
+                paper_id: Set(paper.id),
+                category_id: Set(cat.id),
+            }
+            .insert(db.inner())
+            .await?;
+        }
+    }
+
+    // 8. Copy file to attachment path
+    let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);
+    if !target_dir.exists() {
+        std::fs::create_dir_all(&target_dir).map_err(|e| {
+            AppError::file_system(target_dir.to_string_lossy().to_string(), e.to_string())
+        })?;
+    }
+    let target_filename = path.file_name().unwrap().to_string_lossy().to_string();
+    let target_path = target_dir.join(&target_filename);
+    std::fs::copy(&path, &target_path).map_err(|e| {
+        AppError::file_system(target_path.to_string_lossy().to_string(), e.to_string())
+    })?;
+
+    // 9. Create attachment record
+    attachments::ActiveModel {
+        paper_id: Set(paper.id),
+        file_name: Set(Some(target_filename)),
+        file_type: Set(Some("pdf".to_string())),
+        created_at: Set(Some(chrono::Utc::now())),
+        ..Default::default()
+    }
+    .insert(db.inner())
+    .await?;
+
+    Ok(PaperDto {
+        id: paper.id,
+        title: paper.title,
+        publication_year: paper.publication_year,
+        journal_name: paper.journal_name,
+        conference_name: paper.conference_name,
+        authors: vec![],
+        labels: vec![],
+        attachment_count: 1,
+    })
 }
 
 #[tauri::command]

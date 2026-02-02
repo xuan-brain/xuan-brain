@@ -9,6 +9,7 @@ import {
 import { useI18n } from "../../lib/i18n";
 import ThemeSwitcher from "../navigation/ThemeSwitcher";
 import LlmSwitcher from "./LlmSwitcher";
+import GrobidSwitcher from "./GrobidSwitcher";
 
 export default function StatusBar() {
   const { t } = useI18n();
@@ -113,6 +114,9 @@ export default function StatusBar() {
       <Space size="middle">
         {/* LLM Switcher */}
         <LlmSwitcher />
+
+        {/* GROBID Switcher */}
+        <GrobidSwitcher />
 
         {/* Theme Switcher (Dark Mode, Language, Theme, Accent Color) */}
         <ThemeSwitcher />

@@ -1,10 +1,17 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConfigProvider } from "antd";
 import { createDynamicTheme } from "./theme";
 import { I18nProvider } from "./lib/i18n";
-import Layout from "./components/layout/Layout";
+import MainLayout from "./components/layout/Layout";
 import { useAppStore } from "./stores/useAppStore";
+
+// Pages
+import PapersPage from "./pages/PapersPage";
+import ClipsPage from "./pages/ClipsPage";
+import WritingPage from "./pages/WritingPage";
+import SubscriptionPage from "./pages/SubscriptionPage";
+import SettingsPage from "./pages/SettingsPage";
 
 // 引入 Ant Design 默认样式
 import "antd/dist/reset.css";
@@ -73,14 +80,20 @@ function App() {
       <ConfigProvider theme={antdTheme}>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Layout />}>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Navigate to="/papers" replace />} />
+              <Route path="papers" element={<PapersPage />} />
+              <Route path="clips" element={<ClipsPage />} />
+              <Route path="writing" element={<WritingPage />} />
+              <Route path="subscriptions" element={<SubscriptionPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+
+              {/* Legacy/Future routes */}
               <Route
                 path="reader/:id"
-                element={<div style={{ padding: 16 }}>PDF 阅读器（待实现）</div>}
-              />
-              <Route
-                path="settings"
-                element={<div style={{ padding: 16 }}>设置页面（待实现）</div>}
+                element={
+                  <div style={{ padding: 16 }}>PDF 阅读器（待实现）</div>
+                }
               />
             </Route>
           </Routes>

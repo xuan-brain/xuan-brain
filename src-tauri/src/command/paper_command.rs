@@ -1151,3 +1151,244 @@ pub async fn read_pdf_file(app_dirs: State<'_, AppDirs>, file_path: String) -> R
     info!("Successfully read PDF file, size: {} bytes", contents.len());
     Ok(contents)
 }
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn save_pdf_file(
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+    pdf_data: Vec<u8>,
+) -> Result<()> {
+    info!(
+        "Saving PDF file: {}, size: {} bytes",
+        file_path,
+        pdf_data.len()
+    );
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "save_pdf_file: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Ensure parent directory exists
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            AppError::file_system(
+                file_path.clone(),
+                format!("Failed to create directory: {}", e),
+            )
+        })?;
+    }
+
+    // Write the file
+    std::fs::write(&path, &pdf_data).map_err(|e| {
+        AppError::file_system(file_path.clone(), format!("Failed to write file: {}", e))
+    })?;
+
+    info!("Successfully saved PDF file: {}", file_path);
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn save_annotations_data(
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+    annotations_json: String,
+) -> Result<()> {
+    info!(
+        "Saving annotations data for file: {}, size: {} bytes",
+        file_path,
+        annotations_json.len()
+    );
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "save_annotations_data: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Save annotations to a sidecar .json file
+    let annotations_path = path.with_extension("json");
+    std::fs::write(&annotations_path, &annotations_json).map_err(|e| {
+        AppError::file_system(
+            annotations_path.to_string_lossy().to_string(),
+            format!("Failed to write annotations file: {}", e),
+        )
+    })?;
+
+    info!(
+        "Successfully saved annotations data to: {}",
+        annotations_path.display()
+    );
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn load_annotations_data(
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+) -> Result<Option<String>> {
+    info!("Loading annotations data for file: {}", file_path);
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "load_annotations_data: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Try to load annotations from sidecar .json file
+    let annotations_path = path.with_extension("json");
+    match std::fs::read_to_string(&annotations_path) {
+        Ok(content) => {
+            info!(
+                "Successfully loaded annotations data from: {}",
+                annotations_path.display()
+            );
+            Ok(Some(content))
+        }
+        Err(_) => {
+            info!(
+                "No annotations data found at: {}",
+                annotations_path.display()
+            );
+            Ok(None)
+        }
+    }
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn export_pdf_with_annotations(
+    app_dirs: State<'_, AppDirs>,
+    source_file_path: String,
+    export_file_path: String,
+    pdf_data: Vec<u8>,
+) -> Result<()> {
+    info!(
+        "Exporting PDF with annotations from {} to {}",
+        source_file_path, export_file_path
+    );
+
+    // Validate both file paths are within the app's allowed directories
+    let source_path = PathBuf::from(&source_file_path);
+    let export_path = PathBuf::from(&export_file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    if !source_path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "export_pdf_with_annotations: Source path {} is not within the allowed directory",
+            source_file_path
+        )));
+    }
+
+    if !export_path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "export_pdf_with_annotations: Export path {} is not within the allowed directory",
+            export_file_path
+        )));
+    }
+
+    // Ensure export directory exists
+    if let Some(parent) = export_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            AppError::file_system(
+                export_file_path.clone(),
+                format!("Failed to create directory: {}", e),
+            )
+        })?;
+    }
+
+    // Write the exported file
+    std::fs::write(&export_path, &pdf_data).map_err(|e| {
+        AppError::file_system(
+            export_file_path.clone(),
+            format!("Failed to write exported file: {}", e),
+        )
+    })?;
+
+    info!(
+        "Successfully saved PDF with annotations to: {}",
+        export_file_path
+    );
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs, pdf_data))]
+pub async fn save_pdf_with_annotations_data(
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+    pdf_data: Vec<u8>,
+    annotations_json: String,
+) -> Result<()> {
+    info!(
+        "Saving PDF with annotations: {}, size: {} bytes",
+        file_path,
+        pdf_data.len()
+    );
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "save_pdf_with_annotations_data: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Ensure parent directory exists
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            AppError::file_system(
+                file_path.clone(),
+                format!("Failed to create directory: {}", e),
+            )
+        })?;
+    }
+
+    // Write the file directly (annotations are saved separately as JSON)
+    // This is a workaround since we don't have a Rust PDF library for merging annotations
+    std::fs::write(&path, &pdf_data).map_err(|e| {
+        AppError::file_system(file_path.clone(), format!("Failed to write file: {}", e))
+    })?;
+
+    // Save annotations as JSON sidecar file
+    let annotations_path = path.with_extension("json");
+    std::fs::write(&annotations_path, &annotations_json).map_err(|e| {
+        AppError::file_system(
+            annotations_path.to_string_lossy().to_string(),
+            format!("Failed to write annotations file: {}", e),
+        )
+    })?;
+
+    info!(
+        "Successfully saved PDF with annotations: {} (annotations: {})",
+        file_path,
+        annotations_path.display()
+    );
+    Ok(())
+}

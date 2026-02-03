@@ -13,11 +13,12 @@ use crate::command::category_command::{
 use crate::command::config_command::{get_app_config, save_app_config};
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
 use crate::command::paper_command::{
-    add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
-    get_deleted_papers, get_paper, get_papers_by_category, get_pdf_attachment_path,
-    import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf, open_paper_folder,
-    permanently_delete_paper, read_pdf_file, remove_paper_label, restore_paper,
-    update_paper_category, update_paper_details,
+    add_attachment, add_paper_label, delete_paper, export_pdf_with_annotations,
+    get_all_papers, get_attachments, get_deleted_papers, get_paper, get_papers_by_category,
+    get_pdf_attachment_path, import_paper_by_arxiv_id, import_paper_by_doi,
+    import_paper_by_pdf, load_annotations_data, open_paper_folder, permanently_delete_paper,
+    read_pdf_file, remove_paper_label, restore_paper, save_annotations_data,
+    save_pdf_file, save_pdf_with_annotations_data, update_paper_category, update_paper_details,
 };
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
@@ -103,6 +104,11 @@ pub fn run() -> Result<()> {
             open_paper_folder,
             get_pdf_attachment_path,
             read_pdf_file,
+            save_pdf_file,
+            export_pdf_with_annotations,
+            save_annotations_data,
+            load_annotations_data,
+            save_pdf_with_annotations_data,
             get_app_config,
             save_app_config
         ])

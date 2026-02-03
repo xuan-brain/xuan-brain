@@ -8,7 +8,23 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(
   async (_: ConfigEnv): Promise<UserConfig> => ({
-    plugins: [react()],
+    plugins: [
+      react(),
+      // PDF.js worker handling
+      {
+        name: "pdfjs-worker",
+        config() {
+          return {
+            resolve: {
+              alias: {
+                "pdfjs-dist/build/pdf.worker.min.js":
+                  "pdfjs-dist/build/pdf.worker.min.mjs",
+              },
+            },
+          };
+        },
+      },
+    ],
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //
@@ -34,6 +50,15 @@ export default defineConfig(
     build: {
       outDir: "dist",
       emptyOutDir: true,
+      rollupOptions: {
+        input: {
+          main: "./index.html",
+          "pdf-viewer": "./src/pdf-viewer.html",
+        },
+      },
+    },
+    optimizeDeps: {
+      include: ["pdfjs-dist"],
     },
   }),
 );

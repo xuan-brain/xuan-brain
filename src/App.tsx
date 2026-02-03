@@ -87,14 +87,6 @@ function App() {
               <Route path="writing" element={<WritingPage />} />
               <Route path="subscriptions" element={<SubscriptionPage />} />
               <Route path="settings" element={<SettingsPage />} />
-
-              {/* Legacy/Future routes */}
-              <Route
-                path="reader/:id"
-                element={
-                  <div style={{ padding: 16 }}>PDF 阅读器（待实现）</div>
-                }
-              />
             </Route>
           </Routes>
         </BrowserRouter>

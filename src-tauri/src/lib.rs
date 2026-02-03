@@ -14,9 +14,10 @@ use crate::command::config_command::{get_app_config, save_app_config};
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
 use crate::command::paper_command::{
     add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
-    get_deleted_papers, get_paper, get_papers_by_category, import_paper_by_arxiv_id,
-    import_paper_by_doi, import_paper_by_pdf, open_paper_folder, permanently_delete_paper,
-    remove_paper_label, restore_paper, update_paper_category, update_paper_details,
+    get_deleted_papers, get_paper, get_papers_by_category, get_pdf_attachment_path,
+    import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf, open_paper_folder,
+    permanently_delete_paper, read_pdf_file, remove_paper_label, restore_paper,
+    update_paper_category, update_paper_details,
 };
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
@@ -100,6 +101,8 @@ pub fn run() -> Result<()> {
             add_attachment,
             get_attachments,
             open_paper_folder,
+            get_pdf_attachment_path,
+            read_pdf_file,
             get_app_config,
             save_app_config
         ])

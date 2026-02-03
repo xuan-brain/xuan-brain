@@ -36,6 +36,14 @@ pub struct AttachmentDto {
 }
 
 #[derive(Serialize)]
+pub struct PdfAttachmentInfo {
+    pub file_path: String,
+    pub file_name: String,
+    pub paper_id: i64,
+    pub paper_title: String,
+}
+
+#[derive(Serialize)]
 pub struct PaperDto {
     pub id: i64,
     pub title: String,
@@ -1008,4 +1016,138 @@ pub async fn open_paper_folder(
         })?;
 
     Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(db, app_dirs))]
+pub async fn get_pdf_attachment_path(
+    db: State<'_, DatabaseConnection>,
+    app_dirs: State<'_, AppDirs>,
+    paper_id: i64,
+) -> Result<PdfAttachmentInfo> {
+    info!("Getting PDF attachment path for paper {}", paper_id);
+
+    let paper = Papers::find_by_id(paper_id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
+
+    // Get attachment path hash (try both lowercase and uppercase)
+    let hash_string = if let Some(path) = &paper.attachment_path {
+        path.clone()
+    } else {
+        let mut hasher = Sha1::new();
+        hasher.update(paper.title.as_bytes());
+        let result = hasher.finalize();
+        format!("{:x}", result)
+    };
+
+    // Try to find PDF attachment in database
+    // Get all attachments and filter for PDF (file_type might be "pdf" or "application/pdf")
+    let all_attachments = Attachments::find()
+        .filter(attachments::Column::PaperId.eq(paper_id))
+        .all(db.inner())
+        .await?;
+
+    // Find first attachment that is a PDF (check file_type or file_name extension)
+    let attachment = all_attachments
+        .iter()
+        .find(|a| {
+            let file_type = a.file_type.as_deref().unwrap_or("");
+            let file_name = a.file_name.as_deref().unwrap_or("");
+            file_type.to_lowercase().contains("pdf") || file_name.to_lowercase().ends_with(".pdf")
+        })
+        .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
+    let file_name = attachment.file_name.clone().unwrap_or_else(|| {
+        format!(
+            "{}.pdf",
+            paper
+                .title
+                .replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
+        )
+    });
+
+    // Try lowercase hash first (most common)
+    let hash_lower = hash_string.to_lowercase();
+    let hash_upper = hash_string.to_uppercase();
+
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Try both lowercase and uppercase hash directories
+    let pdf_path = {
+        let lower_path = files_dir.join(&hash_lower).join(&file_name);
+        let upper_path = files_dir.join(&hash_upper).join(&file_name);
+
+        if lower_path.exists() {
+            lower_path
+        } else if upper_path.exists() {
+            upper_path
+        } else {
+            // Try to find any PDF in the hash directory
+            let lower_dir = files_dir.join(&hash_lower);
+            let upper_dir = files_dir.join(&hash_upper);
+
+            if let Ok(Some(found)) = find_first_pdf(&lower_dir) {
+                found
+            } else if let Ok(Some(found)) = find_first_pdf(&upper_dir) {
+                found
+            } else {
+                return Err(AppError::not_found(
+                    "PDF file",
+                    format!("hash={}", hash_lower),
+                ));
+            }
+        }
+    };
+
+    Ok(PdfAttachmentInfo {
+        file_path: pdf_path.to_string_lossy().to_string(),
+        file_name,
+        paper_id,
+        paper_title: paper.title,
+    })
+}
+
+fn find_first_pdf(dir: &PathBuf) -> Result<Option<PathBuf>> {
+    if !dir.exists() {
+        return Ok(None);
+    }
+
+    let entries = std::fs::read_dir(dir)
+        .map_err(|e| AppError::file_system(dir.to_string_lossy().to_string(), e.to_string()))?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) == Some("pdf") {
+            return Ok(Some(path));
+        }
+    }
+
+    Ok(None)
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn read_pdf_file(app_dirs: State<'_, AppDirs>, file_path: String) -> Result<Vec<u8>> {
+    info!("Reading PDF file: {}", file_path);
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "file_read: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Read the file
+    let contents = std::fs::read(&path).map_err(|e| {
+        AppError::file_system(file_path.clone(), format!("Failed to read file: {}", e))
+    })?;
+
+    info!("Successfully read PDF file, size: {} bytes", contents.len());
+    Ok(contents)
 }

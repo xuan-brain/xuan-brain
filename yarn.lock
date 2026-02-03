@@ -75,25 +75,34 @@
     js-tokens "^4.0.0"
     picocolors "^1.1.1"
 
+"@babel/code-frame@^7.29.0":
+  version "7.29.0"
+  resolved "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.29.0.tgz#7cd7a59f15b3cc0dcd803038f7792712a7d0b15c"
+  integrity sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==
+  dependencies:
+    "@babel/helper-validator-identifier" "^7.28.5"
+    js-tokens "^4.0.0"
+    picocolors "^1.1.1"
+
 "@babel/compat-data@^7.28.6":
   version "7.28.6"
   resolved "https://registry.npmmirror.com/@babel/compat-data/-/compat-data-7.28.6.tgz"
   integrity sha512-2lfu57JtzctfIrcGMz992hyLlByuzgIk58+hhGCxjKZ3rWI82NnVLjXcaTqkI2NvlcvOskZaiZ5kjUALo3Lpxg==
 
-"@babel/core@^7.28.5":
-  version "7.28.6"
-  resolved "https://registry.npmmirror.com/@babel/core/-/core-7.28.6.tgz"
-  integrity sha512-H3mcG6ZDLTlYfaSNi0iOKkigqMFvkTKlGUYlD8GW7nNOYRrevuA46iTypPyv+06V3fEmvvazfntkBU34L0azAw==
+"@babel/core@^7.29.0":
+  version "7.29.0"
+  resolved "https://registry.npmjs.org/@babel/core/-/core-7.29.0.tgz#5286ad785df7f79d656e88ce86e650d16ca5f322"
+  integrity sha512-CGOfOJqWjg2qW/Mb6zNsDm+u5vFQ8DxXfbM09z69p5Z6+mE1ikP2jUXw+j42Pf1XTYED2Rni5f95npYeuwMDQA==
   dependencies:
-    "@babel/code-frame" "^7.28.6"
-    "@babel/generator" "^7.28.6"
+    "@babel/code-frame" "^7.29.0"
+    "@babel/generator" "^7.29.0"
     "@babel/helper-compilation-targets" "^7.28.6"
     "@babel/helper-module-transforms" "^7.28.6"
     "@babel/helpers" "^7.28.6"
-    "@babel/parser" "^7.28.6"
+    "@babel/parser" "^7.29.0"
     "@babel/template" "^7.28.6"
-    "@babel/traverse" "^7.28.6"
-    "@babel/types" "^7.28.6"
+    "@babel/traverse" "^7.29.0"
+    "@babel/types" "^7.29.0"
     "@jridgewell/remapping" "^2.3.5"
     convert-source-map "^2.0.0"
     debug "^4.1.0"
@@ -108,6 +117,17 @@
   dependencies:
     "@babel/parser" "^7.28.6"
     "@babel/types" "^7.28.6"
+    "@jridgewell/gen-mapping" "^0.3.12"
+    "@jridgewell/trace-mapping" "^0.3.28"
+    jsesc "^3.0.2"
+
+"@babel/generator@^7.29.0":
+  version "7.29.0"
+  resolved "https://registry.npmjs.org/@babel/generator/-/generator-7.29.0.tgz#4cba5a76b3c71d8be31761b03329d5dc7768447f"
+  integrity sha512-vSH118/wwM/pLR38g/Sgk05sNtro6TlTJKuiMXDaZqPUfjTFcudpCOt00IhOfj+1BFAX+UFAlzCU+6WXr3GLFQ==
+  dependencies:
+    "@babel/parser" "^7.29.0"
+    "@babel/types" "^7.29.0"
     "@jridgewell/gen-mapping" "^0.3.12"
     "@jridgewell/trace-mapping" "^0.3.28"
     jsesc "^3.0.2"
@@ -180,6 +200,13 @@
   dependencies:
     "@babel/types" "^7.28.6"
 
+"@babel/parser@^7.29.0":
+  version "7.29.0"
+  resolved "https://registry.npmjs.org/@babel/parser/-/parser-7.29.0.tgz#669ef345add7d057e92b7ed15f0bac07611831b6"
+  integrity sha512-IyDgFV5GeDUVX4YdF/3CPULtVGSXXMLh1xVIgdCgxApktqnQV0r7/8Nqthg+8YLGaAtdyIlo2qIdZrbCv4+7ww==
+  dependencies:
+    "@babel/types" "^7.29.0"
+
 "@babel/plugin-transform-react-jsx-self@^7.27.1":
   version "7.27.1"
   resolved "https://registry.npmmirror.com/@babel/plugin-transform-react-jsx-self/-/plugin-transform-react-jsx-self-7.27.1.tgz"
@@ -221,10 +248,31 @@
     "@babel/types" "^7.28.6"
     debug "^4.3.1"
 
+"@babel/traverse@^7.29.0":
+  version "7.29.0"
+  resolved "https://registry.npmjs.org/@babel/traverse/-/traverse-7.29.0.tgz#f323d05001440253eead3c9c858adbe00b90310a"
+  integrity sha512-4HPiQr0X7+waHfyXPZpWPfWL/J7dcN1mx9gL6WdQVMbPnF3+ZhSMs8tCxN7oHddJE9fhNE7+lxdnlyemKfJRuA==
+  dependencies:
+    "@babel/code-frame" "^7.29.0"
+    "@babel/generator" "^7.29.0"
+    "@babel/helper-globals" "^7.28.0"
+    "@babel/parser" "^7.29.0"
+    "@babel/template" "^7.28.6"
+    "@babel/types" "^7.29.0"
+    debug "^4.3.1"
+
 "@babel/types@^7.0.0", "@babel/types@^7.20.7", "@babel/types@^7.28.2", "@babel/types@^7.28.6":
   version "7.28.6"
   resolved "https://registry.npmmirror.com/@babel/types/-/types-7.28.6.tgz"
   integrity sha512-0ZrskXVEHSWIqZM/sQZ4EV3jZJXRkio/WCxaqKZP1g//CEWEPSfeZFcms4XeKBCHU0ZKnIkdJeU/kF+eRp5lBg==
+  dependencies:
+    "@babel/helper-string-parser" "^7.27.1"
+    "@babel/helper-validator-identifier" "^7.28.5"
+
+"@babel/types@^7.29.0":
+  version "7.29.0"
+  resolved "https://registry.npmjs.org/@babel/types/-/types-7.29.0.tgz#9f5b1e838c446e72cf3cd4b918152b8c605e37c7"
+  integrity sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A==
   dependencies:
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.28.5"
@@ -608,6 +656,78 @@
   dependencies:
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
+
+"@napi-rs/canvas-android-arm64@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-android-arm64/-/canvas-android-arm64-0.1.89.tgz#963311a39d3f3ba10c9134c72c0ffc2193b96c60"
+  integrity sha512-CXxQTXsjtQqKGENS8Ejv9pZOFJhOPIl2goenS+aU8dY4DygvkyagDhy/I07D1YLqrDtPvLEX5zZHt8qUdnuIpQ==
+
+"@napi-rs/canvas-darwin-arm64@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-darwin-arm64/-/canvas-darwin-arm64-0.1.89.tgz#65d060df9af12b909715a92ae700ecd7e095549e"
+  integrity sha512-k29cR/Zl20WLYM7M8YePevRu2VQRaKcRedYr1V/8FFHkyIQ8kShEV+MPoPGi+znvmd17Eqjy2Pk2F2kpM2umVg==
+
+"@napi-rs/canvas-darwin-x64@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-darwin-x64/-/canvas-darwin-x64-0.1.89.tgz#44564d1c80428cd268968bb9e3942d283c086548"
+  integrity sha512-iUragqhBrA5FqU13pkhYBDbUD1WEAIlT8R2+fj6xHICY2nemzwMUI8OENDhRh7zuL06YDcRwENbjAVxOmaX9jg==
+
+"@napi-rs/canvas-linux-arm-gnueabihf@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-arm-gnueabihf/-/canvas-linux-arm-gnueabihf-0.1.89.tgz#25949e92912dcb066731f1e8894b4ef7d69e4855"
+  integrity sha512-y3SM9sfDWasY58ftoaI09YBFm35Ig8tosZqgahLJ2WGqawCusGNPV9P0/4PsrLOCZqGg629WxexQMY25n7zcvA==
+
+"@napi-rs/canvas-linux-arm64-gnu@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-arm64-gnu/-/canvas-linux-arm64-gnu-0.1.89.tgz#4745290f1eeadf2deb3bdc8471ef5a6cf3491873"
+  integrity sha512-NEoF9y8xq5fX8HG8aZunBom1ILdTwt7ayBzSBIwrmitk7snj4W6Fz/yN/ZOmlM1iyzHDNX5Xn0n+VgWCF8BEdA==
+
+"@napi-rs/canvas-linux-arm64-musl@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-arm64-musl/-/canvas-linux-arm64-musl-0.1.89.tgz#19b080b3c042185cb9a01ca9e87c993216796da1"
+  integrity sha512-UQQkIEzV12/l60j1ziMjZ+mtodICNUbrd205uAhbyTw0t60CrC/EsKb5/aJWGq1wM0agvcgZV72JJCKfLS6+4w==
+
+"@napi-rs/canvas-linux-riscv64-gnu@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-riscv64-gnu/-/canvas-linux-riscv64-gnu-0.1.89.tgz#71f47c00c46b060c4115f9c28241610c55c95e6d"
+  integrity sha512-1/VmEoFaIO6ONeeEMGoWF17wOYZOl5hxDC1ios2Bkz/oQjbJJ8DY/X22vWTmvuUKWWhBVlo63pxLGZbjJU/heA==
+
+"@napi-rs/canvas-linux-x64-gnu@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-x64-gnu/-/canvas-linux-x64-gnu-0.1.89.tgz#81994923d0740c33ddfd12025b4cee6e97e2c35a"
+  integrity sha512-ebLuqkCuaPIkKgKH9q4+pqWi1tkPOfiTk5PM1LKR1tB9iO9sFNVSIgwEp+SJreTSbA2DK5rW8lQXiN78SjtcvA==
+
+"@napi-rs/canvas-linux-x64-musl@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-x64-musl/-/canvas-linux-x64-musl-0.1.89.tgz#10414639f2fa45c2b64dbb7959b4bd2449cdd08b"
+  integrity sha512-w+5qxHzplvA4BkHhCaizNMLLXiI+CfP84YhpHm/PqMub4u8J0uOAv+aaGv40rYEYra5hHRWr9LUd6cfW32o9/A==
+
+"@napi-rs/canvas-win32-arm64-msvc@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-win32-arm64-msvc/-/canvas-win32-arm64-msvc-0.1.89.tgz#a17f5f4bc23912b7bd3cad943af574d4674075aa"
+  integrity sha512-DmyXa5lJHcjOsDC78BM3bnEECqbK3xASVMrKfvtT/7S7Z8NGQOugvu+L7b41V6cexCd34mBWgMOsjoEBceeB1Q==
+
+"@napi-rs/canvas-win32-x64-msvc@0.1.89":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-win32-x64-msvc/-/canvas-win32-x64-msvc-0.1.89.tgz#d506d23592c1002ac292bab9ebb3ec1c2646f0aa"
+  integrity sha512-WMej0LZrIqIncQcx0JHaMXlnAG7sncwJh7obs/GBgp0xF9qABjwoRwIooMWCZkSansapKGNUHhamY6qEnFN7gA==
+
+"@napi-rs/canvas@^0.1.88":
+  version "0.1.89"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas/-/canvas-0.1.89.tgz#bf3e22e8277c877b2db2313816ef9a1e4fa68a66"
+  integrity sha512-7GjmkMirJHejeALCqUnZY3QwID7bbumOiLrqq2LKgxrdjdmxWQBTc6rcASa2u8wuWrH7qo4/4n/VNrOwCoKlKg==
+  optionalDependencies:
+    "@napi-rs/canvas-android-arm64" "0.1.89"
+    "@napi-rs/canvas-darwin-arm64" "0.1.89"
+    "@napi-rs/canvas-darwin-x64" "0.1.89"
+    "@napi-rs/canvas-linux-arm-gnueabihf" "0.1.89"
+    "@napi-rs/canvas-linux-arm64-gnu" "0.1.89"
+    "@napi-rs/canvas-linux-arm64-musl" "0.1.89"
+    "@napi-rs/canvas-linux-riscv64-gnu" "0.1.89"
+    "@napi-rs/canvas-linux-x64-gnu" "0.1.89"
+    "@napi-rs/canvas-linux-x64-musl" "0.1.89"
+    "@napi-rs/canvas-win32-arm64-msvc" "0.1.89"
+    "@napi-rs/canvas-win32-x64-msvc" "0.1.89"
 
 "@napi-rs/wasm-runtime@^1.1.0":
   version "1.1.1"
@@ -1043,10 +1163,157 @@
     "@rc-component/util" "^1.4.0"
     clsx "^2.1.1"
 
-"@rolldown/pluginutils@1.0.0-beta.53":
-  version "1.0.0-beta.53"
-  resolved "https://registry.npmmirror.com/@rolldown/pluginutils/-/pluginutils-1.0.0-beta.53.tgz"
-  integrity sha512-vENRlFU4YbrwVqNDZ7fLvy+JR1CRkyr01jhSiDpE1u6py3OMzQfztQU2jxykW3ALNxO4kSlqIDeYyD0Y9RcQeQ==
+"@react-pdf-viewer/attachment@3.12.0", "@react-pdf-viewer/attachment@^3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/attachment/-/attachment-3.12.0.tgz#82a43dc31ba01da8a366fbcdf8dd826a7ae161c0"
+  integrity sha512-mhwrYJSIpCvHdERpLUotqhMgSjhtF+BTY1Yb9Fnzpcq3gLZP+Twp5Rynq21tCrVdDizPaVY7SKu400GkgdMfZw==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/bookmark@3.12.0", "@react-pdf-viewer/bookmark@^3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/bookmark/-/bookmark-3.12.0.tgz#94288a06a19402658a73f5463ea0b447dcb3ff2d"
+  integrity sha512-i7nEit8vIFMAES8RFGwprZ9cXOOZb9ZStPW6E6yuObJEXcvBj/ctsbBJGZxqUZOGklM0JoB7sjHyxAriHfe92A==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/core@3.12.0", "@react-pdf-viewer/core@^3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/core/-/core-3.12.0.tgz#40dc9bee5bce5281cd9ea62d958e4169b500fa14"
+  integrity sha512-8MsdlQJ4jaw3GT+zpCHS33nwnvzpY0ED6DEahZg9WngG++A5RMhk8LSlxdHelwaFFHFiXBjmOaj2Kpxh50VQRg==
+
+"@react-pdf-viewer/default-layout@^3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/default-layout/-/default-layout-3.12.0.tgz#8e7ed62c1d2858b79d5ff305390c07c7c05a5538"
+  integrity sha512-K2fS4+TJynHxxCBFuIDiFuAw3nqOh4bkBgtVZ/2pGvnFn9lLg46YGLMnTXCQqtyZzzXYh696jmlFViun3is4pA==
+  dependencies:
+    "@react-pdf-viewer/attachment" "3.12.0"
+    "@react-pdf-viewer/bookmark" "3.12.0"
+    "@react-pdf-viewer/core" "3.12.0"
+    "@react-pdf-viewer/thumbnail" "3.12.0"
+    "@react-pdf-viewer/toolbar" "3.12.0"
+
+"@react-pdf-viewer/drop@^3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/drop/-/drop-3.12.0.tgz#bdc10c09eaa94d0fa4575b3cb4f27e456c30072e"
+  integrity sha512-hm9E36/NJk3jHAy8TSUoRGuvqf7FYt6urXw1zR9RVI2e48iSmghqdr5V9/nzN2BY7bXjQXQ6h17KB/xXo9pRwQ==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/full-screen@3.12.0", "@react-pdf-viewer/full-screen@^3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/full-screen/-/full-screen-3.12.0.tgz#537bd7f4980e6d49ca491052d6e2390d4b1b5680"
+  integrity sha512-hQouJ26QUaRBCXNMU1aI1zpJn4l4PJRvlHhuE2dZYtLl37ycjl7vBCQYZW1FwnuxMWztZsY47R43DKaZORg0pg==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/get-file@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/get-file/-/get-file-3.12.0.tgz#940c7475f9dc89c56c3e351a4636cc1a3f9f7080"
+  integrity sha512-Uhq45n2RWlZ7Ec/BtBJ0WQESRciaYIltveDXHNdWvXgFdOS8XsvB+mnTh/wzm7Cfl9hpPyzfeezifdU9AkQgQg==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/open@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/open/-/open-3.12.0.tgz#de668c0c64767b73828ca1fb9f990732b9d5d3d2"
+  integrity sha512-vhiDEYsiQLxvZkIKT9VPYHZ1BOnv46x9eCEmRWxO1DJ8fa/GRDTA9ivXmq/ap0dGEJs6t+epleCkCEfllLR/Yw==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/page-navigation@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/page-navigation/-/page-navigation-3.12.0.tgz#399f1cc06e5dd8b40d5e44e4c57bcb6c84bced62"
+  integrity sha512-tVEJ48Dd5kajV1nKkrPWijglJRNBiKBTyYDKVexhiRdTHUP1f6QQXiSyDgCUb0IGSZeJzOJb1h7ApKHe8OTtuw==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/print@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/print/-/print-3.12.0.tgz#0d978c4e8654585d8a486c45388b6fe68f3d47e0"
+  integrity sha512-xJn76CgbU/M2iNaN7wLHTg+sdOekkRMfCakFLwPrE+SR7qD6NUF4vQQKJBSVCCK5bUijzb6cWfKGfo8VA72o4Q==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/properties@3.12.0", "@react-pdf-viewer/properties@^3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/properties/-/properties-3.12.0.tgz#0fe85d9b07a65b612d456b50de6e5ab993c1970b"
+  integrity sha512-dYTCHtVwFNkpDo7QxL2qk/8zAKndLwdD1FFxBftl6jIlQbtvNdxkFfkv1HcQING9Ic+7DBryOiD7W0ze4IERYg==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/rotate@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/rotate/-/rotate-3.12.0.tgz#f2e87d3e1fc3d8d16fe490636f68354334e58c3a"
+  integrity sha512-yaxaMYPChvNOjR8+AxRmj0kvojyJKPq4XHEcIB2lJJgBY1Zra3mliDUP3Nlb4yV8BS9+yBqWn9U9mtnopQD+tw==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/scroll-mode@3.12.0", "@react-pdf-viewer/scroll-mode@^3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/scroll-mode/-/scroll-mode-3.12.0.tgz#a875b9b58883b229d1757943c1420eb65aceaefd"
+  integrity sha512-okII7Xqhl6cMvl1izdEvlXNJ+vJVq/qdg53hJIDYVgBCWskLk/cpjUg/ZonBxseG9lIDP3w2VO1McT8Gn11OAg==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/search@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/search/-/search-3.12.0.tgz#e308d0d8b30f087ef9877a968c821af1a6aaf180"
+  integrity sha512-jAkLpis49fsDDY/HrbUZIOIhzF5vynONQNA4INQKI38r/MjveblrkNv7qbr9j5lQ/WFic5+gD1e+Mtpf1/7DiA==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/selection-mode@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/selection-mode/-/selection-mode-3.12.0.tgz#f86bd951205d6f485bbb5cce0c3128a00fea147b"
+  integrity sha512-yysWEu2aCtBvzSgbhgI9kT5cq2hf0FU6Z+3B7MMXz14Kxyc3y18wUqxtgbvpFEfWF0bNUUq16JtWRljtxvZ83w==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/theme@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/theme/-/theme-3.12.0.tgz#d7f667124ec4d5dacc6396e0a4ab1935b8f188af"
+  integrity sha512-cdBi+wR1VOZ6URCcO9plmAZQu4ZGFcd7HJdBe7VIFiGyrvl9I/Of74ONLycnDImSuONt8D3uNjPBLieeaShVeg==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/thumbnail@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/thumbnail/-/thumbnail-3.12.0.tgz#cfb13094ada7c7d2761d265326043ee9ddf9e22c"
+  integrity sha512-Vc8j3bO6wumWZV4o6pAbktPWKDSC9tQAzOCJ3cof541u4i44C11ccYC4W9aNcsMMUSO3bNwAGWtP8OFthV5akQ==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@react-pdf-viewer/toolbar@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/toolbar/-/toolbar-3.12.0.tgz#e168ca964a4933fb76831cee48cb3ed862011ad2"
+  integrity sha512-qACTU3qXHgtNK8J+T13EWio+0liilj86SJ87BdapqXynhl720OKPlSKOQqskUGqg3oTUJAhrse9XG6SFdHJx+g==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+    "@react-pdf-viewer/full-screen" "3.12.0"
+    "@react-pdf-viewer/get-file" "3.12.0"
+    "@react-pdf-viewer/open" "3.12.0"
+    "@react-pdf-viewer/page-navigation" "3.12.0"
+    "@react-pdf-viewer/print" "3.12.0"
+    "@react-pdf-viewer/properties" "3.12.0"
+    "@react-pdf-viewer/rotate" "3.12.0"
+    "@react-pdf-viewer/scroll-mode" "3.12.0"
+    "@react-pdf-viewer/search" "3.12.0"
+    "@react-pdf-viewer/selection-mode" "3.12.0"
+    "@react-pdf-viewer/theme" "3.12.0"
+    "@react-pdf-viewer/zoom" "3.12.0"
+
+"@react-pdf-viewer/zoom@3.12.0":
+  version "3.12.0"
+  resolved "https://registry.npmjs.org/@react-pdf-viewer/zoom/-/zoom-3.12.0.tgz#4eaa0d28d5f92b10124c4374b684cbaefc51c1c2"
+  integrity sha512-V0GUTyPM77+LzhoKX+T3XI10/HfGdqRTbgeP7ID60FCzcwu6kXWqJn5tzabjDKLTlFv8mJmn0aa/ppkIU97nfA==
+  dependencies:
+    "@react-pdf-viewer/core" "3.12.0"
+
+"@rolldown/pluginutils@1.0.0-rc.2":
+  version "1.0.0-rc.2"
+  resolved "https://registry.npmjs.org/@rolldown/pluginutils/-/pluginutils-1.0.0-rc.2.tgz#10324e74cb3396cb7b616042ea7e9e6aa7d8d458"
+  integrity sha512-izyXV/v+cHiRfozX62W9htOAvwMo4/bXKDrQ+vom1L1qRuexPock/7VZDAhnpHCLNejd3NJ6hiab+tO0D44Rgw==
 
 "@rollup/rollup-android-arm-eabi@4.55.1":
   version "4.55.1"
@@ -1501,15 +1768,15 @@
   resolved "https://registry.npmmirror.com/@types/unist/-/unist-2.0.11.tgz"
   integrity sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==
 
-"@vitejs/plugin-react@^5.1.2":
-  version "5.1.2"
-  resolved "https://registry.npmmirror.com/@vitejs/plugin-react/-/plugin-react-5.1.2.tgz"
-  integrity sha512-EcA07pHJouywpzsoTUqNh5NwGayl2PPVEJKUSinGGSxFGYn+shYbqMGBg6FXDqgXum9Ou/ecb+411ssw8HImJQ==
+"@vitejs/plugin-react@^5.1.3":
+  version "5.1.3"
+  resolved "https://registry.npmjs.org/@vitejs/plugin-react/-/plugin-react-5.1.3.tgz#05eba092cc89a6ff89668d3f62258e2c5a8a9122"
+  integrity sha512-NVUnA6gQCl8jfoYqKqQU5Clv0aPw14KkZYCsX6T9Lfu9slI0LOU10OTwFHS/WmptsMMpshNd/1tuWsHQ2Uk+cg==
   dependencies:
-    "@babel/core" "^7.28.5"
+    "@babel/core" "^7.29.0"
     "@babel/plugin-transform-react-jsx-self" "^7.27.1"
     "@babel/plugin-transform-react-jsx-source" "^7.27.1"
-    "@rolldown/pluginutils" "1.0.0-beta.53"
+    "@rolldown/pluginutils" "1.0.0-rc.2"
     "@types/babel__core" "^7.20.5"
     react-refresh "^0.18.0"
 
@@ -2253,6 +2520,11 @@ node-fetch@2.6.7:
   dependencies:
     whatwg-url "^5.0.0"
 
+node-readable-to-web-readable-stream@^0.4.2:
+  version "0.4.2"
+  resolved "https://registry.npmjs.org/node-readable-to-web-readable-stream/-/node-readable-to-web-readable-stream-0.4.2.tgz#634da58d3fe42a47d4608f1d7f14f85e18daeabe"
+  integrity sha512-/cMZNI34v//jUTrI+UIo4ieHAB5EZRY/+7OmXZgBxaWBMcW2tGdceIw06RFxWxrKZ5Jp3sI2i5TsRo+CBhtVLQ==
+
 node-releases@^2.0.27:
   version "2.0.27"
   resolved "https://registry.npmmirror.com/node-releases/-/node-releases-2.0.27.tgz"
@@ -2284,6 +2556,14 @@ path-type@^4.0.0:
   version "4.0.0"
   resolved "https://registry.npmmirror.com/path-type/-/path-type-4.0.0.tgz"
   integrity sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==
+
+pdfjs-dist@^5.4.624:
+  version "5.4.624"
+  resolved "https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-5.4.624.tgz#f00911beb481de998c29e8e464b88d500cb1f4a8"
+  integrity sha512-sm6TxKTtWv1Oh6n3C6J6a8odejb5uO4A4zo/2dgkHuC0iu8ZMAXOezEODkVaoVp8nX1Xzr+0WxFJJmUr45hQzg==
+  optionalDependencies:
+    "@napi-rs/canvas" "^0.1.88"
+    node-readable-to-web-readable-stream "^0.4.2"
 
 picocolors@^1.0.0, picocolors@^1.1.1:
   version "1.1.1"
@@ -2746,6 +3026,13 @@ vfile@^4.0.0:
     is-buffer "^2.0.0"
     unist-util-stringify-position "^2.0.0"
     vfile-message "^2.0.0"
+
+vite-plugin-pdf@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.npmjs.org/vite-plugin-pdf/-/vite-plugin-pdf-0.1.0.tgz#38327d665e41b7d4eba1d3df8b668dc90d84e036"
+  integrity sha512-6chMMAfBVzEJBTw2QlYRDjfp/7gVTL9l1K3hyBDW5ZR3jVbOlkEUFdZpKFbbZjl0vY+LN2K+0b8Hv4FLgjZZTA==
+  dependencies:
+    picocolors "^1.0.0"
 
 vite@^6.0.3:
   version "6.4.1"

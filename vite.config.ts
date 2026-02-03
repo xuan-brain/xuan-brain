@@ -2,29 +2,12 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import type { UserConfig, ConfigEnv } from "vite";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(
   async (_: ConfigEnv): Promise<UserConfig> => ({
-    plugins: [
-      react(),
-      // PDF.js worker handling
-      {
-        name: "pdfjs-worker",
-        config() {
-          return {
-            resolve: {
-              alias: {
-                "pdfjs-dist/build/pdf.worker.min.js":
-                  "pdfjs-dist/build/pdf.worker.min.mjs",
-              },
-            },
-          };
-        },
-      },
-    ],
+    plugins: [react()],
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //
@@ -56,9 +39,6 @@ export default defineConfig(
           "pdf-viewer": "./src/pdf-viewer.html",
         },
       },
-    },
-    optimizeDeps: {
-      include: ["pdfjs-dist"],
     },
   }),
 );

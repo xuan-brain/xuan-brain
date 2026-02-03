@@ -1,18 +1,8 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Viewer, Worker } from "@react-pdf-viewer/core";
-import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
-// Import styles
-import "@react-pdf-viewer/core/lib/styles/index.css";
-import "@react-pdf-viewer/default-layout/lib/styles/index.css";
-
-// Configure worker
-import * as pdfjs from "pdfjs-dist";
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
+import { PdfAnnotator } from "pdfjs-annotation-extension-for-react";
+import "pdfjs-annotation-extension-for-react/style";
 
 async function invokeCommand<T = unknown>(
   cmd: string,
@@ -30,20 +20,10 @@ interface PdfAttachmentInfo {
 }
 
 const PDFViewerPage: React.FC = () => {
-  const [pdfUrl, setPdfUrl] = useState<string>("");
+  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
   const [loading, setLoading] = useState(true);
-  const [containerHeight, setContainerHeight] = useState<number>(
-    window.innerHeight,
-  );
   const [error, setError] = useState<string>("");
-
-  // Update height on mount and resize
-  useEffect(() => {
-    const updateHeight = () => setContainerHeight(window.innerHeight);
-    updateHeight();
-    window.addEventListener("resize", updateHeight);
-    return () => window.removeEventListener("resize", updateHeight);
-  }, []);
+  const [paperTitle, setPaperTitle] = useState<string>("");
 
   useEffect(() => {
     const initPDF = async () => {
@@ -67,11 +47,12 @@ const PDFViewerPage: React.FC = () => {
           filePath: info.file_path,
         });
         const uint8Array = new Uint8Array(contents);
-        const blob = new Blob([uint8Array], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
+        setPdfData(uint8Array);
+        setPaperTitle(info.paper_title);
         await currentWindow.setTitle(info.paper_title);
+        console.info("PDF loaded successfully:", info.paper_title);
       } catch (err) {
+        console.error("Failed to load PDF:", err);
         setError(err instanceof Error ? err.message : String(err));
       } finally {
         setLoading(false);
@@ -81,23 +62,25 @@ const PDFViewerPage: React.FC = () => {
     initPDF();
   }, []);
 
-  // Initialize plugin BEFORE any conditional returns
-  // This is required because defaultLayoutPlugin uses React Hooks internally
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
-
   const handleClose = async () => {
     const currentWindow = getCurrentWindow();
     await currentWindow.close();
+  };
+
+  const handleSave = (annotations: unknown) => {
+    console.info("Annotations saved:", annotations);
   };
 
   if (loading) {
     return (
       <div
         style={{
-          height: `${containerHeight}px`,
+          height: "100vh",
+          width: "100vw",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
+          backgroundColor: "#fff",
         }}
       >
         <div style={{ textAlign: "center" }}>
@@ -110,16 +93,18 @@ const PDFViewerPage: React.FC = () => {
     );
   }
 
-  if (error || !pdfUrl) {
+  if (error || !pdfData) {
     return (
       <div
         style={{
-          height: `${containerHeight}px`,
+          height: "100vh",
+          width: "100vw",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           gap: 16,
+          backgroundColor: "#fff",
         }}
       >
         <div style={{ fontSize: 16, color: "#ff4d4f" }}>
@@ -142,65 +127,13 @@ const PDFViewerPage: React.FC = () => {
   }
 
   return (
-    <div
-      style={{
-        height: `${containerHeight}px`,
-        width: "100vw",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          height: "40px",
-          padding: "4px 16px",
-          borderBottom: "1px solid #d9d9d9",
-          background: "#fff",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexShrink: 0,
-          fontSize: "13px",
-        }}
-      >
-        <span
-          style={{
-            flex: 1,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          PDF Viewer - Full Featured
-        </span>
-        <button
-          onClick={handleClose}
-          style={{
-            padding: "4px 12px",
-            cursor: "pointer",
-            border: "1px solid #d9d9d9",
-            borderRadius: "4px",
-            background: "#fff",
-            fontSize: "12px",
-          }}
-        >
-          Close
-        </button>
-      </div>
-
-      {/* PDF Viewer with Default Layout Plugin */}
-      <div style={{ flex: 1, overflow: "hidden" }}>
-        <Worker
-          workerUrl={new URL(
-            "pdfjs-dist/build/pdf.worker.min.mjs",
-            import.meta.url,
-          ).toString()}
-        >
-          <Viewer fileUrl={pdfUrl} plugins={[defaultLayoutPluginInstance]} />
-        </Worker>
-      </div>
-    </div>
+    <PdfAnnotator
+      title={paperTitle}
+      data={pdfData}
+      user={{ id: "user-1", name: "User" }}
+      onSave={handleSave}
+      layoutStyle={{ width: "100vw", height: "100vh" }}
+    />
   );
 };
 

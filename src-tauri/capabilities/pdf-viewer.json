@@ -1,12 +1,11 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "pdf-viewer",
-  "description": "Capability for the PDF viewer window",
+  "description": "Capability for PDF viewer windows",
   "windows": ["pdf-viewer-*"],
   "permissions": [
     "core:default",
-    "core:webview:allow-webview-close",
-    "core:window:allow-close",
-    "core:window:allow-set-title"
+    "core:window:allow-set-title",
+    "core:window:allow-close"
   ]
 }

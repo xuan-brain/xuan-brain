@@ -12,6 +12,8 @@
     "opener:default",
     "dialog:default",
     "fs:default",
-    "tracing:default"
+    "tracing:default",
+    "core:webview:default",
+    "core:window:allow-set-title"
   ]
 }

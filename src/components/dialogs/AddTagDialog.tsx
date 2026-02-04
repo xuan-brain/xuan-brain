@@ -83,7 +83,14 @@ export default function AddTagDialog({
       onTagCreated();
       onClose();
     } catch (err) {
-      setError(err as string);
+      console.error("Failed to create tag:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null
+            ? (err as any).message || String(err)
+            : String(err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

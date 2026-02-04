@@ -58,20 +58,30 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .setup(move |app| {
             // Initialize data directories on app startup
             let app_handle = app.handle().clone();
             app_handle.manage(log_guard);
             app_handle.manage(app_dirs.clone());
+            
+            // Initialize database connection synchronously in setup
             let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                let db = init_database_connection(PathBuf::from(&app_dirs.data))
-                    .await
-                    .expect("Failed to initialize database connection");
-                info!("Database connection initialized");
-                app_handle.manage(db);
+            let app_dirs_clone = app_dirs.clone();
+            let db_result = tauri::async_runtime::block_on(async move {
+                init_database_connection(PathBuf::from(&app_dirs_clone.data)).await
             });
-            Ok(())
+            
+            match db_result {
+                Ok(db) => {
+                    info!("Database connection initialized");
+                    app_handle.manage(db);
+                    Ok(())
+                }
+                Err(e) => {
+                    tracing::error!("Failed to initialize database connection: {}", e);
+                    Err(Box::new(e))
+                }
+            }
         })
         // TODO: Uncomment after fixing Tauri 2.x error type compatibility
         // .invoke_handler(tauri::generate_handler![get_all_labels])

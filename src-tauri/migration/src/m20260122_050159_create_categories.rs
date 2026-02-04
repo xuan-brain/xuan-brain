@@ -1,4 +1,4 @@
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -8,23 +8,47 @@ impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Replace the sample below with your own migration scripts
         let db = manager.get_connection();
-        db.execute_unprepared(
-            "CREATE TABLE category (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            name        TEXT NOT NULL,
-            parent_id   INTEGER,
-            ltree_path  TEXT NOT NULL UNIQUE,
-            sort_order  INTEGER NOT NULL DEFAULT 0,
-            created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        manager
+            .create_table(
+                Table::create()
+                    .table("category")
+                    .if_not_exists()
+                    .col(pk_auto("id"))
+                    .col(string("name"))
+                    .col(integer("parent_id").null())
+                    .col(string("ltree_path"))
+                    .col(integer("sort_order"))
+                    .col(date_time("created_at"))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_category_parent_id")
+                            .from("category", "parent_id")
+                            .to("category", "id")
+                            .on_delete(ForeignKeyAction::Cascade)
+                    )
+                    .to_owned(),
+            )
+            .await?;
 
-            FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE CASCADE
-        );
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_category_parent_id")
+                    .table("category")
+                    .col("parent_id")
+                    .to_owned(),
+            )
+            .await?;
 
-        CREATE INDEX idx_categories_parent_id ON categories(parent_id);
-        CREATE INDEX idx_categories_ltree_path ON categories(ltree_path);
-        ",
-        )
-        .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_category_ltree_path")
+                    .table("category")
+                    .col("ltree_path")
+                    .to_owned(),
+            )
+            .await?;
 
         Ok(())
     }

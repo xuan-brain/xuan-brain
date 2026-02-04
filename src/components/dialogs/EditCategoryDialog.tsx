@@ -93,7 +93,13 @@ export default function EditCategoryDialog({
       }
     } catch (error) {
       console.error("Failed to update category:", error);
-      setErrorMessage(`更新分类失败: ${error}`);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error !== null
+            ? (error as any).message || String(error)
+            : String(error);
+      setErrorMessage(`更新分类失败: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

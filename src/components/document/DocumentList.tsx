@@ -1,14 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { Table, Tag, Space, Dropdown, type MenuProps, Modal } from "antd";
-import {
-  ExclamationCircleOutlined,
-  UndoOutlined,
-  DeleteOutlined,
-  PaperClipOutlined,
-  FileOutlined,
-  FolderOpenOutlined,
-} from "@ant-design/icons";
-import { open } from "@tauri-apps/plugin-dialog";
+import { Table, Tag, Space, Modal } from "antd";
+import { FileOutlined } from "@ant-design/icons";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { ColumnsType } from "antd/es/table";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
@@ -161,7 +154,7 @@ export default function DocumentList({
 
     window.addEventListener("paper-updated", handlePaperUpdate);
     return () => window.removeEventListener("paper-updated", handlePaperUpdate);
-  }, [categoryId]); // Add categoryId as dependency
+  }, [categoryId]);
 
   const loadPapers = async () => {
     setLoading(true);
@@ -203,6 +196,57 @@ export default function DocumentList({
       setLoading(false);
     }
   };
+
+  const handleDoubleClick = useCallback(async (record: PaperDto) => {
+    console.info("Double clicked paper:", record.id, record.title);
+    // Check if paper has PDF attachments
+    if ((record.attachment_count || 0) > 0) {
+      try {
+        // Create a new window for PDF viewer
+        const label = `pdf-viewer-${record.id}`;
+        const webview = new WebviewWindow(label, {
+          url: `http://localhost:1420/src/pdf-viewer.html`,
+          title: record.title,
+          width: 1000,
+          height: 800,
+          resizable: true,
+          center: true,
+          decorations: true,
+          focus: true,
+        });
+
+        // Listen for creation errors
+        webview.once("tauri://error", (e) => {
+          console.error("Failed to create PDF viewer window:", e);
+          Modal.error({
+            title: "Failed to open PDF viewer",
+            content: `Could not open PDF viewer window: ${e.payload}`,
+          });
+        });
+
+        console.info(`Opening PDF viewer window for paper ${record.id}`);
+      } catch (err) {
+        console.error("Failed to open PDF viewer window:", err);
+        Modal.error({
+          title: "Failed to open PDF viewer",
+          content: "Could not open PDF viewer window. Please try again.",
+        });
+      }
+    } else {
+      Modal.info({
+        title: "No PDF attachment",
+        content:
+          "This paper has no PDF attachment. Please add a PDF file first.",
+      });
+    }
+  }, []);
+
+  const handleRowClick = useCallback(
+    (record: PaperDto) => {
+      onDocumentSelect(record);
+    },
+    [onDocumentSelect],
+  );
 
   const columns: ColumnsType<PaperDto> = [
     {
@@ -274,159 +318,6 @@ export default function DocumentList({
     },
   ];
 
-  const TableRow = useCallback(
-    ({ children, ...props }: any) => {
-      const rowId = props["data-row-key"];
-      let menuItems: MenuProps["items"] = [];
-
-      if (categoryId === "trash") {
-        menuItems = [
-          {
-            key: "restore",
-            label: t("dialog.restore"),
-            icon: <UndoOutlined />,
-            onClick: async () => {
-              try {
-                await invokeCommand("restore_paper", { id: rowId });
-                await loadPapers();
-              } catch (error) {
-                console.error("Failed to restore paper:", error);
-                Modal.error({
-                  title: t("dialog.restoreFailed"),
-                  content: String(error),
-                });
-              }
-            },
-          },
-          {
-            key: "permanently_delete",
-            label: t("dialog.permanentlyDelete"),
-            icon: <DeleteOutlined />,
-            danger: true,
-            onClick: () => {
-              Modal.confirm({
-                title: t("dialog.permanentlyDelete"),
-                icon: <ExclamationCircleOutlined />,
-                content: t("dialog.confirmPermanentlyDelete"),
-                okText: t("dialog.permanentlyDelete"),
-                okType: "danger",
-                cancelText: t("dialog.cancel"),
-                onOk: async () => {
-                  try {
-                    await invokeCommand("permanently_delete_paper", {
-                      id: rowId,
-                    });
-                    await loadPapers();
-                  } catch (error) {
-                    console.error("Failed to delete paper:", error);
-                    Modal.error({
-                      title: t("dialog.deleteFailed"),
-                      content: String(error),
-                    });
-                  }
-                },
-              });
-            },
-          },
-        ];
-      } else {
-        menuItems = [
-          {
-            key: "add_attachment",
-            label: "添加附件",
-            icon: <PaperClipOutlined />,
-            onClick: async () => {
-              try {
-                const selected = await open({
-                  multiple: false,
-                  directory: false,
-                });
-                if (selected) {
-                  const filePath = Array.isArray(selected)
-                    ? selected[0]
-                    : selected;
-                  if (filePath) {
-                    await invokeCommand("add_attachment", {
-                      paperId: rowId,
-                      filePath: filePath,
-                    });
-                    window.dispatchEvent(
-                      new CustomEvent("attachment-updated", {
-                        detail: { paperId: rowId },
-                      }),
-                    );
-                    await loadPapers();
-                    Modal.success({ content: "Attachment added successfully" });
-                  }
-                }
-              } catch (error) {
-                console.error("Failed to add attachment:", error);
-                Modal.error({
-                  title: "Failed to add attachment",
-                  content: String(error),
-                });
-              }
-            },
-          },
-          {
-            key: "open_folder",
-            label: "打开附件文件夹",
-            icon: <FolderOpenOutlined />,
-            onClick: async () => {
-              try {
-                await invokeCommand("open_paper_folder", { paperId: rowId });
-              } catch (error) {
-                console.error("Failed to open folder:", error);
-                Modal.error({
-                  title: "Failed to open folder",
-                  content: String(error),
-                });
-              }
-            },
-          },
-          {
-            type: "divider",
-          },
-          {
-            key: "delete",
-            label: t("dialog.delete"),
-            danger: true,
-            icon: <DeleteOutlined />,
-            onClick: () => {
-              Modal.confirm({
-                title: t("dialog.delete"),
-                icon: <ExclamationCircleOutlined />,
-                content: "确定要删除此文档吗？此操作将把文档移入回收站。",
-                okText: t("dialog.delete"),
-                okType: "danger",
-                cancelText: t("dialog.cancel"),
-                onOk: async () => {
-                  try {
-                    await invokeCommand("delete_paper", { id: rowId });
-                    await loadPapers();
-                  } catch (error) {
-                    console.error("Failed to delete paper:", error);
-                    Modal.error({
-                      title: t("dialog.deleteFailed"),
-                      content: String(error),
-                    });
-                  }
-                },
-              });
-            },
-          },
-        ];
-      }
-
-      return (
-        <Dropdown menu={{ items: menuItems }} trigger={["contextMenu"]}>
-          <tr {...props}>{children}</tr>
-        </Dropdown>
-      );
-    },
-    [t, categoryId],
-  );
-
   return (
     <div
       style={{
@@ -474,20 +365,21 @@ export default function DocumentList({
                 />
               ) : null,
           }}
-          components={{
-            body: {
-              row: TableRow,
-            },
-          }}
           onRow={(record) => {
             const isSelected = selectedDocument?.id === record.id;
             return {
               onClick: () => {
-                onDocumentSelect(record);
+                console.info("Row clicked", record.id);
+                handleRowClick(record);
+              },
+              onDoubleClick: () => {
+                console.info("Row double clicked", record.id);
+                handleDoubleClick(record);
               },
               style: {
                 cursor: "pointer",
                 backgroundColor: isSelected ? `${accentColor}40` : undefined,
+                userSelect: "none",
               },
             };
           }}

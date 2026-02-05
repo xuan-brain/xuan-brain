@@ -5,9 +5,15 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:webview:allow-create-webview-window",
+    "core:webview:allow-webview-close",
+    "core:webview:allow-webview-position",
+    "core:webview:allow-webview-size",
     "opener:default",
     "dialog:default",
     "fs:default",
-    "tracing:default"
+    "tracing:default",
+    "core:webview:default",
+    "core:window:allow-set-title"
   ]
 }

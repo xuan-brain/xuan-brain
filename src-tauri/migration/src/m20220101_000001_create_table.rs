@@ -16,6 +16,7 @@ impl MigrationTrait for Migration {
                     .col(pk_auto("id"))
                     .col(string("name"))
                     .col(string("color"))
+                    .col(integer("document_count").default(0))
                     .col(date_time("created_at"))
                     .col(date_time("updated_at"))
                     .to_owned(),

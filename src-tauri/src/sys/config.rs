@@ -19,9 +19,53 @@ pub struct SystemConfig {
     pub llm_providers: Vec<LlmProvider>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GrobidServer {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GrobidConfig {
+    #[serde(default)]
+    pub servers: Vec<GrobidServer>,
+}
+
+impl Default for GrobidConfig {
+    fn default() -> Self {
+        Self {
+            servers: vec![
+                GrobidServer {
+                    id: "default-hf".to_string(),
+                    name: "HuggingFace Space".to_string(),
+                    url: "https://kermitt2-grobid.hf.space".to_string(),
+                    is_active: true,
+                },
+                GrobidServer {
+                    id: "local".to_string(),
+                    name: "Localhost".to_string(),
+                    url: "http://localhost:8070".to_string(),
+                    is_active: false,
+                },
+            ],
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct PaperConfig {
+    #[serde(default)]
+    pub grobid: GrobidConfig,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct AppConfig {
+    #[serde(default)]
     pub system: SystemConfig,
+    #[serde(default)]
+    pub paper: PaperConfig,
 }
 
 impl AppConfig {

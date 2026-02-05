@@ -10,6 +10,7 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 import SystemSettings from "../components/settings/SystemSettings";
+import PaperSettings from "../components/settings/PaperSettings";
 
 const { Title } = Typography;
 
@@ -33,7 +34,7 @@ export default function SettingsPage() {
       key: "papers",
       label: "论文",
       icon: <ReadOutlined />,
-      children: <div>论文设置（待开发）</div>,
+      children: <PaperSettings />,
     },
     {
       key: "clips",

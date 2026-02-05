@@ -14,6 +14,8 @@ use crate::database::entities::{
 };
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
+use crate::papers::importer::grobid::process_header_document;
+use crate::sys::config::AppConfig;
 use crate::sys::dirs::AppDirs;
 use crate::sys::error::{AppError, Result};
 
@@ -31,6 +33,14 @@ pub struct AttachmentDto {
     pub file_name: Option<String>,
     pub file_type: Option<String>,
     pub created_at: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct PdfAttachmentInfo {
+    pub file_path: String,
+    pub file_name: String,
+    pub paper_id: i64,
+    pub paper_title: String,
 }
 
 #[derive(Serialize)]
@@ -820,6 +830,148 @@ pub async fn get_attachments(
 }
 
 #[tauri::command]
+#[instrument(skip(db, app_dirs))]
+pub async fn import_paper_by_pdf(
+    db: State<'_, DatabaseConnection>,
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+    category_path: Option<String>,
+) -> Result<PaperDto> {
+    info!("Importing paper from PDF: {}", file_path);
+    let path = PathBuf::from(&file_path);
+    if !path.exists() {
+        return Err(AppError::file_system(file_path, "File not found"));
+    }
+
+    // 1. Get GROBID URL from config
+    let config = AppConfig::load(&app_dirs.config)?;
+    let grobid_url = config
+        .paper
+        .grobid
+        .servers
+        .iter()
+        .find(|s| s.is_active)
+        .map(|s| s.url.clone())
+        .unwrap_or_else(|| "https://kermitt2-grobid.hf.space".to_string());
+
+    // 2. Process with GROBID
+    let metadata_result = process_header_document(&path, &grobid_url).await;
+
+    // 3. Prepare paper data
+    let (title, metadata) = match metadata_result {
+        Ok(m) if !m.title.is_empty() => (m.title.clone(), m),
+        _ => {
+            info!("GROBID failed or returned empty title, using filename");
+            let filename = path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let m = crate::papers::importer::grobid::GrobidMetadata {
+                title: filename.clone(),
+                ..Default::default()
+            };
+            (filename, m)
+        }
+    };
+
+    // 4. Calculate attachment path hash
+    let mut hasher = Sha1::new();
+    hasher.update(title.as_bytes());
+    let result = hasher.finalize();
+    let hash_string = format!("{:x}", result);
+
+    // 5. Create paper
+    let paper = papers::ActiveModel {
+        title: Set(title.clone()),
+        doi: Set(metadata.doi),
+        publication_year: Set(metadata.publication_year),
+        journal_name: Set(metadata.journal_name),
+        r#abstract: Set(metadata.abstract_text),
+        attachment_path: Set(Some(hash_string.clone())),
+        ..Default::default()
+    }
+    .insert(db.inner())
+    .await?;
+
+    // 6. Link authors
+    for author_name in metadata.authors {
+        let author = if let Some(existing) = Authors::find()
+            .filter(authors::Column::Name.eq(&author_name))
+            .one(db.inner())
+            .await?
+        {
+            existing
+        } else {
+            authors::ActiveModel {
+                name: Set(author_name),
+                ..Default::default()
+            }
+            .insert(db.inner())
+            .await?
+        };
+        paper_authors::ActiveModel {
+            paper_id: Set(paper.id),
+            author_id: Set(author.id),
+            ..Default::default()
+        }
+        .insert(db.inner())
+        .await?;
+    }
+
+    // 7. Link category
+    if let Some(path_str) = category_path {
+        if let Some(cat) = Category::find()
+            .filter(category::Column::LtreePath.eq(&path_str))
+            .one(db.inner())
+            .await?
+        {
+            paper_category::ActiveModel {
+                paper_id: Set(paper.id),
+                category_id: Set(cat.id),
+            }
+            .insert(db.inner())
+            .await?;
+        }
+    }
+
+    // 8. Copy file to attachment path
+    let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);
+    if !target_dir.exists() {
+        std::fs::create_dir_all(&target_dir).map_err(|e| {
+            AppError::file_system(target_dir.to_string_lossy().to_string(), e.to_string())
+        })?;
+    }
+    let target_filename = path.file_name().unwrap().to_string_lossy().to_string();
+    let target_path = target_dir.join(&target_filename);
+    std::fs::copy(&path, &target_path).map_err(|e| {
+        AppError::file_system(target_path.to_string_lossy().to_string(), e.to_string())
+    })?;
+
+    // 9. Create attachment record
+    attachments::ActiveModel {
+        paper_id: Set(paper.id),
+        file_name: Set(Some(target_filename)),
+        file_type: Set(Some("pdf".to_string())),
+        created_at: Set(Some(chrono::Utc::now())),
+        ..Default::default()
+    }
+    .insert(db.inner())
+    .await?;
+
+    Ok(PaperDto {
+        id: paper.id,
+        title: paper.title,
+        publication_year: paper.publication_year,
+        journal_name: paper.journal_name,
+        conference_name: paper.conference_name,
+        authors: vec![],
+        labels: vec![],
+        attachment_count: 1,
+    })
+}
+
+#[tauri::command]
 #[instrument(skip(db, app_dirs, app))]
 pub async fn open_paper_folder(
     app: AppHandle,
@@ -865,5 +1017,380 @@ pub async fn open_paper_folder(
             )
         })?;
 
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(db, app_dirs))]
+pub async fn get_pdf_attachment_path(
+    db: State<'_, DatabaseConnection>,
+    app_dirs: State<'_, AppDirs>,
+    paper_id: i64,
+) -> Result<PdfAttachmentInfo> {
+    info!("Getting PDF attachment path for paper {}", paper_id);
+
+    let paper = Papers::find_by_id(paper_id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
+
+    // Get attachment path hash (try both lowercase and uppercase)
+    let hash_string = if let Some(path) = &paper.attachment_path {
+        path.clone()
+    } else {
+        let mut hasher = Sha1::new();
+        hasher.update(paper.title.as_bytes());
+        let result = hasher.finalize();
+        format!("{:x}", result)
+    };
+
+    // Try to find PDF attachment in database
+    // Get all attachments and filter for PDF (file_type might be "pdf" or "application/pdf")
+    let all_attachments = Attachments::find()
+        .filter(attachments::Column::PaperId.eq(paper_id))
+        .all(db.inner())
+        .await?;
+
+    // Find first attachment that is a PDF (check file_type or file_name extension)
+    let attachment = all_attachments
+        .iter()
+        .find(|a| {
+            let file_type = a.file_type.as_deref().unwrap_or("");
+            let file_name = a.file_name.as_deref().unwrap_or("");
+            file_type.to_lowercase().contains("pdf") || file_name.to_lowercase().ends_with(".pdf")
+        })
+        .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
+    let file_name = attachment.file_name.clone().unwrap_or_else(|| {
+        format!(
+            "{}.pdf",
+            paper
+                .title
+                .replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
+        )
+    });
+
+    // Try lowercase hash first (most common)
+    let hash_lower = hash_string.to_lowercase();
+    let hash_upper = hash_string.to_uppercase();
+
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Try both lowercase and uppercase hash directories
+    let pdf_path = {
+        let lower_path = files_dir.join(&hash_lower).join(&file_name);
+        let upper_path = files_dir.join(&hash_upper).join(&file_name);
+
+        if lower_path.exists() {
+            lower_path
+        } else if upper_path.exists() {
+            upper_path
+        } else {
+            // Try to find any PDF in the hash directory
+            let lower_dir = files_dir.join(&hash_lower);
+            let upper_dir = files_dir.join(&hash_upper);
+
+            if let Ok(Some(found)) = find_first_pdf(&lower_dir) {
+                found
+            } else if let Ok(Some(found)) = find_first_pdf(&upper_dir) {
+                found
+            } else {
+                return Err(AppError::not_found(
+                    "PDF file",
+                    format!("hash={}", hash_lower),
+                ));
+            }
+        }
+    };
+
+    Ok(PdfAttachmentInfo {
+        file_path: pdf_path.to_string_lossy().to_string(),
+        file_name,
+        paper_id,
+        paper_title: paper.title,
+    })
+}
+
+fn find_first_pdf(dir: &PathBuf) -> Result<Option<PathBuf>> {
+    if !dir.exists() {
+        return Ok(None);
+    }
+
+    let entries = std::fs::read_dir(dir)
+        .map_err(|e| AppError::file_system(dir.to_string_lossy().to_string(), e.to_string()))?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) == Some("pdf") {
+            return Ok(Some(path));
+        }
+    }
+
+    Ok(None)
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn read_pdf_file(app_dirs: State<'_, AppDirs>, file_path: String) -> Result<Vec<u8>> {
+    info!("Reading PDF file: {}", file_path);
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "file_read: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Read the file
+    let contents = std::fs::read(&path).map_err(|e| {
+        AppError::file_system(file_path.clone(), format!("Failed to read file: {}", e))
+    })?;
+
+    info!("Successfully read PDF file, size: {} bytes", contents.len());
+    Ok(contents)
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn save_pdf_file(
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+    pdf_data: Vec<u8>,
+) -> Result<()> {
+    info!(
+        "Saving PDF file: {}, size: {} bytes",
+        file_path,
+        pdf_data.len()
+    );
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "save_pdf_file: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Ensure parent directory exists
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            AppError::file_system(
+                file_path.clone(),
+                format!("Failed to create directory: {}", e),
+            )
+        })?;
+    }
+
+    // Write the file
+    std::fs::write(&path, &pdf_data).map_err(|e| {
+        AppError::file_system(file_path.clone(), format!("Failed to write file: {}", e))
+    })?;
+
+    info!("Successfully saved PDF file: {}", file_path);
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn save_annotations_data(
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+    annotations_json: String,
+) -> Result<()> {
+    info!(
+        "Saving annotations data for file: {}, size: {} bytes",
+        file_path,
+        annotations_json.len()
+    );
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "save_annotations_data: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Save annotations to a sidecar .json file
+    let annotations_path = path.with_extension("json");
+    std::fs::write(&annotations_path, &annotations_json).map_err(|e| {
+        AppError::file_system(
+            annotations_path.to_string_lossy().to_string(),
+            format!("Failed to write annotations file: {}", e),
+        )
+    })?;
+
+    info!(
+        "Successfully saved annotations data to: {}",
+        annotations_path.display()
+    );
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn load_annotations_data(
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+) -> Result<Option<String>> {
+    info!("Loading annotations data for file: {}", file_path);
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "load_annotations_data: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Try to load annotations from sidecar .json file
+    let annotations_path = path.with_extension("json");
+    match std::fs::read_to_string(&annotations_path) {
+        Ok(content) => {
+            info!(
+                "Successfully loaded annotations data from: {}",
+                annotations_path.display()
+            );
+            Ok(Some(content))
+        }
+        Err(_) => {
+            info!(
+                "No annotations data found at: {}",
+                annotations_path.display()
+            );
+            Ok(None)
+        }
+    }
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs))]
+pub async fn export_pdf_with_annotations(
+    app_dirs: State<'_, AppDirs>,
+    source_file_path: String,
+    export_file_path: String,
+    pdf_data: Vec<u8>,
+) -> Result<()> {
+    info!(
+        "Exporting PDF with annotations from {} to {}",
+        source_file_path, export_file_path
+    );
+
+    // Validate both file paths are within the app's allowed directories
+    let source_path = PathBuf::from(&source_file_path);
+    let export_path = PathBuf::from(&export_file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    if !source_path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "export_pdf_with_annotations: Source path {} is not within the allowed directory",
+            source_file_path
+        )));
+    }
+
+    if !export_path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "export_pdf_with_annotations: Export path {} is not within the allowed directory",
+            export_file_path
+        )));
+    }
+
+    // Ensure export directory exists
+    if let Some(parent) = export_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            AppError::file_system(
+                export_file_path.clone(),
+                format!("Failed to create directory: {}", e),
+            )
+        })?;
+    }
+
+    // Write the exported file
+    std::fs::write(&export_path, &pdf_data).map_err(|e| {
+        AppError::file_system(
+            export_file_path.clone(),
+            format!("Failed to write exported file: {}", e),
+        )
+    })?;
+
+    info!(
+        "Successfully saved PDF with annotations to: {}",
+        export_file_path
+    );
+    Ok(())
+}
+
+#[tauri::command]
+#[instrument(skip(app_dirs, pdf_data))]
+pub async fn save_pdf_with_annotations_data(
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+    pdf_data: Vec<u8>,
+    annotations_json: String,
+) -> Result<()> {
+    info!(
+        "Saving PDF with annotations: {}, size: {} bytes",
+        file_path,
+        pdf_data.len()
+    );
+
+    // Validate the file path is within the app's files directory
+    let path = PathBuf::from(&file_path);
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    // Check if the path is within the allowed directory
+    if !path.starts_with(&files_dir) {
+        return Err(AppError::permission(format!(
+            "save_pdf_with_annotations_data: Path {} is not within the allowed directory",
+            file_path
+        )));
+    }
+
+    // Ensure parent directory exists
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            AppError::file_system(
+                file_path.clone(),
+                format!("Failed to create directory: {}", e),
+            )
+        })?;
+    }
+
+    // Write the file directly (annotations are saved separately as JSON)
+    // This is a workaround since we don't have a Rust PDF library for merging annotations
+    std::fs::write(&path, &pdf_data).map_err(|e| {
+        AppError::file_system(file_path.clone(), format!("Failed to write file: {}", e))
+    })?;
+
+    // Save annotations as JSON sidecar file
+    let annotations_path = path.with_extension("json");
+    std::fs::write(&annotations_path, &annotations_json).map_err(|e| {
+        AppError::file_system(
+            annotations_path.to_string_lossy().to_string(),
+            format!("Failed to write annotations file: {}", e),
+        )
+    })?;
+
+    info!(
+        "Successfully saved PDF with annotations: {} (annotations: {})",
+        file_path,
+        annotations_path.display()
+    );
     Ok(())
 }

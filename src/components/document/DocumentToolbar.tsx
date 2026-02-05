@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Button, Space, Modal, Input } from "antd";
+import { Button, Space, Modal, Input, message } from "antd";
+import { FilePdfOutlined } from "@ant-design/icons";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useI18n } from "../../lib/i18n";
 
 // Lazy load invoke helper - works in both Tauri and browser
@@ -44,6 +46,40 @@ export default function DocumentToolbar({
   const handleArxivDialogClose = () => {
     setArxivDialogOpen(false);
     setArxivInput("");
+  };
+
+  const handlePdfImport = async () => {
+    try {
+      const selected = await open({
+        multiple: false,
+        directory: false,
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+
+      if (selected) {
+        const filePath = Array.isArray(selected) ? selected[0] : selected;
+        if (filePath) {
+          const hide = message.loading("Processing with GROBID...", 0);
+          try {
+            await invokeCommand("import_paper_by_pdf", {
+              filePath: filePath,
+              categoryPath: selectedCategoryId,
+            });
+            hide();
+            message.success("Paper imported successfully");
+            if (onRefresh) {
+              await onRefresh();
+            }
+          } catch (error) {
+            hide();
+            console.error("Failed to import PDF:", error);
+            message.error(`Import failed: ${String(error)}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to select PDF:", error);
+    }
   };
 
   const handleArxivSubmit = async () => {
@@ -104,6 +140,13 @@ export default function DocumentToolbar({
         }}
       >
         <Space size="small">
+          <Button
+            size="small"
+            icon={<FilePdfOutlined />}
+            onClick={handlePdfImport}
+          >
+            Import PDF
+          </Button>
           <Button size="small" onClick={handleDoiButtonClick}>
             {t("toolbar.doi")}
           </Button>

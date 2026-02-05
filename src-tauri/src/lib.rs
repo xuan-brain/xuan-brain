@@ -13,10 +13,12 @@ use crate::command::category_command::{
 use crate::command::config_command::{get_app_config, save_app_config};
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
 use crate::command::paper_command::{
-    add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
-    get_deleted_papers, get_paper, get_papers_by_category, import_paper_by_arxiv_id,
-    import_paper_by_doi, open_paper_folder, permanently_delete_paper, remove_paper_label,
-    restore_paper, update_paper_category, update_paper_details,
+    add_attachment, add_paper_label, delete_paper, export_pdf_with_annotations, get_all_papers,
+    get_attachments, get_deleted_papers, get_paper, get_papers_by_category,
+    get_pdf_attachment_path, import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf,
+    load_annotations_data, open_paper_folder, permanently_delete_paper, read_pdf_file,
+    remove_paper_label, restore_paper, save_annotations_data, save_pdf_file,
+    save_pdf_with_annotations_data, update_paper_category, update_paper_details,
 };
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
@@ -56,20 +58,30 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .setup(move |app| {
             // Initialize data directories on app startup
             let app_handle = app.handle().clone();
             app_handle.manage(log_guard);
             app_handle.manage(app_dirs.clone());
+
+            // Initialize database connection synchronously in setup
             let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                let db = init_database_connection(PathBuf::from(&app_dirs.data))
-                    .await
-                    .expect("Failed to initialize database connection");
-                info!("Database connection initialized");
-                app_handle.manage(db);
+            let app_dirs_clone = app_dirs.clone();
+            let db_result = tauri::async_runtime::block_on(async move {
+                init_database_connection(PathBuf::from(&app_dirs_clone.data)).await
             });
-            Ok(())
+
+            match db_result {
+                Ok(db) => {
+                    info!("Database connection initialized");
+                    app_handle.manage(db);
+                    Ok(())
+                }
+                Err(e) => {
+                    tracing::error!("Failed to initialize database connection: {}", e);
+                    Err(Box::new(e))
+                }
+            }
         })
         // TODO: Uncomment after fixing Tauri 2.x error type compatibility
         // .invoke_handler(tauri::generate_handler![get_all_labels])
@@ -89,6 +101,7 @@ pub fn run() -> Result<()> {
             get_paper,
             import_paper_by_doi,
             import_paper_by_arxiv_id,
+            import_paper_by_pdf,
             add_paper_label,
             remove_paper_label,
             update_paper_details,
@@ -99,6 +112,13 @@ pub fn run() -> Result<()> {
             add_attachment,
             get_attachments,
             open_paper_folder,
+            get_pdf_attachment_path,
+            read_pdf_file,
+            save_pdf_file,
+            export_pdf_with_annotations,
+            save_annotations_data,
+            load_annotations_data,
+            save_pdf_with_annotations_data,
             get_app_config,
             save_app_config
         ])

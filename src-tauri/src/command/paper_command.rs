@@ -867,8 +867,10 @@ pub async fn import_paper_by_pdf(
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
-            let mut m = crate::papers::importer::grobid::GrobidMetadata::default();
-            m.title = filename.clone();
+            let m = crate::papers::importer::grobid::GrobidMetadata {
+                title: filename.clone(),
+                ..Default::default()
+            };
             (filename, m)
         }
     };

@@ -22,7 +22,13 @@ pub async fn init_database_connection(data_dir: PathBuf) -> Result<DatabaseConne
     }
 
     // Use file:// URL format for proper handling of spaces
+    // Use file:// URL format for Unix-like systems, direct path for Windows
+    #[cfg(target_os = "windows")]
+    let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
+
+    #[cfg(not(target_os = "windows"))]
     let db_url = format!("sqlite:file://{}?mode=rwc", db_path.display());
+
     info!("database url: {db_url}");
     let mut opt = ConnectOptions::new(db_url);
     opt.max_connections(100)

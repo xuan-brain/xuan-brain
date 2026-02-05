@@ -9,7 +9,7 @@ import {
   FolderOpenOutlined,
 } from "@ant-design/icons";
 import { open } from "@tauri-apps/plugin-dialog";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { useNavigate } from "react-router-dom";
 import type { ColumnsType } from "antd/es/table";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
@@ -146,6 +146,7 @@ export default function DocumentList({
   categoryId,
 }: DocumentListProps) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const { selectedDocument, accentColor } = useAppStore();
   const [rows, setRows] = useState<PaperDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -205,49 +206,14 @@ export default function DocumentList({
     return () => window.removeEventListener("paper-updated", handlePaperUpdate);
   }, [loadPapers]);
 
-  const handleDoubleClick = useCallback(async (record: PaperDto) => {
-    console.info("Double clicked paper:", record.id, record.title);
-    // Check if paper has PDF attachments
-    if ((record.attachment_count || 0) > 0) {
-      try {
-        // Create a new window for PDF viewer
-        const label = `pdf-viewer-${record.id}`;
-        const webview = new WebviewWindow(label, {
-          url: `http://localhost:1420/src/pdf-viewer.html`,
-          title: record.title,
-          width: 1000,
-          height: 800,
-          resizable: true,
-          center: true,
-          decorations: true,
-          focus: true,
-        });
-
-        // Listen for creation errors
-        webview.once("tauri://error", (e) => {
-          console.error("Failed to create PDF viewer window:", e);
-          Modal.error({
-            title: "Failed to open PDF viewer",
-            content: `Could not open PDF viewer window: ${e.payload}`,
-          });
-        });
-
-        console.info(`Opening PDF viewer window for paper ${record.id}`);
-      } catch (err) {
-        console.error("Failed to open PDF viewer window:", err);
-        Modal.error({
-          title: "Failed to open PDF viewer",
-          content: "Could not open PDF viewer window. Please try again.",
-        });
-      }
-    } else {
-      Modal.info({
-        title: "No PDF attachment",
-        content:
-          "This paper has no PDF attachment. Please add a PDF file first.",
-      });
-    }
-  }, []);
+  const handleDoubleClick = useCallback(
+    async (record: PaperDto) => {
+      console.info("Double clicked paper:", record.id, record.title);
+      // Navigate to paper reader page
+      navigate(`/papers/${record.id}`);
+    },
+    [navigate],
+  );
 
   const handleRowClick = useCallback(
     (record: PaperDto) => {

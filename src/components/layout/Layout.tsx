@@ -1,6 +1,7 @@
 import { Layout } from "antd";
 import { Outlet } from "react-router-dom";
 import GlobalSidebar from "./GlobalSidebar";
+import TabsManager from "./TabsManager";
 import StatusBar from "./StatusBar";
 import "./Layout.css";
 
@@ -19,6 +20,7 @@ export default function MainLayout() {
             flexDirection: "column",
           }}
         >
+          <TabsManager />
           <Outlet />
         </Content>
         <Footer className="status-bar" style={{ padding: 0, flexShrink: 0 }}>

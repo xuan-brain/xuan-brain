@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { Layout } from "antd";
+import { Outlet } from "react-router-dom";
 import Navigation from "../components/navigation/Navigation";
-import DocumentList from "../components/document/DocumentList";
+import DocumentListMantine from "../components/document/DocumentListMantine";
 import DocumentDetails from "../components/document/DocumentDetails";
 import { useAppStore } from "../stores/useAppStore";
+import { useParams } from "react-router-dom";
 import "../components/layout/Layout.css"; // Reuse existing styles
 
 const { Sider, Content } = Layout;
@@ -35,6 +37,7 @@ function loadWidths(): { left: number; right: number } {
 }
 
 export default function PapersPage() {
+  const { paperId } = useParams<{ paperId?: string }>();
   const { selectedDocument, setSelectedDocument } = useAppStore();
   const savedWidths = loadWidths();
   const [leftWidth, setLeftWidth] = useState(savedWidths.left);
@@ -44,6 +47,16 @@ export default function PapersPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null,
   );
+
+  // If there's a paperId in the URL, render Outlet (PaperReaderPage)
+  if (paperId) {
+    return <Outlet />;
+  }
+
+  // If there's a paperId in the URL, render PaperReaderPage via Outlet
+  if (paperId) {
+    return <Outlet />;
+  }
 
   const [isDraggingLeft, setIsDraggingLeft] = useState(false);
   const [isDraggingRight, setIsDraggingRight] = useState(false);
@@ -129,44 +142,43 @@ export default function PapersPage() {
   };
 
   return (
-    <Layout className="main-content-area" style={{ height: '100%', flexDirection: 'row' }}>
-        {/* Left Sidebar - Navigation */}
-        <Sider width={`${leftWidth}%`} className="left-sidebar">
-          <Navigation onCategorySelect={setSelectedCategoryId} />
-        </Sider>
+    <Layout
+      className="main-content-area"
+      style={{ height: "100%", flexDirection: "row" }}
+    >
+      {/* Left Sidebar - Navigation */}
+      <Sider width={`${leftWidth}%`} className="left-sidebar">
+        <Navigation onCategorySelect={setSelectedCategoryId} />
+      </Sider>
 
-        {/* Left Resizer */}
-        <div
-          className="resizer"
-          onMouseDown={handleLeftResizerMouseDown}
-          onMouseEnter={(e) => e.currentTarget.classList.add("resizer-hover")}
-          onMouseLeave={(e) =>
-            e.currentTarget.classList.remove("resizer-hover")
-          }
+      {/* Left Resizer */}
+      <div
+        className="resizer"
+        onMouseDown={handleLeftResizerMouseDown}
+        onMouseEnter={(e) => e.currentTarget.classList.add("resizer-hover")}
+        onMouseLeave={(e) => e.currentTarget.classList.remove("resizer-hover")}
+      />
+
+      {/* Main Content Area */}
+      <Content style={{ width: `${middleWidth}%` }} className="main-content">
+        <DocumentListMantine
+          onDocumentSelect={setSelectedDocument}
+          categoryId={selectedCategoryId}
         />
+      </Content>
 
-        {/* Main Content Area */}
-        <Content style={{ width: `${middleWidth}%` }} className="main-content">
-            <DocumentList
-              onDocumentSelect={setSelectedDocument}
-              categoryId={selectedCategoryId}
-            />
-        </Content>
+      {/* Right Resizer */}
+      <div
+        className="resizer"
+        onMouseDown={handleRightResizerMouseDown}
+        onMouseEnter={(e) => e.currentTarget.classList.add("resizer-hover")}
+        onMouseLeave={(e) => e.currentTarget.classList.remove("resizer-hover")}
+      />
 
-        {/* Right Resizer */}
-        <div
-          className="resizer"
-          onMouseDown={handleRightResizerMouseDown}
-          onMouseEnter={(e) => e.currentTarget.classList.add("resizer-hover")}
-          onMouseLeave={(e) =>
-            e.currentTarget.classList.remove("resizer-hover")
-          }
-        />
-
-        {/* Right Sidebar - Document Details */}
-        <Sider width={`${rightWidth}%`} className="right-sidebar">
-          <DocumentDetails document={selectedDocument} />
-        </Sider>
+      {/* Right Sidebar - Document Details */}
+      <Sider width={`${rightWidth}%`} className="right-sidebar">
+        <DocumentDetails document={selectedDocument} />
+      </Sider>
     </Layout>
   );
 }

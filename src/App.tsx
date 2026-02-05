@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConfigProvider } from "antd";
+import { MantineProvider } from "@mantine/core";
 import { createDynamicTheme } from "./theme";
 import { I18nProvider } from "./lib/i18n";
 import MainLayout from "./components/layout/Layout";
@@ -12,6 +13,7 @@ import ClipsPage from "./pages/ClipsPage";
 import WritingPage from "./pages/WritingPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import SettingsPage from "./pages/SettingsPage";
+import PaperReaderPage from "./pages/PaperReaderPage";
 
 // 引入 Ant Design 默认样式
 import "antd/dist/reset.css";
@@ -77,20 +79,23 @@ function App() {
 
   return (
     <I18nProvider>
-      <ConfigProvider theme={antdTheme}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Navigate to="/papers" replace />} />
-              <Route path="papers" element={<PapersPage />} />
-              <Route path="clips" element={<ClipsPage />} />
-              <Route path="writing" element={<WritingPage />} />
-              <Route path="subscriptions" element={<SubscriptionPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </ConfigProvider>
+      <MantineProvider>
+        <ConfigProvider theme={antdTheme}>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<MainLayout />}>
+                <Route index element={<Navigate to="/papers" replace />} />
+                <Route path="papers" element={<PapersPage />} />
+                <Route path="/papers/:paperId" element={<PaperReaderPage />} />
+                <Route path="clips" element={<ClipsPage />} />
+                <Route path="writing" element={<WritingPage />} />
+                <Route path="subscriptions" element={<SubscriptionPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </ConfigProvider>
+      </MantineProvider>
     </I18nProvider>
   );
 }

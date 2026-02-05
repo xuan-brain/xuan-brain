@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import type { UserConfig, ConfigEnv } from "vite";
+import path from "node:path";
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -8,6 +9,11 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(
   async (_: ConfigEnv): Promise<UserConfig> => ({
     plugins: [react()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+    },
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //

@@ -858,7 +858,7 @@ pub async fn import_paper_by_pdf(
     let metadata_result = process_header_document(&path, &grobid_url).await;
 
     // 3. Prepare paper data
-    let (title, mut metadata) = match metadata_result {
+    let (title, metadata) = match metadata_result {
         Ok(m) if !m.title.is_empty() => (m.title.clone(), m),
         _ => {
             info!("GROBID failed or returned empty title, using filename");

@@ -20,7 +20,7 @@ pub async fn init_database_connection(data_dir: PathBuf) -> Result<DatabaseConne
             )
         })?;
     }
-    
+
     // Use file:// URL format for proper handling of spaces
     let db_url = format!("sqlite:file://{}?mode=rwc", db_path.display());
     info!("database url: {db_url}");
@@ -31,7 +31,7 @@ pub async fn init_database_connection(data_dir: PathBuf) -> Result<DatabaseConne
         .acquire_timeout(Duration::from_secs(8))
         .idle_timeout(Duration::from_secs(8))
         .max_lifetime(Duration::from_secs(8))
-        .sqlx_logging(true); // enable SQLx logging for debugging
+        .sqlx_logging(false); // disable SQLx logging
 
     let db = Database::connect(opt).await.map_err(|e| {
         tracing::error!("Database connection failed: {}", e);

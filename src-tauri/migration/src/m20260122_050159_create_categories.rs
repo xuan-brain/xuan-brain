@@ -7,7 +7,7 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Replace the sample below with your own migration scripts
-        let db = manager.get_connection();
+        let _db = manager.get_connection();
         manager
             .create_table(
                 Table::create()
@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
                             .name("fk_category_parent_id")
                             .from("category", "parent_id")
                             .to("category", "id")
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )

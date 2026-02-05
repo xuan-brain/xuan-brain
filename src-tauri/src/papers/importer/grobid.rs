@@ -63,13 +63,22 @@ pub async fn process_header_document(file_path: &Path, server_url: &str) -> Resu
         AppError::network_error(&url, format!("Failed to read GROBID response: {}", e))
     })?;
 
-    info!("GROBID Response: {}", xml_content);
+    info!("\n========== GROBID RAW XML RESPONSE ==========");
+    info!("{}", xml_content);
+    info!("========== END GROBID RESPONSE ==========\n");
 
     // 3. Parse XML
     parse_tei_xml(&xml_content)
 }
 
+#[allow(unused_assignments, unused_variables)]
 fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
+    info!("Attempting to parse TEI XML response");
+    info!(
+        "Raw XML content (first 500 chars): {}...",
+        xml.chars().take(500).collect::<String>()
+    );
+
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
 
@@ -95,6 +104,7 @@ fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
                 b"author" => {
                     in_author = true;
                     current_author.clear();
+                    info!("Starting to parse author");
                 }
                 b"surname" => in_surname = true,
                 b"forename" => in_forename = true,
@@ -104,15 +114,21 @@ fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
                         if let Ok(title) = reader.read_text(e.name()) {
                             if !title.trim().is_empty() {
                                 metadata.title = title.to_string();
+                                info!("Extracted title from analytic: {}", metadata.title);
                             }
                         }
                     } else if in_title_stmt && metadata.title.is_empty() {
                         if let Ok(title) = reader.read_text(e.name()) {
                             metadata.title = title.to_string();
+                            info!("Extracted title from titleStmt: {}", metadata.title);
                         }
                     } else if in_monogr {
                         if let Ok(journal) = reader.read_text(e.name()) {
                             metadata.journal_name = Some(journal.to_string());
+                            info!(
+                                "Extracted journal name: {}",
+                                metadata.journal_name.as_ref().unwrap()
+                            );
                         }
                     }
                 }
@@ -127,6 +143,7 @@ fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
                     if is_doi {
                         if let Ok(doi) = reader.read_text(e.name()) {
                             metadata.doi = Some(doi.to_string());
+                            info!("Extracted DOI: {}", metadata.doi.as_ref().unwrap());
                         }
                     }
                 }
@@ -138,6 +155,9 @@ fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
                                     let date_str = String::from_utf8_lossy(a.value.as_ref());
                                     if let Some(year) = date_str.split('-').next() {
                                         metadata.publication_year = year.parse().ok();
+                                        if let Some(y) = metadata.publication_year {
+                                            info!("Extracted publication year: {}", y);
+                                        }
                                     }
                                 }
                             }
@@ -155,6 +175,7 @@ fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
                     let name = current_author.trim();
                     if !name.is_empty() {
                         metadata.authors.push(name.to_string());
+                        info!("Added author: {}", name);
                     }
                 }
                 b"surname" => in_surname = false,
@@ -182,6 +203,17 @@ fn parse_tei_xml(xml: &str) -> Result<GrobidMetadata> {
         }
         buf.clear();
     }
+
+    info!("Parsing completed. Final metadata: {:?}", metadata);
+    info!(
+        "Title: {}, Authors: {}, DOI: {:?}, Year: {:?}, Journal: {:?}, Abstract length: {}",
+        metadata.title,
+        metadata.authors.len(),
+        metadata.doi,
+        metadata.publication_year,
+        metadata.journal_name,
+        metadata.abstract_text.as_ref().map_or(0, |s| s.len())
+    );
 
     Ok(metadata)
 }

@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Table, Text, Badge, Group, Stack, rem } from "@mantine/core";
 import { IconFile } from "@tabler/icons-react";
-import { CaretRightOutlined } from "@ant-design/icons";
+import {
+  CaretRightOutlined,
+  DeleteOutlined,
+  UndoOutlined,
+  ExclamationCircleOutlined,
+  PaperClipOutlined,
+  FolderOpenOutlined,
+} from "@ant-design/icons";
+import { Dropdown, type MenuProps, Modal } from "antd";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
@@ -239,6 +248,122 @@ export default function DocumentListMantine({
     });
   }, []);
 
+  const handleAddAttachment = useCallback(
+    async (paperId: number) => {
+      try {
+        const selected = await open({
+          multiple: false,
+          directory: false,
+        });
+        if (selected) {
+          const filePath = Array.isArray(selected) ? selected[0] : selected;
+          if (filePath) {
+            await invokeCommand("add_attachment", {
+              paperId: paperId,
+              filePath: filePath,
+            });
+            window.dispatchEvent(
+              new CustomEvent("attachment-updated", {
+                detail: { paperId: paperId },
+              }),
+            );
+            await loadPapers();
+            Modal.success({ content: "Attachment added successfully" });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to add attachment:", error);
+        Modal.error({
+          title: "Failed to add attachment",
+          content: String(error),
+        });
+      }
+    },
+    [loadPapers],
+  );
+
+  const handleOpenFolder = useCallback(async (paperId: number) => {
+    try {
+      await invokeCommand("open_paper_folder", { paperId: paperId });
+    } catch (error) {
+      console.error("Failed to open folder:", error);
+      Modal.error({
+        title: "Failed to open folder",
+        content: String(error),
+      });
+    }
+  }, []);
+
+  const handleDeletePaper = useCallback(
+    async (paperId: number) => {
+      Modal.confirm({
+        title: t("dialog.delete"),
+        icon: <ExclamationCircleOutlined />,
+        content: "确定要删除此文档吗？此操作将把文档移入回收站。",
+        okText: t("dialog.delete"),
+        okType: "danger",
+        cancelText: t("dialog.cancel"),
+        onOk: async () => {
+          try {
+            await invokeCommand("delete_paper", { id: paperId });
+            await loadPapers();
+          } catch (error) {
+            console.error("Failed to delete paper:", error);
+            Modal.error({
+              title: t("dialog.deleteFailed"),
+              content: String(error),
+            });
+          }
+        },
+      });
+    },
+    [t, loadPapers],
+  );
+
+  const handleRestorePaper = useCallback(
+    async (paperId: number) => {
+      try {
+        await invokeCommand("restore_paper", { id: paperId });
+        await loadPapers();
+      } catch (error) {
+        console.error("Failed to restore paper:", error);
+        Modal.error({
+          title: t("dialog.restoreFailed"),
+          content: String(error),
+        });
+      }
+    },
+    [t, loadPapers],
+  );
+
+  const handlePermanentlyDelete = useCallback(
+    async (paperId: number) => {
+      Modal.confirm({
+        title: t("dialog.permanentlyDelete"),
+        icon: <ExclamationCircleOutlined />,
+        content: t("dialog.confirmPermanentlyDelete"),
+        okText: t("dialog.permanentlyDelete"),
+        okType: "danger",
+        cancelText: t("dialog.cancel"),
+        onOk: async () => {
+          try {
+            await invokeCommand("permanently_delete_paper", {
+              id: paperId,
+            });
+            await loadPapers();
+          } catch (error) {
+            console.error("Failed to delete paper:", error);
+            Modal.error({
+              title: t("dialog.deleteFailed"),
+              content: String(error),
+            });
+          }
+        },
+      });
+    },
+    [t, loadPapers],
+  );
+
   return (
     <div
       style={{
@@ -342,127 +467,156 @@ export default function DocumentListMantine({
                 const isExpanded = openedRows.has(record.id);
                 const isOddRow = index % 2 !== 0;
 
+                const menuItems: MenuProps["items"] =
+                  categoryId === "trash"
+                    ? [
+                        {
+                          key: "restore",
+                          label: t("dialog.restore"),
+                          icon: <UndoOutlined />,
+                          onClick: () => handleRestorePaper(record.id),
+                        },
+                        {
+                          key: "permanently_delete",
+                          label: t("dialog.permanentlyDelete"),
+                          icon: <DeleteOutlined />,
+                          danger: true,
+                          onClick: () => handlePermanentlyDelete(record.id),
+                        },
+                      ]
+                    : [
+                        {
+                          key: "add_attachment",
+                          label: "添加附件",
+                          icon: <PaperClipOutlined />,
+                          onClick: () => handleAddAttachment(record.id),
+                        },
+                        {
+                          key: "open_folder",
+                          label: "打开附件文件夹",
+                          icon: <FolderOpenOutlined />,
+                          onClick: () => handleOpenFolder(record.id),
+                        },
+                        {
+                          type: "divider",
+                        },
+                        {
+                          key: "delete",
+                          label: t("dialog.delete"),
+                          icon: <DeleteOutlined />,
+                          danger: true,
+                          onClick: () => handleDeletePaper(record.id),
+                        },
+                      ];
+
                 return (
                   <React.Fragment key={record.id}>
-                    <Table.Tr
-                      style={{
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        "--table-accent-color-transparent": hexToRgba(
-                          accentColor,
-                          0.5,
-                        ),
-                      }}
-                      data-striped={isOddRow}
-                      data-selected={isSelected}
-                      onDoubleClick={() => handleDoubleClick(record)}
-                      onClick={() => handleRowClick(record)}
-                      onMouseEnter={() => setHoveredRowId(record.id)}
-                      onMouseLeave={() => setHoveredRowId(null)}
+                    <Dropdown
+                      menu={{ items: menuItems }}
+                      trigger={["contextMenu"]}
                     >
-                      <Table.Td
+                      <Table.Tr
                         style={{
-                          width: "40px",
-                          textAlign: "center",
-                          verticalAlign: "middle",
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          "--table-accent-color-transparent": hexToRgba(
+                            accentColor,
+                            0.5,
+                          ),
                         }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (
-                            record.attachment_count &&
-                            record.attachment_count > 0
-                          ) {
-                            handleRowExpand(record.id);
-                          }
-                        }}
+                        data-striped={isOddRow}
+                        data-selected={isSelected}
+                        onDoubleClick={() => handleDoubleClick(record)}
+                        onClick={() => handleRowClick(record)}
+                        onMouseEnter={() => setHoveredRowId(record.id)}
+                        onMouseLeave={() => setHoveredRowId(null)}
                       >
-                        {typeof record.attachment_count === "number" &&
-                          record.attachment_count > 0 && (
-                            <div
-                              style={{
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRowExpand(record.id);
-                              }}
-                            >
-                              <CaretRightOutlined
+                        <Table.Td
+                          style={{
+                            width: "40px",
+                            textAlign: "center",
+                            verticalAlign: "middle",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (
+                              record.attachment_count &&
+                              record.attachment_count > 0
+                            ) {
+                              handleRowExpand(record.id);
+                            }
+                          }}
+                        >
+                          {typeof record.attachment_count === "number" &&
+                            record.attachment_count > 0 && (
+                              <div
                                 style={{
-                                  fontSize: "14px",
-                                  color: isDark
-                                    ? "rgba(255, 255, 255, 0.65)"
-                                    : "rgba(0, 0, 0, 0.45)",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                 }}
-                              />
-                            </div>
-                          )}
-                      </Table.Td>
-                      <Table.Td
-                        style={{
-                          width: "1",
-                          verticalAlign: "middle",
-                          paddingLeft: 8,
-                          paddingRight: 8,
-                        }}
-                      >
-                        <Text
-                          size="sm"
-                          truncate="end"
-                          title={record.title}
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            fontSize: `${TABLE_FONT_SIZE}px`,
-                            lineHeight: 1,
-                            margin: 0,
-                            padding: 0,
-                            display: "block",
-                            maxWidth: "100%",
-                          }}
-                        >
-                          {record.title}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td
-                        style={{
-                          width: "100px",
-                          verticalAlign: "middle",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            flexWrap:
-                              hoveredRowId === record.id ? "wrap" : "nowrap",
-                            height: "100%",
-                          }}
-                        >
-                          {hoveredRowId === record.id
-                            ? record.authors?.map((author, index) => (
-                                <Tag
-                                  key={index}
-                                  color="blue"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRowExpand(record.id);
+                                }}
+                              >
+                                <CaretRightOutlined
                                   style={{
-                                    whiteSpace: "nowrap",
-                                    fontSize: `${TABLE_FONT_SIZE}px`,
-                                    margin: 0,
-                                    padding: "2px 6px",
-                                    lineHeight: 1,
+                                    fontSize: "14px",
+                                    color: isDark
+                                      ? "rgba(255, 255, 255, 0.65)"
+                                      : "rgba(0, 0, 0, 0.45)",
                                   }}
-                                >
-                                  {author}
-                                </Tag>
-                              ))
-                            : record.authors
-                                ?.slice(0, 1)
-                                .map((author, index) => (
+                                />
+                              </div>
+                            )}
+                        </Table.Td>
+                        <Table.Td
+                          style={{
+                            width: "1",
+                            verticalAlign: "middle",
+                            paddingLeft: 8,
+                            paddingRight: 8,
+                          }}
+                        >
+                          <Text
+                            size="sm"
+                            truncate="end"
+                            title={record.title}
+                            style={{
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              fontSize: `${TABLE_FONT_SIZE}px`,
+                              lineHeight: 1,
+                              margin: 0,
+                              padding: 0,
+                              display: "block",
+                              maxWidth: "100%",
+                            }}
+                          >
+                            {record.title}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td
+                          style={{
+                            width: "100px",
+                            verticalAlign: "middle",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              flexWrap:
+                                hoveredRowId === record.id ? "wrap" : "nowrap",
+                              height: "100%",
+                            }}
+                          >
+                            {hoveredRowId === record.id
+                              ? record.authors?.map((author, index) => (
                                   <Tag
                                     key={index}
                                     color="blue"
@@ -472,11 +626,157 @@ export default function DocumentListMantine({
                                       margin: 0,
                                       padding: "2px 6px",
                                       lineHeight: 1,
-                                      position: "relative",
                                     }}
                                   >
                                     {author}
-                                    {record.authors.length > 1 && (
+                                  </Tag>
+                                ))
+                              : record.authors
+                                  ?.slice(0, 1)
+                                  .map((author, index) => (
+                                    <Tag
+                                      key={index}
+                                      color="blue"
+                                      style={{
+                                        whiteSpace: "nowrap",
+                                        fontSize: `${TABLE_FONT_SIZE}px`,
+                                        margin: 0,
+                                        padding: "2px 6px",
+                                        lineHeight: 1,
+                                        position: "relative",
+                                      }}
+                                    >
+                                      {author}
+                                      {record.authors.length > 1 && (
+                                        <Badge
+                                          variant="filled"
+                                          size="xs"
+                                          style={{
+                                            fontSize: `${TABLE_FONT_SIZE - 2}px`,
+                                            height: 14,
+                                            minWidth: 14,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: "0 5px",
+                                            borderRadius: 3,
+                                            backgroundColor: "#ef4444",
+                                            color: "white",
+                                            position: "absolute",
+                                            top: -6,
+                                            right: -6,
+                                            zIndex: 1,
+                                          }}
+                                        >
+                                          +{record.authors.length - 1}
+                                        </Badge>
+                                      )}
+                                    </Tag>
+                                  ))}
+                          </div>
+                        </Table.Td>
+                        <Table.Td
+                          style={{
+                            width: "250px",
+                            verticalAlign: "middle",
+                            textAlign: "center",
+                          }}
+                        >
+                          <Text
+                            size="sm"
+                            truncate="end"
+                            title={
+                              record.journal_name ||
+                              record.conference_name ||
+                              ""
+                            }
+                            style={{
+                              whiteSpace: "nowrap",
+                              fontSize: `${TABLE_FONT_SIZE}px`,
+                              lineHeight: 1,
+                              margin: 0,
+                              padding: 0,
+                            }}
+                          >
+                            {record.journal_name ||
+                              record.conference_name ||
+                              ""}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td
+                          style={{
+                            width: "25px",
+                            verticalAlign: "middle",
+                            textAlign: "center",
+                          }}
+                        >
+                          <Text
+                            size="sm"
+                            style={{
+                              whiteSpace: "nowrap",
+                              fontSize: `${TABLE_FONT_SIZE}px`,
+                              lineHeight: 1,
+                              margin: 0,
+                              padding: 0,
+                            }}
+                          >
+                            {record.publication_year
+                              ? String(record.publication_year)
+                              : ""}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td
+                          style={{
+                            width: "50px",
+                            verticalAlign: "middle",
+                            textAlign: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              flexWrap:
+                                hoveredRowId === record.id ? "wrap" : "nowrap",
+                              height: "100%",
+                            }}
+                          >
+                            {hoveredRowId === record.id
+                              ? record.labels?.map((label) => (
+                                  <Tag
+                                    key={label.id}
+                                    color={
+                                      TAG_COLORS[label.color] || TAG_COLORS.blue
+                                    }
+                                    style={{
+                                      whiteSpace: "nowrap",
+                                      fontSize: `${TABLE_FONT_SIZE}px`,
+                                      margin: 0,
+                                      padding: "2px 6px",
+                                      lineHeight: 1,
+                                    }}
+                                  >
+                                    {label.name}
+                                  </Tag>
+                                ))
+                              : record.labels?.slice(0, 1).map((label) => (
+                                  <Tag
+                                    key={label.id}
+                                    color={
+                                      TAG_COLORS[label.color] || TAG_COLORS.blue
+                                    }
+                                    style={{
+                                      whiteSpace: "nowrap",
+                                      fontSize: `${TABLE_FONT_SIZE}px`,
+                                      margin: 0,
+                                      padding: "2px 6px",
+                                      lineHeight: 1,
+                                      position: "relative",
+                                    }}
+                                  >
+                                    {label.name}
+                                    {record.labels.length > 1 && (
                                       <Badge
                                         variant="filled"
                                         size="xs"
@@ -497,139 +797,15 @@ export default function DocumentListMantine({
                                           zIndex: 1,
                                         }}
                                       >
-                                        +{record.authors.length - 1}
+                                        +{record.labels.length - 1}
                                       </Badge>
                                     )}
                                   </Tag>
                                 ))}
-                        </div>
-                      </Table.Td>
-                      <Table.Td
-                        style={{
-                          width: "250px",
-                          verticalAlign: "middle",
-                          textAlign: "center",
-                        }}
-                      >
-                        <Text
-                          size="sm"
-                          truncate="end"
-                          title={
-                            record.journal_name || record.conference_name || ""
-                          }
-                          style={{
-                            whiteSpace: "nowrap",
-                            fontSize: `${TABLE_FONT_SIZE}px`,
-                            lineHeight: 1,
-                            margin: 0,
-                            padding: 0,
-                          }}
-                        >
-                          {record.journal_name || record.conference_name || ""}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td
-                        style={{
-                          width: "25px",
-                          verticalAlign: "middle",
-                          textAlign: "center",
-                        }}
-                      >
-                        <Text
-                          size="sm"
-                          style={{
-                            whiteSpace: "nowrap",
-                            fontSize: `${TABLE_FONT_SIZE}px`,
-                            lineHeight: 1,
-                            margin: 0,
-                            padding: 0,
-                          }}
-                        >
-                          {record.publication_year
-                            ? String(record.publication_year)
-                            : ""}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td
-                        style={{
-                          width: "50px",
-                          verticalAlign: "middle",
-                          textAlign: "center",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            flexWrap:
-                              hoveredRowId === record.id ? "wrap" : "nowrap",
-                            height: "100%",
-                          }}
-                        >
-                          {hoveredRowId === record.id
-                            ? record.labels?.map((label) => (
-                                <Tag
-                                  key={label.id}
-                                  color={
-                                    TAG_COLORS[label.color] || TAG_COLORS.blue
-                                  }
-                                  style={{
-                                    whiteSpace: "nowrap",
-                                    fontSize: `${TABLE_FONT_SIZE}px`,
-                                    margin: 0,
-                                    padding: "2px 6px",
-                                    lineHeight: 1,
-                                  }}
-                                >
-                                  {label.name}
-                                </Tag>
-                              ))
-                            : record.labels?.slice(0, 1).map((label) => (
-                                <Tag
-                                  key={label.id}
-                                  color={
-                                    TAG_COLORS[label.color] || TAG_COLORS.blue
-                                  }
-                                  style={{
-                                    whiteSpace: "nowrap",
-                                    fontSize: `${TABLE_FONT_SIZE}px`,
-                                    margin: 0,
-                                    padding: "2px 6px",
-                                    lineHeight: 1,
-                                    position: "relative",
-                                  }}
-                                >
-                                  {label.name}
-                                  {record.labels.length > 1 && (
-                                    <Badge
-                                      variant="filled"
-                                      size="xs"
-                                      style={{
-                                        fontSize: `${TABLE_FONT_SIZE - 2}px`,
-                                        height: 14,
-                                        minWidth: 14,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        padding: "0 5px",
-                                        borderRadius: 3,
-                                        backgroundColor: "#ef4444",
-                                        color: "white",
-                                        position: "absolute",
-                                        top: -6,
-                                        right: -6,
-                                        zIndex: 1,
-                                      }}
-                                    >
-                                      +{record.labels.length - 1}
-                                    </Badge>
-                                  )}
-                                </Tag>
-                              ))}
-                        </div>
-                      </Table.Td>
-                    </Table.Tr>
+                          </div>
+                        </Table.Td>
+                      </Table.Tr>
+                    </Dropdown>
 
                     {isExpanded && (
                       <Table.Tr>

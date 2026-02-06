@@ -368,7 +368,7 @@ export default function DocumentListMantine({
                           }
                         }}
                       >
-                        {record.attachment_count &&
+                        {typeof record.attachment_count === "number" &&
                           record.attachment_count > 0 && (
                             <ActionIcon
                               size="sm"

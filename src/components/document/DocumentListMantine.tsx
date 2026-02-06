@@ -274,7 +274,7 @@ export default function DocumentListMantine({
         ) : (
           <Table
             highlightOnHover
-            striped="odd"
+            striped
             verticalSpacing="sm"
             horizontalSpacing="md"
             style={{ width: "100%", tableLayout: "fixed" }}
@@ -338,17 +338,24 @@ export default function DocumentListMantine({
             </Table.Thead>
 
             <Table.Tbody>
-              {rows.map((record) => {
+              {rows.map((record, index) => {
                 const isSelected = selectedDocument?.id === record.id;
                 const isExpanded = openedRows.has(record.id);
+                const isOddRow = index % 2 !== 0;
 
                 return (
                   <React.Fragment key={record.id}>
                     <Table.Tr
+                      bg={
+                        isSelected
+                          ? accentColor
+                          : isOddRow
+                            ? "gray.0"
+                            : undefined
+                      }
                       style={{
                         cursor: "pointer",
                         whiteSpace: "nowrap",
-                        backgroundColor: isSelected ? accentColor : undefined,
                       }}
                       onDoubleClick={() => handleDoubleClick(record)}
                       onClick={() => handleRowClick(record)}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Table, Text, Badge, Group, Stack, rem } from "@mantine/core";
+import { Table, Text, Badge, Group, rem, List, ThemeIcon } from "@mantine/core";
 import { IconFile } from "@tabler/icons-react";
 import {
   CaretRightOutlined,
@@ -131,27 +131,31 @@ const AttachmentList = ({ paperId }: { paperId: number }) => {
 
   return (
     <div style={{ padding: rem(8) }}>
-      <Stack gap={rem(8)}>
+      <List spacing="xs" size="sm">
         {attachments.map((att) => (
-          <Group
-            key={att.id}
-            p={rem(8)}
-            bg="gray.1"
-            style={{
-              borderRadius: rem(4),
-              whiteSpace: "nowrap",
-            }}
-          >
-            <IconFile size={16} />
-            <Text size="sm" flex={1} style={{ whiteSpace: "nowrap" }}>
-              {att.file_name}
-            </Text>
-            <Text size="xs" c="dimmed">
-              {new Date(att.created_at).toLocaleDateString()}
-            </Text>
-          </Group>
+          <List.Item key={att.id}>
+            <Group gap="xs" style={{ width: "100%" }}>
+              <ThemeIcon size={20} variant="light" color="blue">
+                <IconFile size={14} />
+              </ThemeIcon>
+              <Text
+                size="sm"
+                style={{
+                  flex: 1,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {att.file_name}
+              </Text>
+              <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
+                {new Date(att.created_at).toLocaleDateString()}
+              </Text>
+            </Group>
+          </List.Item>
         ))}
-      </Stack>
+      </List>
     </div>
   );
 };

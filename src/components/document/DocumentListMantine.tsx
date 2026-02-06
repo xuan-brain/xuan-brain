@@ -9,7 +9,7 @@ import {
   rem,
   Tooltip,
 } from "@mantine/core";
-import { IconCaretRight, IconFile } from "@tabler/icons-react";
+import { IconChevronRight, IconFile } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
@@ -289,7 +289,7 @@ export default function DocumentListMantine({
                 ></Table.Th>
                 <Table.Th
                   style={{
-                    width: "1",
+                    width: "80%",
                     fontSize: `${TABLE_FONT_SIZE}px`,
                     verticalAlign: "middle",
                   }}
@@ -307,7 +307,7 @@ export default function DocumentListMantine({
                 </Table.Th>
                 <Table.Th
                   style={{
-                    width: "250px",
+                    width: "200px",
                     fontSize: `${TABLE_FONT_SIZE}px`,
                     verticalAlign: "middle",
                   }}
@@ -316,7 +316,7 @@ export default function DocumentListMantine({
                 </Table.Th>
                 <Table.Th
                   style={{
-                    width: "25px",
+                    width: "30px",
                     fontSize: `${TABLE_FONT_SIZE}px`,
                     verticalAlign: "middle",
                   }}
@@ -325,7 +325,7 @@ export default function DocumentListMantine({
                 </Table.Th>
                 <Table.Th
                   style={{
-                    width: "50px",
+                    width: "100px",
                     fontSize: `${TABLE_FONT_SIZE}px`,
                     verticalAlign: "middle",
                   }}
@@ -375,7 +375,7 @@ export default function DocumentListMantine({
                               variant="subtle"
                               style={{ cursor: "pointer" }}
                             >
-                              <IconCaretRight size={16} />
+                              <IconChevronRight size={16} />
                             </ActionIcon>
                           )}
                       </Table.Td>
@@ -490,8 +490,7 @@ export default function DocumentListMantine({
                         style={{
                           width: "250px",
                           verticalAlign: "middle",
-                          paddingLeft: 8,
-                          paddingRight: 8,
+                          textAlign: "center",
                         }}
                       >
                         <Text
@@ -506,7 +505,6 @@ export default function DocumentListMantine({
                             lineHeight: 1,
                             margin: 0,
                             padding: 0,
-                            display: "block",
                           }}
                         >
                           {record.journal_name || record.conference_name || ""}

@@ -257,6 +257,7 @@ export default function DocumentListMantine({
           overflowY: "auto",
           overflowX: "hidden",
           minHeight: 0,
+          marginTop: 16,
         }}
       >
         {loading ? (

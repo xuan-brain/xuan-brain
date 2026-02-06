@@ -523,6 +523,8 @@ export default function DocumentListMantine({
                             accentColor,
                             0.5,
                           ),
+                          paddingTop: 4,
+                          paddingBottom: 4,
                         }}
                         data-striped={isOddRow}
                         data-selected={isSelected}

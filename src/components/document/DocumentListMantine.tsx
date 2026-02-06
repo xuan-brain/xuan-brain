@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Table, Text, Badge, Group, Stack, rem, Tooltip } from "@mantine/core";
+import {
+  Table,
+  ActionIcon,
+  Text,
+  Badge,
+  Group,
+  Stack,
+  rem,
+  Tooltip,
+} from "@mantine/core";
+import { IconCaretRight, IconFile } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
@@ -124,9 +134,7 @@ const AttachmentList = ({ paperId }: { paperId: number }) => {
               whiteSpace: "nowrap",
             }}
           >
-            <Text size="xs" c="dimmed">
-              -
-            </Text>
+            <IconFile size={16} />
             <Text size="sm" flex={1} style={{ whiteSpace: "nowrap" }}>
               {att.file_name}
             </Text>
@@ -361,17 +369,13 @@ export default function DocumentListMantine({
                       >
                         {record.attachment_count &&
                           record.attachment_count > 0 && (
-                            <Text
+                            <ActionIcon
                               size="sm"
-                              style={{
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: "bold",
-                                color: "var(--mantine-color-gray-6)",
-                              }}
+                              variant="subtle"
+                              style={{ cursor: "pointer" }}
                             >
-                              {">"}
-                            </Text>
+                              <IconCaretRight size={16} />
+                            </ActionIcon>
                           )}
                       </Table.Td>
                       <Table.Td

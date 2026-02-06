@@ -393,11 +393,14 @@ export default function DocumentListMantine({
                           title={record.title}
                           style={{
                             whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
                             fontSize: `${TABLE_FONT_SIZE}px`,
                             lineHeight: 1,
                             margin: 0,
                             padding: 0,
                             display: "block",
+                            maxWidth: "100%",
                           }}
                         >
                           {record.title}

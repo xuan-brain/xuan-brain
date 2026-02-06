@@ -82,3 +82,15 @@ code {
 .tree-item[aria-selected="true"] {
   background-color: var(--ant-color-primary-bg, rgba(24, 144, 255, 0.1));
 }
+
+/* Table Striped Rows */
+.mantine-Table-tr[data-striped="true"] {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.mantine-Table-tr[data-selected="true"] {
+  background-color: var(
+    --table-accent-color-transparent,
+    rgba(59, 130, 246, 0.5)
+  ) !important;
+}

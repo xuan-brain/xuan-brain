@@ -1,14 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  Table,
-  ActionIcon,
-  Text,
-  Badge,
-  Group,
-  Stack,
-  rem,
-} from "@mantine/core";
-import { IconChevronRight, IconFile } from "@tabler/icons-react";
+import { Table, Text, Badge, Group, Stack, rem } from "@mantine/core";
+import { IconFile } from "@tabler/icons-react";
+import { CaretRightOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
@@ -44,6 +37,13 @@ const TAG_COLORS: Record<string, string> = {
 };
 
 const TABLE_FONT_SIZE = 13;
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 interface LabelDto {
   id: number;
@@ -153,7 +153,7 @@ export default function DocumentListMantine({
 }: DocumentListProps) {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { selectedDocument, accentColor } = useAppStore();
+  const { selectedDocument, accentColor, isDark } = useAppStore();
   const [rows, setRows] = useState<PaperDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [openedRows, setOpenedRows] = useState<Set<number>>(new Set());
@@ -274,7 +274,6 @@ export default function DocumentListMantine({
         ) : (
           <Table
             highlightOnHover
-            striped
             verticalSpacing="sm"
             horizontalSpacing="md"
             style={{ width: "100%", tableLayout: "fixed" }}
@@ -346,17 +345,16 @@ export default function DocumentListMantine({
                 return (
                   <React.Fragment key={record.id}>
                     <Table.Tr
-                      bg={
-                        isSelected
-                          ? accentColor
-                          : isOddRow
-                            ? "gray.0"
-                            : undefined
-                      }
                       style={{
                         cursor: "pointer",
                         whiteSpace: "nowrap",
+                        "--table-accent-color-transparent": hexToRgba(
+                          accentColor,
+                          0.5,
+                        ),
                       }}
+                      data-striped={isOddRow}
+                      data-selected={isSelected}
                       onDoubleClick={() => handleDoubleClick(record)}
                       onClick={() => handleRowClick(record)}
                       onMouseEnter={() => setHoveredRowId(record.id)}
@@ -380,13 +378,27 @@ export default function DocumentListMantine({
                       >
                         {typeof record.attachment_count === "number" &&
                           record.attachment_count > 0 && (
-                            <ActionIcon
-                              size="sm"
-                              variant="subtle"
-                              style={{ cursor: "pointer" }}
+                            <div
+                              style={{
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowExpand(record.id);
+                              }}
                             >
-                              <IconChevronRight size={16} />
-                            </ActionIcon>
+                              <CaretRightOutlined
+                                style={{
+                                  fontSize: "14px",
+                                  color: isDark
+                                    ? "rgba(255, 255, 255, 0.65)"
+                                    : "rgba(0, 0, 0, 0.45)",
+                                }}
+                              />
+                            </div>
                           )}
                       </Table.Td>
                       <Table.Td

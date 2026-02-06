@@ -516,8 +516,7 @@ export default function DocumentListMantine({
                         style={{
                           width: "25px",
                           verticalAlign: "middle",
-                          paddingLeft: 8,
-                          paddingRight: 8,
+                          textAlign: "center",
                         }}
                       >
                         <Text
@@ -528,7 +527,6 @@ export default function DocumentListMantine({
                             lineHeight: 1,
                             margin: 0,
                             padding: 0,
-                            display: "block",
                           }}
                         >
                           {record.publication_year

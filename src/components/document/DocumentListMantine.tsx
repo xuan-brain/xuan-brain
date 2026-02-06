@@ -274,6 +274,7 @@ export default function DocumentListMantine({
         ) : (
           <Table
             highlightOnHover
+            striped
             verticalSpacing="sm"
             horizontalSpacing="md"
             style={{ width: "100%", tableLayout: "fixed" }}

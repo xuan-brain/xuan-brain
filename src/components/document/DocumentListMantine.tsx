@@ -2,31 +2,18 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Table,
   ActionIcon,
-  Menu,
   Text,
   Badge,
   Group,
   Stack,
   rem,
-  MenuTarget,
-  MenuDropdown,
-  MenuLabel,
-  MenuItem,
-  MenuDivider,
+  Tooltip,
 } from "@mantine/core";
-import {
-  IconFile,
-  IconTrash,
-  IconRestore,
-  IconDots,
-  IconPaperclip,
-  IconFolderOpen,
-  IconGripHorizontal,
-} from "@tabler/icons-react";
+import { IconFile } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
-import { open } from "@tauri-apps/plugin-dialog";
+import { Tag } from "antd";
 import DocumentToolbar from "./DocumentToolbar";
 
 async function invokeCommand<T = unknown>(
@@ -57,6 +44,8 @@ const TAG_COLORS: Record<string, string> = {
   rose: "#f43f5e",
 };
 
+const TABLE_FONT_SIZE = 12;
+
 interface LabelDto {
   id: number;
   name: string;
@@ -86,25 +75,6 @@ interface DocumentListProps {
   onDocumentSelect: (document: any) => void;
   categoryId?: string | null;
 }
-
-// Storage key for column widths
-const COLUMN_WIDTHS_KEY = "document-list-column-widths";
-
-interface ColumnWidths {
-  title: number;
-  authors: number;
-  source: number;
-  year: number;
-  labels: number;
-}
-
-const DEFAULT_COLUMN_WIDTHS: ColumnWidths = {
-  title: 250,
-  authors: 200,
-  source: 150,
-  year: 80,
-  labels: 320,
-};
 
 const AttachmentList = ({ paperId }: { paperId: number }) => {
   const [attachments, setAttachments] = useState<AttachmentDto[]>([]);
@@ -189,28 +159,6 @@ export default function DocumentListMantine({
   const [loading, setLoading] = useState(true);
   const [openedRows, setOpenedRows] = useState<Set<number>>(new Set());
 
-  // Load and save column widths
-  const [columnWidths, setColumnWidths] = useState<ColumnWidths>(() => {
-    const saved = localStorage.getItem(COLUMN_WIDTHS_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved) as ColumnWidths;
-      } catch (e) {
-        console.error("Failed to parse column widths:", e);
-        return DEFAULT_COLUMN_WIDTHS;
-      }
-    }
-    return DEFAULT_COLUMN_WIDTHS;
-  });
-
-  const saveColumnWidths = useCallback((widths: ColumnWidths) => {
-    try {
-      localStorage.setItem(COLUMN_WIDTHS_KEY, JSON.stringify(widths));
-    } catch (e) {
-      console.error("Failed to save column widths:", e);
-    }
-  }, []);
-
   const loadPapers = useCallback(async () => {
     setLoading(true);
     try {
@@ -291,92 +239,6 @@ export default function DocumentListMantine({
     });
   }, []);
 
-  const handleDelete = useCallback(
-    async (id: number) => {
-      try {
-        await invokeCommand("delete_paper", { id });
-        await loadPapers();
-      } catch (error) {
-        console.error("Failed to delete paper:", error);
-      }
-    },
-    [loadPapers],
-  );
-
-  const handleRestore = useCallback(
-    async (id: number) => {
-      try {
-        await invokeCommand("restore_paper", { id });
-        await loadPapers();
-      } catch (error) {
-        console.error("Failed to restore paper:", error);
-      }
-    },
-    [loadPapers],
-  );
-
-  // Column resizer hooks
-  const [draggingColumn, setDraggingColumn] = useState<string | null>(null);
-  const [dragStartX, setDragStartX] = useState(0);
-
-  const handleColumnMouseDown = useCallback((e: any, column: string) => {
-    e.preventDefault();
-    setDraggingColumn(column);
-    setDragStartX(e.clientX);
-    e.currentTarget.style.cursor = "col-resize";
-  }, []);
-
-  const handleColumnMouseMove = useCallback(
-    (e: any) => {
-      if (!draggingColumn) return;
-
-      const deltaX = e.clientX - dragStartX;
-      const containerWidth = window.innerWidth;
-      const deltaPercent = (deltaX / containerWidth) * 100;
-
-      setColumnWidths((prev: ColumnWidths) => {
-        const newWidths = { ...prev };
-        const minWidth = 80;
-        const maxWidth = 600;
-
-        const currentWidth = newWidths[draggingColumn as keyof ColumnWidths];
-        const newWidth = Math.max(
-          minWidth,
-          Math.min(maxWidth, currentWidth + deltaPercent),
-        );
-
-        newWidths[draggingColumn as keyof ColumnWidths] = newWidth;
-
-        return newWidths;
-      });
-    },
-    [draggingColumn, dragStartX],
-  );
-
-  const handleColumnMouseUp = useCallback(() => {
-    if (draggingColumn) {
-      setDraggingColumn(null);
-      document.body.style.cursor = "";
-      saveColumnWidths(columnWidths);
-    }
-    setDragStartX(0);
-  }, [draggingColumn, columnWidths, saveColumnWidths]);
-
-  useEffect(() => {
-    if (draggingColumn) {
-      window.addEventListener("mousemove", handleColumnMouseMove);
-      window.addEventListener("mouseup", handleColumnMouseUp);
-    } else {
-      window.removeEventListener("mousemove", handleColumnMouseMove);
-      window.removeEventListener("mouseup", handleColumnMouseUp);
-    }
-
-    return () => {
-      window.removeEventListener("mousemove", handleColumnMouseMove);
-      window.removeEventListener("mouseup", handleColumnMouseUp);
-    };
-  }, [draggingColumn, handleColumnMouseMove, handleColumnMouseUp]);
-
   return (
     <div
       style={{
@@ -412,103 +274,63 @@ export default function DocumentListMantine({
             highlightOnHover
             verticalSpacing="sm"
             horizontalSpacing="md"
-            style={{ width: "100%", tableLayout: "fixed" }}
+            style={{ width: "100%", tableLayout: "auto" }}
           >
             <Table.Thead>
               <Table.Tr>
                 <Table.Th
                   style={{
-                    position: "relative",
-                    userSelect: "none",
-                    whiteSpace: "nowrap",
+                    width: "40px",
+                    textAlign: "center",
+                    fontSize: `${TABLE_FONT_SIZE}px`,
+                    verticalAlign: "middle",
                   }}
-                  onMouseDown={(e: any) => handleColumnMouseDown(e, "title")}
+                ></Table.Th>
+                <Table.Th
+                  style={{
+                    width: "auto",
+                    fontSize: `${TABLE_FONT_SIZE}px`,
+                    verticalAlign: "middle",
+                  }}
                 >
                   {t("document.title")}
-                  <span
-                    style={{
-                      position: "absolute",
-                      right: "0",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "gray.4",
-                    }}
-                  >
-                    <IconGripHorizontal size={12} />
-                  </span>
                 </Table.Th>
                 <Table.Th
                   style={{
-                    position: "relative",
-                    userSelect: "none",
-                    whiteSpace: "nowrap",
+                    width: "100px",
+                    fontSize: `${TABLE_FONT_SIZE}px`,
+                    verticalAlign: "middle",
                   }}
-                  onMouseDown={(e: any) => handleColumnMouseDown(e, "authors")}
                 >
                   {t("document.authors")}
-                  <span
-                    style={{
-                      position: "absolute",
-                      right: "0",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "gray.4",
-                    }}
-                  >
-                    <IconGripHorizontal size={12} />
-                  </span>
                 </Table.Th>
                 <Table.Th
                   style={{
-                    position: "relative",
-                    userSelect: "none",
-                    whiteSpace: "nowrap",
+                    width: "50px",
+                    fontSize: `${TABLE_FONT_SIZE}px`,
+                    verticalAlign: "middle",
                   }}
-                  onMouseDown={(e: any) => handleColumnMouseDown(e, "source")}
                 >
                   {t("document.source")}
-                  <span
-                    style={{
-                      position: "absolute",
-                      right: "0",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "gray.4",
-                    }}
-                  >
-                    <IconGripHorizontal size={12} />
-                  </span>
                 </Table.Th>
                 <Table.Th
                   style={{
-                    whiteSpace: "nowrap",
-                    width: "60px",
+                    width: "25px",
+                    fontSize: `${TABLE_FONT_SIZE}px`,
+                    verticalAlign: "middle",
                   }}
                 >
                   {t("document.year")}
                 </Table.Th>
                 <Table.Th
                   style={{
-                    position: "relative",
-                    userSelect: "none",
-                    whiteSpace: "nowrap",
+                    width: "50px",
+                    fontSize: `${TABLE_FONT_SIZE}px`,
+                    verticalAlign: "middle",
                   }}
-                  onMouseDown={(e: any) => handleColumnMouseDown(e, "labels")}
                 >
                   {t("document.labels")}
-                  <span
-                    style={{
-                      position: "absolute",
-                      right: "0",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "gray.4",
-                    }}
-                  >
-                    <IconGripHorizontal size={12} />
-                  </span>
                 </Table.Th>
-                <Table.Th style={{ width: 0 }}></Table.Th>
               </Table.Tr>
             </Table.Thead>
 
@@ -531,10 +353,37 @@ export default function DocumentListMantine({
                     >
                       <Table.Td
                         style={{
-                          width: `${columnWidths.title}px`,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          width: "40px",
+                          textAlign: "center",
+                          verticalAlign: "middle",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (
+                            record.attachment_count &&
+                            record.attachment_count > 0
+                          ) {
+                            handleRowExpand(record.id);
+                          }
+                        }}
+                      >
+                        {record.attachment_count &&
+                          record.attachment_count > 0 && (
+                            <ActionIcon
+                              size="sm"
+                              variant="subtle"
+                              style={{ cursor: "pointer" }}
+                            >
+                              <IconFile size={16} />
+                            </ActionIcon>
+                          )}
+                      </Table.Td>
+                      <Table.Td
+                        style={{
+                          width: "auto",
+                          verticalAlign: "middle",
+                          paddingLeft: 8,
+                          paddingRight: 8,
                         }}
                       >
                         <Text
@@ -548,44 +397,93 @@ export default function DocumentListMantine({
                       </Table.Td>
                       <Table.Td
                         style={{
-                          width: `${columnWidths.authors}px`,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          width: "100px",
+                          verticalAlign: "middle",
+                          paddingLeft: 8,
+                          paddingRight: 8,
                         }}
                       >
-                        <div
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            flexWrap: "nowrap",
-                          }}
-                        >
-                          {record.authors?.slice(0, 3).map((author, index) => (
-                            <Badge
-                              key={index}
-                              variant="filled"
-                              size="sm"
-                              color={TAG_COLORS.blue}
-                              style={{ whiteSpace: "nowrap" }}
+                        <Tooltip.Floating
+                          label={
+                            <div
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                flexWrap: "wrap",
+                                maxWidth: 300,
+                              }}
                             >
-                              {author}
-                            </Badge>
-                          ))}
-                          {record.authors && record.authors.length > 3 && (
-                            <Text size="sm" c="dimmed">
-                              +{record.authors.length - 3}
-                            </Text>
-                          )}
-                        </div>
+                              {record.authors?.map((author, index) => (
+                                <Tag key={index} color="blue">
+                                  {author}
+                                </Tag>
+                              ))}
+                            </div>
+                          }
+                          position="top"
+                          withinPortal={false}
+                        >
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              flexWrap: "nowrap",
+                              height: "100%",
+                            }}
+                          >
+                            {record.authors
+                              ?.slice(0, 1)
+                              .map((author, index) => (
+                                <Tag
+                                  key={index}
+                                  color="blue"
+                                  style={{
+                                    whiteSpace: "nowrap",
+                                    fontSize: `${TABLE_FONT_SIZE}px`,
+                                    margin: 0,
+                                    padding: "2px 6px",
+                                    lineHeight: 1,
+                                    position: "relative",
+                                  }}
+                                >
+                                  {author}
+                                  {record.authors.length > 1 && (
+                                    <Badge
+                                      variant="filled"
+                                      size="xs"
+                                      style={{
+                                        fontSize: `${TABLE_FONT_SIZE - 2}px`,
+                                        height: 14,
+                                        minWidth: 14,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        padding: "0 5px",
+                                        borderRadius: 3,
+                                        backgroundColor: "#ef4444",
+                                        color: "white",
+                                        position: "absolute",
+                                        top: -6,
+                                        right: -6,
+                                        zIndex: 1,
+                                      }}
+                                    >
+                                      {record.authors.length - 1}
+                                    </Badge>
+                                  )}
+                                </Tag>
+                              ))}
+                          </div>
+                        </Tooltip.Floating>
                       </Table.Td>
                       <Table.Td
                         style={{
-                          width: `${columnWidths.source}px`,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          width: "50px",
+                          verticalAlign: "middle",
+                          paddingLeft: 8,
+                          paddingRight: 8,
                         }}
                       >
                         <Text
@@ -594,18 +492,37 @@ export default function DocumentListMantine({
                           title={
                             record.journal_name || record.conference_name || ""
                           }
-                          style={{ whiteSpace: "nowrap" }}
+                          style={{
+                            whiteSpace: "nowrap",
+                            fontSize: `${TABLE_FONT_SIZE}px`,
+                            lineHeight: 1,
+                            margin: 0,
+                            padding: 0,
+                            display: "block",
+                          }}
                         >
                           {record.journal_name || record.conference_name || ""}
                         </Text>
                       </Table.Td>
                       <Table.Td
                         style={{
-                          width: "60px",
-                          whiteSpace: "nowrap",
+                          width: "25px",
+                          verticalAlign: "middle",
+                          paddingLeft: 8,
+                          paddingRight: 8,
                         }}
                       >
-                        <Text size="sm" style={{ whiteSpace: "nowrap" }}>
+                        <Text
+                          size="sm"
+                          style={{
+                            whiteSpace: "nowrap",
+                            fontSize: `${TABLE_FONT_SIZE}px`,
+                            lineHeight: 1,
+                            margin: 0,
+                            padding: 0,
+                            display: "block",
+                          }}
+                        >
                           {record.publication_year
                             ? String(record.publication_year)
                             : ""}
@@ -613,152 +530,55 @@ export default function DocumentListMantine({
                       </Table.Td>
                       <Table.Td
                         style={{
-                          width: `${columnWidths.labels}px`,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          width: "50px",
+                          verticalAlign: "middle",
+                          paddingLeft: 8,
+                          paddingRight: 8,
                         }}
                       >
                         <div
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: "8px",
+                            gap: "4px",
                             flexWrap: "nowrap",
+                            height: "100%",
                           }}
                         >
                           {record.labels?.slice(0, 3).map((label) => (
-                            <Badge
+                            <Tag
                               key={label.id}
-                              variant="filled"
-                              size="sm"
-                              color={label.color}
+                              color={TAG_COLORS[label.color] || TAG_COLORS.blue}
                               style={{
-                                backgroundColor:
-                                  TAG_COLORS[label.color] || TAG_COLORS.blue,
-                                color: "#fff",
                                 whiteSpace: "nowrap",
+                                fontSize: `${TABLE_FONT_SIZE}px`,
+                                margin: 0,
+                                padding: "2px 6px",
+                                lineHeight: 1,
                               }}
                             >
                               {label.name}
-                            </Badge>
+                            </Tag>
                           ))}
                           {record.labels && record.labels.length > 3 && (
-                            <Text size="sm" c="dimmed">
+                            <Text
+                              size="sm"
+                              c="dimmed"
+                              style={{
+                                fontSize: `${TABLE_FONT_SIZE}px`,
+                                margin: 0,
+                              }}
+                            >
                               +{record.labels.length - 3}
                             </Text>
                           )}
                         </div>
                       </Table.Td>
-                      <Table.Td p={0}>
-                        {record.attachment_count &&
-                          record.attachment_count > 0 && (
-                            <ActionIcon
-                              size="sm"
-                              variant="subtle"
-                              onClick={(e: any) => {
-                                e.stopPropagation();
-                                handleRowExpand(record.id);
-                              }}
-                              style={{ cursor: "pointer" }}
-                            >
-                              <IconFile size={16} />
-                            </ActionIcon>
-                          )}
-                      </Table.Td>
-                      <Table.Td>
-                        <Menu
-                          shadow="md"
-                          width={200}
-                          position="bottom-end"
-                          withinPortal
-                        >
-                          <MenuTarget>
-                            <ActionIcon variant="subtle" size="sm">
-                              <IconDots size={16} />
-                            </ActionIcon>
-                          </MenuTarget>
-
-                          <MenuDropdown>
-                            {categoryId === "trash" ? (
-                              <>
-                                <MenuLabel>Actions</MenuLabel>
-                                <MenuItem
-                                  leftSection={<IconRestore size={14} />}
-                                  onClick={() => handleRestore(record.id)}
-                                >
-                                  {t("dialog.restore")}
-                                </MenuItem>
-                                <MenuItem
-                                  leftSection={<IconTrash size={14} />}
-                                  color="red"
-                                  onClick={() => handleDelete(record.id)}
-                                >
-                                  {t("dialog.permanentlyDelete")}
-                                </MenuItem>
-                              </>
-                            ) : (
-                              <>
-                                <MenuLabel>Actions</MenuLabel>
-                                <MenuItem
-                                  leftSection={<IconPaperclip size={14} />}
-                                  onClick={async () => {
-                                    const selected = await open({
-                                      multiple: false,
-                                      directory: false,
-                                    });
-                                    if (selected) {
-                                      const filePath = Array.isArray(selected)
-                                        ? selected[0]
-                                        : selected;
-                                      if (filePath) {
-                                        await invokeCommand("add_attachment", {
-                                          paperId: record.id,
-                                          filePath: filePath,
-                                        });
-                                        window.dispatchEvent(
-                                          new CustomEvent(
-                                            "attachment-updated",
-                                            {
-                                              detail: { paperId: record.id },
-                                            },
-                                          ),
-                                        );
-                                        await loadPapers();
-                                      }
-                                    }
-                                  }}
-                                >
-                                  添加附件
-                                </MenuItem>
-                                <MenuItem
-                                  leftSection={<IconFolderOpen size={14} />}
-                                  onClick={async () => {
-                                    await invokeCommand("open_paper_folder", {
-                                      paperId: record.id,
-                                    });
-                                  }}
-                                >
-                                  打开附件文件夹
-                                </MenuItem>
-                                <MenuDivider />
-                                <MenuItem
-                                  leftSection={<IconTrash size={14} />}
-                                  color="red"
-                                  onClick={() => handleDelete(record.id)}
-                                >
-                                  {t("dialog.delete")}
-                                </MenuItem>
-                              </>
-                            )}
-                          </MenuDropdown>
-                        </Menu>
-                      </Table.Td>
                     </Table.Tr>
 
                     {isExpanded && (
                       <Table.Tr>
-                        <Table.Td colSpan={7} style={{ padding: 0 }}>
+                        <Table.Td colSpan={6} style={{ padding: 0 }}>
                           <div
                             style={{
                               padding: rem(8),

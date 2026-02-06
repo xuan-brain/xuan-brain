@@ -254,7 +254,8 @@ export default function DocumentListMantine({
       <div
         style={{
           flex: 1,
-          overflow: "auto",
+          overflowY: "auto",
+          overflowX: "hidden",
           minHeight: 0,
         }}
       >

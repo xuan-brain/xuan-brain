@@ -274,7 +274,7 @@ export default function DocumentListMantine({
         ) : (
           <Table
             highlightOnHover
-            striped
+            striped="odd"
             verticalSpacing="sm"
             horizontalSpacing="md"
             style={{ width: "100%", tableLayout: "fixed" }}
@@ -345,12 +345,11 @@ export default function DocumentListMantine({
                 return (
                   <React.Fragment key={record.id}>
                     <Table.Tr
-                      c={
-                        isSelected
-                          ? { backgroundColor: accentColor }
-                          : undefined
-                      }
-                      style={{ cursor: "pointer", whiteSpace: "nowrap" }}
+                      style={{
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        backgroundColor: isSelected ? accentColor : undefined,
+                      }}
                       onDoubleClick={() => handleDoubleClick(record)}
                       onClick={() => handleRowClick(record)}
                       onMouseEnter={() => setHoveredRowId(record.id)}

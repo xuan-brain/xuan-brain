@@ -298,7 +298,7 @@ export default function DocumentListMantine({
                 </Table.Th>
                 <Table.Th
                   style={{
-                    width: "50px",
+                    width: "250px",
                     fontSize: `${TABLE_FONT_SIZE}px`,
                     verticalAlign: "middle",
                   }}
@@ -476,7 +476,7 @@ export default function DocumentListMantine({
                       </Table.Td>
                       <Table.Td
                         style={{
-                          width: "50px",
+                          width: "250px",
                           verticalAlign: "middle",
                           paddingLeft: 8,
                           paddingRight: 8,

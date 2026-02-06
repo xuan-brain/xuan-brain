@@ -28,13 +28,6 @@ function App() {
     console.info("Info level log check");
 
     if (typeof window !== "undefined") {
-      // Disable default context menu globally
-      const handleContextMenu = (e: MouseEvent) => {
-        e.preventDefault();
-      };
-
-      document.addEventListener("contextmenu", handleContextMenu);
-
       // Watch for changes to data-mode attribute
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
@@ -75,7 +68,6 @@ function App() {
       });
 
       return () => {
-        document.removeEventListener("contextmenu", handleContextMenu);
         observer.disconnect();
         accentObserver.disconnect();
       };

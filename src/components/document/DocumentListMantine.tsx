@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Table, Text, Badge, Group, rem, List, ThemeIcon } from "@mantine/core";
+import { Table, Text, Badge, rem, ThemeIcon } from "@mantine/core";
 import { IconFile } from "@tabler/icons-react";
 import {
   CaretRightOutlined,
@@ -9,7 +9,7 @@ import {
   PaperClipOutlined,
   FolderOpenOutlined,
 } from "@ant-design/icons";
-import { Dropdown, type MenuProps, Modal } from "antd";
+import { Dropdown, type MenuProps, Modal, Card } from "antd";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../lib/i18n";
@@ -130,35 +130,43 @@ const AttachmentList = ({ paperId }: { paperId: number }) => {
     );
 
   return (
-    <div style={{ padding: rem(8) }}>
-      <List spacing="xs" size="sm">
-        {attachments.map((att) => (
-          <List.Item key={att.id}>
-            <Group gap="xs" style={{ width: "100%" }}>
-              <ThemeIcon size={20} variant="light" color="blue">
-                <IconFile size={14} />
-              </ThemeIcon>
-              <Text
-                size="sm"
-                style={{
-                  flex: 1,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {att.file_name}
-              </Text>
-              <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
-                {att.created_at && !isNaN(new Date(att.created_at).getTime())
-                  ? new Date(att.created_at).toLocaleDateString()
-                  : "-"}
-              </Text>
-            </Group>
-          </List.Item>
-        ))}
-      </List>
-    </div>
+    <Card
+      size="small"
+      style={{ margin: rem(8) }}
+      bodyStyle={{
+        padding: rem(12),
+        display: "flex",
+        flexDirection: "column",
+        gap: rem(8),
+      }}
+    >
+      {attachments.map((att) => (
+        <div
+          key={att.id}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: rem(8),
+            width: "100%",
+          }}
+        >
+          <ThemeIcon size={20} variant="light" color="blue">
+            <IconFile size={14} />
+          </ThemeIcon>
+          <Text
+            size="sm"
+            style={{
+              flex: 1,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {att.file_name}
+          </Text>
+        </div>
+      ))}
+    </Card>
   );
 };
 
@@ -820,6 +828,8 @@ export default function DocumentListMantine({
                         <Table.Td colSpan={6} style={{ padding: 0 }}>
                           <div
                             style={{
+                              display: "flex",
+                              alignItems: "center",
                               padding: rem(8),
                               backgroundColor: "var(--mantine-color-gray-0)",
                               borderTop:

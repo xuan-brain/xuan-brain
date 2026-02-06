@@ -150,7 +150,9 @@ const AttachmentList = ({ paperId }: { paperId: number }) => {
                 {att.file_name}
               </Text>
               <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
-                {new Date(att.created_at).toLocaleDateString()}
+                {att.created_at && !isNaN(new Date(att.created_at).getTime())
+                  ? new Date(att.created_at).toLocaleDateString()
+                  : "-"}
               </Text>
             </Group>
           </List.Item>

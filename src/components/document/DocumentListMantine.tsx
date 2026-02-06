@@ -158,6 +158,7 @@ export default function DocumentListMantine({
   const [rows, setRows] = useState<PaperDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [openedRows, setOpenedRows] = useState<Set<number>>(new Set());
+  const [hoveredRowId, setHoveredRowId] = useState<number | null>(null);
 
   const loadPapers = useCallback(async () => {
     setLoading(true);
@@ -351,6 +352,8 @@ export default function DocumentListMantine({
                       style={{ cursor: "pointer", whiteSpace: "nowrap" }}
                       onDoubleClick={() => handleDoubleClick(record)}
                       onClick={() => handleRowClick(record)}
+                      onMouseEnter={() => setHoveredRowId(record.id)}
+                      onMouseLeave={() => setHoveredRowId(null)}
                     >
                       <Table.Td
                         style={{
@@ -410,43 +413,20 @@ export default function DocumentListMantine({
                         style={{
                           width: "100px",
                           verticalAlign: "middle",
-                          paddingLeft: 8,
-                          paddingRight: 8,
                         }}
                       >
-                        <Tooltip.Floating
-                          label={
-                            <div
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                flexWrap: "wrap",
-                                maxWidth: 300,
-                              }}
-                            >
-                              {record.authors?.map((author, index) => (
-                                <Tag key={index} color="blue">
-                                  {author}
-                                </Tag>
-                              ))}
-                            </div>
-                          }
-                          position="top"
-                          withinPortal={false}
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            flexWrap:
+                              hoveredRowId === record.id ? "wrap" : "nowrap",
+                            height: "100%",
+                          }}
                         >
-                          <div
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              flexWrap: "nowrap",
-                              height: "100%",
-                            }}
-                          >
-                            {record.authors
-                              ?.slice(0, 1)
-                              .map((author, index) => (
+                          {hoveredRowId === record.id
+                            ? record.authors?.map((author, index) => (
                                 <Tag
                                   key={index}
                                   color="blue"
@@ -456,38 +436,54 @@ export default function DocumentListMantine({
                                     margin: 0,
                                     padding: "2px 6px",
                                     lineHeight: 1,
-                                    position: "relative",
                                   }}
                                 >
                                   {author}
-                                  {record.authors.length > 1 && (
-                                    <Badge
-                                      variant="filled"
-                                      size="xs"
-                                      style={{
-                                        fontSize: `${TABLE_FONT_SIZE - 2}px`,
-                                        height: 14,
-                                        minWidth: 14,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        padding: "0 5px",
-                                        borderRadius: 3,
-                                        backgroundColor: "#ef4444",
-                                        color: "white",
-                                        position: "absolute",
-                                        top: -6,
-                                        right: -6,
-                                        zIndex: 1,
-                                      }}
-                                    >
-                                      +{record.authors.length - 1}
-                                    </Badge>
-                                  )}
                                 </Tag>
-                              ))}
-                          </div>
-                        </Tooltip.Floating>
+                              ))
+                            : record.authors
+                                ?.slice(0, 1)
+                                .map((author, index) => (
+                                  <Tag
+                                    key={index}
+                                    color="blue"
+                                    style={{
+                                      whiteSpace: "nowrap",
+                                      fontSize: `${TABLE_FONT_SIZE}px`,
+                                      margin: 0,
+                                      padding: "2px 6px",
+                                      lineHeight: 1,
+                                      position: "relative",
+                                    }}
+                                  >
+                                    {author}
+                                    {record.authors.length > 1 && (
+                                      <Badge
+                                        variant="filled"
+                                        size="xs"
+                                        style={{
+                                          fontSize: `${TABLE_FONT_SIZE - 2}px`,
+                                          height: 14,
+                                          minWidth: 14,
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          padding: "0 5px",
+                                          borderRadius: 3,
+                                          backgroundColor: "#ef4444",
+                                          color: "white",
+                                          position: "absolute",
+                                          top: -6,
+                                          right: -6,
+                                          zIndex: 1,
+                                        }}
+                                      >
+                                        +{record.authors.length - 1}
+                                      </Badge>
+                                    )}
+                                  </Tag>
+                                ))}
+                        </div>
                       </Table.Td>
                       <Table.Td
                         style={{
@@ -515,25 +511,82 @@ export default function DocumentListMantine({
                       </Table.Td>
                       <Table.Td
                         style={{
-                          width: "25px",
+                          width: "50px",
                           verticalAlign: "middle",
                           textAlign: "center",
                         }}
                       >
-                        <Text
-                          size="sm"
+                        <div
                           style={{
-                            whiteSpace: "nowrap",
-                            fontSize: `${TABLE_FONT_SIZE}px`,
-                            lineHeight: 1,
-                            margin: 0,
-                            padding: 0,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            flexWrap:
+                              hoveredRowId === record.id ? "wrap" : "nowrap",
+                            height: "100%",
                           }}
                         >
-                          {record.publication_year
-                            ? String(record.publication_year)
-                            : ""}
-                        </Text>
+                          {hoveredRowId === record.id
+                            ? record.labels?.map((label) => (
+                                <Tag
+                                  key={label.id}
+                                  color={
+                                    TAG_COLORS[label.color] || TAG_COLORS.blue
+                                  }
+                                  style={{
+                                    whiteSpace: "nowrap",
+                                    fontSize: `${TABLE_FONT_SIZE}px`,
+                                    margin: 0,
+                                    padding: "2px 6px",
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  {label.name}
+                                </Tag>
+                              ))
+                            : record.labels?.slice(0, 1).map((label) => (
+                                <Tag
+                                  key={label.id}
+                                  color={
+                                    TAG_COLORS[label.color] || TAG_COLORS.blue
+                                  }
+                                  style={{
+                                    whiteSpace: "nowrap",
+                                    fontSize: `${TABLE_FONT_SIZE}px`,
+                                    margin: 0,
+                                    padding: "2px 6px",
+                                    lineHeight: 1,
+                                    position: "relative",
+                                  }}
+                                >
+                                  {label.name}
+                                  {record.labels.length > 1 && (
+                                    <Badge
+                                      variant="filled"
+                                      size="xs"
+                                      style={{
+                                        fontSize: `${TABLE_FONT_SIZE - 2}px`,
+                                        height: 14,
+                                        minWidth: 14,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        padding: "0 5px",
+                                        borderRadius: 3,
+                                        backgroundColor: "#ef4444",
+                                        color: "white",
+                                        position: "absolute",
+                                        top: -6,
+                                        right: -6,
+                                        zIndex: 1,
+                                      }}
+                                    >
+                                      +{record.labels.length - 1}
+                                    </Badge>
+                                  )}
+                                </Tag>
+                              ))}
+                        </div>
                       </Table.Td>
                       <Table.Td
                         style={{

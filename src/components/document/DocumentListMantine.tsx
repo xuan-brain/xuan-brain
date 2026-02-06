@@ -44,7 +44,7 @@ const TAG_COLORS: Record<string, string> = {
   rose: "#f43f5e",
 };
 
-const TABLE_FONT_SIZE = 12;
+const TABLE_FONT_SIZE = 13;
 
 interface LabelDto {
   id: number;

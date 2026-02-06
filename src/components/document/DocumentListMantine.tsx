@@ -539,47 +539,87 @@ export default function DocumentListMantine({
                         style={{
                           width: "50px",
                           verticalAlign: "middle",
-                          paddingLeft: 8,
-                          paddingRight: 8,
                         }}
                       >
-                        <div
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            flexWrap: "nowrap",
-                            height: "100%",
-                          }}
+                        <Tooltip.Floating
+                          label={
+                            <div
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                flexWrap: "wrap",
+                                maxWidth: 300,
+                              }}
+                            >
+                              {record.labels?.map((label) => (
+                                <Tag
+                                  key={label.id}
+                                  color={
+                                    TAG_COLORS[label.color] || TAG_COLORS.blue
+                                  }
+                                >
+                                  {label.name}
+                                </Tag>
+                              ))}
+                            </div>
+                          }
+                          position="top"
+                          withinPortal={false}
                         >
-                          {record.labels?.slice(0, 3).map((label) => (
-                            <Tag
-                              key={label.id}
-                              color={TAG_COLORS[label.color] || TAG_COLORS.blue}
-                              style={{
-                                whiteSpace: "nowrap",
-                                fontSize: `${TABLE_FONT_SIZE}px`,
-                                margin: 0,
-                                padding: "2px 6px",
-                                lineHeight: 1,
-                              }}
-                            >
-                              {label.name}
-                            </Tag>
-                          ))}
-                          {record.labels && record.labels.length > 3 && (
-                            <Text
-                              size="sm"
-                              c="dimmed"
-                              style={{
-                                fontSize: `${TABLE_FONT_SIZE}px`,
-                                margin: 0,
-                              }}
-                            >
-                              +{record.labels.length - 3}
-                            </Text>
-                          )}
-                        </div>
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              flexWrap: "nowrap",
+                              height: "100%",
+                            }}
+                          >
+                            {record.labels?.slice(0, 1).map((label) => (
+                              <Tag
+                                key={label.id}
+                                color={
+                                  TAG_COLORS[label.color] || TAG_COLORS.blue
+                                }
+                                style={{
+                                  whiteSpace: "nowrap",
+                                  fontSize: `${TABLE_FONT_SIZE}px`,
+                                  margin: 0,
+                                  padding: "2px 6px",
+                                  lineHeight: 1,
+                                  position: "relative",
+                                }}
+                              >
+                                {label.name}
+                                {record.labels.length > 1 && (
+                                  <Badge
+                                    variant="filled"
+                                    size="xs"
+                                    style={{
+                                      fontSize: `${TABLE_FONT_SIZE - 2}px`,
+                                      height: 14,
+                                      minWidth: 14,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      padding: "0 5px",
+                                      borderRadius: 3,
+                                      backgroundColor: "#ef4444",
+                                      color: "white",
+                                      position: "absolute",
+                                      top: -6,
+                                      right: -6,
+                                      zIndex: 1,
+                                    }}
+                                  >
+                                    {record.labels.length - 1}
+                                  </Badge>
+                                )}
+                              </Tag>
+                            ))}
+                          </div>
+                        </Tooltip.Floating>
                       </Table.Td>
                     </Table.Tr>
 

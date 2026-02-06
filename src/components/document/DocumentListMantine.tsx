@@ -481,7 +481,7 @@ export default function DocumentListMantine({
                                         zIndex: 1,
                                       }}
                                     >
-                                      {record.authors.length - 1}
+                                      +{record.authors.length - 1}
                                     </Badge>
                                   )}
                                 </Tag>
@@ -614,7 +614,7 @@ export default function DocumentListMantine({
                                       zIndex: 1,
                                     }}
                                   >
-                                    {record.labels.length - 1}
+                                    +{record.labels.length - 1}
                                   </Badge>
                                 )}
                               </Tag>

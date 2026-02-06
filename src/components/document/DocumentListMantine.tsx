@@ -346,7 +346,7 @@ export default function DocumentListMantine({
                     <Table.Tr
                       c={
                         isSelected
-                          ? { backgroundColor: `${accentColor}40` }
+                          ? { backgroundColor: accentColor }
                           : undefined
                       }
                       style={{ cursor: "pointer", whiteSpace: "nowrap" }}

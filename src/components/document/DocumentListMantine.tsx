@@ -274,7 +274,7 @@ export default function DocumentListMantine({
             highlightOnHover
             verticalSpacing="sm"
             horizontalSpacing="md"
-            style={{ width: "100%", tableLayout: "auto" }}
+            style={{ width: "100%", tableLayout: "fixed" }}
           >
             <Table.Thead>
               <Table.Tr>
@@ -288,7 +288,7 @@ export default function DocumentListMantine({
                 ></Table.Th>
                 <Table.Th
                   style={{
-                    width: "auto",
+                    width: "1",
                     fontSize: `${TABLE_FONT_SIZE}px`,
                     verticalAlign: "middle",
                   }}
@@ -380,7 +380,7 @@ export default function DocumentListMantine({
                       </Table.Td>
                       <Table.Td
                         style={{
-                          width: "auto",
+                          width: "1",
                           verticalAlign: "middle",
                           paddingLeft: 8,
                           paddingRight: 8,

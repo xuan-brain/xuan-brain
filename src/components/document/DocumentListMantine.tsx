@@ -386,7 +386,14 @@ export default function DocumentListMantine({
                           size="sm"
                           truncate="end"
                           title={record.title}
-                          style={{ whiteSpace: "nowrap" }}
+                          style={{
+                            whiteSpace: "nowrap",
+                            fontSize: `${TABLE_FONT_SIZE}px`,
+                            lineHeight: 1,
+                            margin: 0,
+                            padding: 0,
+                            display: "block",
+                          }}
                         >
                           {record.title}
                         </Text>

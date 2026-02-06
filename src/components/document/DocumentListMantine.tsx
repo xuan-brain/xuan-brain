@@ -539,6 +539,7 @@ export default function DocumentListMantine({
                         style={{
                           width: "50px",
                           verticalAlign: "middle",
+                          textAlign: "center",
                         }}
                       >
                         <Tooltip.Floating

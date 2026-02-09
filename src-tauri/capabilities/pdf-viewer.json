@@ -4,8 +4,10 @@
   "description": "Capability for PDF viewer windows",
   "windows": ["pdf-viewer-*"],
   "permissions": [
+    "notification:all",
     "core:default",
     "core:window:allow-set-title",
-    "core:window:allow-close"
+    "core:window:allow-close",
+    "tracing:allow-log"
   ]
 }

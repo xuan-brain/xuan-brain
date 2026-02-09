@@ -242,14 +242,6 @@ export default function DocumentListMantine({
     [navigate],
   );
 
-  const handleRowClick = useCallback(
-    (record: PaperDto) => {
-      console.info("Row clicked", record.id);
-      onDocumentSelect(record);
-    },
-    [onDocumentSelect],
-  );
-
   const handleRowExpand = useCallback((id: number) => {
     setOpenedRows((prev) => {
       const next = new Set(prev);
@@ -261,6 +253,17 @@ export default function DocumentListMantine({
       return next;
     });
   }, []);
+
+  const handleRowClick = useCallback(
+    (record: PaperDto) => {
+      console.info("Row clicked", record.id);
+      onDocumentSelect(record);
+      if (record.attachment_count && record.attachment_count > 0) {
+        handleRowExpand(record.id);
+      }
+    },
+    [onDocumentSelect, handleRowExpand],
+  );
 
   const handleAddAttachment = useCallback(
     async (paperId: number) => {
@@ -537,8 +540,8 @@ export default function DocumentListMantine({
                             accentColor,
                             0.5,
                           ),
-                          paddingTop: 4,
-                          paddingBottom: 4,
+                          paddingTop: 12,
+                          paddingBottom: 12,
                         }}
                         data-striped={isOddRow}
                         data-selected={isSelected}
@@ -553,15 +556,6 @@ export default function DocumentListMantine({
                             textAlign: "center",
                             verticalAlign: "middle",
                           }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (
-                              record.attachment_count &&
-                              record.attachment_count > 0
-                            ) {
-                              handleRowExpand(record.id);
-                            }
-                          }}
                         >
                           {typeof record.attachment_count === "number" &&
                             record.attachment_count > 0 && (
@@ -571,10 +565,6 @@ export default function DocumentListMantine({
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRowExpand(record.id);
                                 }}
                               >
                                 <CaretRightOutlined

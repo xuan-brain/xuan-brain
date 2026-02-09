@@ -9,7 +9,7 @@ import {
   PaperClipOutlined,
   FolderOpenOutlined,
 } from "@ant-design/icons";
-import { Dropdown, type MenuProps, Modal, Card } from "antd";
+import { Dropdown, type MenuProps, Modal } from "antd";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../lib/i18n";
@@ -130,10 +130,9 @@ const AttachmentList = ({ paperId }: { paperId: number }) => {
     );
 
   return (
-    <Card
-      size="small"
-      style={{ margin: rem(8) }}
-      bodyStyle={{
+    <div
+      style={{
+        width: "100%",
         padding: rem(12),
         display: "flex",
         flexDirection: "column",
@@ -148,6 +147,7 @@ const AttachmentList = ({ paperId }: { paperId: number }) => {
             alignItems: "center",
             gap: rem(8),
             width: "100%",
+            paddingLeft: 20,
           }}
         >
           <ThemeIcon size={20} variant="light" color="blue">
@@ -160,13 +160,14 @@ const AttachmentList = ({ paperId }: { paperId: number }) => {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              margin: 0,
             }}
           >
             {att.file_name}
           </Text>
         </div>
       ))}
-    </Card>
+    </div>
   );
 };
 
@@ -819,8 +820,8 @@ export default function DocumentListMantine({
                           <div
                             style={{
                               display: "flex",
-                              alignItems: "center",
-                              padding: rem(8),
+                              width: "100%",
+                              alignItems: "stretch",
                               backgroundColor: "var(--mantine-color-gray-0)",
                               borderTop:
                                 "1px solid var(--mantine-color-gray-2)",

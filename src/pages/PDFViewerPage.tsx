@@ -31,31 +31,30 @@ const PDFViewerPage: React.FC = () => {
 
   useEffect(() => {
     const initPDF = async () => {
-      const currentWindow = getCurrentWindow();
-      const label = currentWindow.label;
-      const idMatch = label.match(/pdf-viewer-(\d+)/);
+      setLoading(true);
+      const url = new URL(window.location.href);
+      const filePathFromQuery = url.searchParams.get("path");
+      const titleFromQuery = url.searchParams.get("title");
 
-      if (!idMatch) {
-        setError("Invalid PDF viewer window");
+      if (!filePathFromQuery) {
+        setError("No PDF path provided in URL");
         setLoading(false);
         return;
       }
 
       try {
-        const id = parseInt(idMatch[1], 10);
-        const info = await invokeCommand<PdfAttachmentInfo>(
-          "get_pdf_attachment_path",
-          { paperId: id },
-        );
+        setPaperTitle(titleFromQuery || "PDF Viewer");
+        setFilePath(filePathFromQuery);
+
         const contents = await invokeCommand<number[]>("read_pdf_file", {
-          filePath: info.file_path,
+          filePath: filePathFromQuery,
         });
         const uint8Array = new Uint8Array(contents);
         const pdfDataCopy = new Uint8Array(uint8Array);
         setPdfData(uint8Array);
-        setPaperTitle(info.paper_title);
-        setFilePath(info.file_path);
-        await currentWindow.setTitle(info.paper_title);
+
+        const currentWindow = getCurrentWindow();
+        await currentWindow.setTitle(titleFromQuery || "PDF Viewer");
 
         // Save original PDF data to ref for later use
         originalPdfDataRef.current = pdfDataCopy;

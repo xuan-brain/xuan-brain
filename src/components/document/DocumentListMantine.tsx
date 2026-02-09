@@ -12,6 +12,7 @@ import {
 import { Dropdown, type MenuProps, Modal } from "antd";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useNavigate } from "react-router-dom";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useI18n } from "../../lib/i18n";
 import { useAppStore } from "../../stores/useAppStore";
 import { Tag } from "antd";
@@ -236,9 +237,40 @@ export default function DocumentListMantine({
   }, [loadPapers]);
 
   const handleDoubleClick = useCallback(
-    (record: PaperDto) => {
-      console.info("Double clicked paper:", record.id, record.title);
-      navigate(`/papers/${record.id}`);
+    async (record: PaperDto) => {
+      try {
+        const pdfInfo = await invokeCommand<{
+          file_path: string;
+          paper_title: string;
+        }>("get_pdf_attachment_path", { paperId: record.id });
+
+        if (pdfInfo && pdfInfo.file_path) {
+          const encodedPath = encodeURIComponent(pdfInfo.file_path);
+          const label = `pdf-viewer-${record.id}-${Date.now()}`;
+
+          const webview = new WebviewWindow(label, {
+            url: `pdf-viewer.html?path=${encodedPath}&title=${encodeURIComponent(pdfInfo.paper_title)}`,
+            title: pdfInfo.paper_title,
+            width: 800,
+            height: 1000,
+          });
+
+          webview.once("tauri://created", function () {
+            console.log("Webview created");
+          });
+          webview.once("tauri://error", function (e) {
+            console.error("Webview creation error", e);
+          });
+        } else {
+          navigate(`/papers/${record.id}`);
+        }
+      } catch (error) {
+        console.error(
+          "Failed to get PDF path, navigating to details page:",
+          error,
+        );
+        navigate(`/papers/${record.id}`);
+      }
     },
     [navigate],
   );

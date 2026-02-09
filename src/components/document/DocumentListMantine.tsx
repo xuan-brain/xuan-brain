@@ -26,6 +26,16 @@ async function invokeCommand<T = unknown>(
   return invoke<T>(cmd, args);
 }
 
+// Get the correct PDF viewer URL based on environment
+function getPdfViewerUrl(): string {
+  // In development mode, use the Vite dev server URL
+  if (import.meta.env.DEV) {
+    return "http://localhost:1420/pdf-viewer.html";
+  }
+  // Production: use relative path
+  return "pdf-viewer.html";
+}
+
 const TAG_COLORS: Record<string, string> = {
   red: "#ef4444",
   orange: "#f97316",
@@ -248,8 +258,9 @@ export default function DocumentListMantine({
           const encodedPath = encodeURIComponent(pdfInfo.file_path);
           const label = `pdf-viewer-${record.id}-${Date.now()}`;
 
+          const pdfViewerUrl = getPdfViewerUrl();
           const webview = new WebviewWindow(label, {
-            url: `pdf-viewer.html?path=${encodedPath}&title=${encodeURIComponent(pdfInfo.paper_title)}`,
+            url: `${pdfViewerUrl}?path=${encodedPath}&title=${encodeURIComponent(pdfInfo.paper_title)}`,
             title: pdfInfo.paper_title,
             width: 800,
             height: 1000,

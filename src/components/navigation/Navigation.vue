@@ -9,6 +9,9 @@ import AddTagDialog from "@/components/dialogs/AddTagDialog.vue";
 
 const { t } = useI18n();
 
+// CategoryTree ref for refresh
+const categoryTreeRef = ref<InstanceType<typeof CategoryTree>>();
+
 interface Label {
   id: number;
   name: string;
@@ -156,12 +159,14 @@ async function handleUpdateTagColor(colorKey: string) {
 
 // Refresh after dialog operations
 function refreshCategories() {
-  // CategoryTree will handle its own refresh
+  // Trigger CategoryTree refresh
+  categoryTreeRef.value?.loadCategories();
 }
 
 function handleCategoryCreated() {
   showAddCategoryDialog.value = false;
-  // Refresh will be handled by CategoryTree
+  // Refresh CategoryTree
+  categoryTreeRef.value?.loadCategories();
 }
 
 function handleTagCreated() {
@@ -204,7 +209,10 @@ onMounted(() => {
       </div>
 
       <!-- Category Tree Component -->
-      <CategoryTree @category-select="handleCategorySelect" />
+      <CategoryTree
+        ref="categoryTreeRef"
+        @category-select="handleCategorySelect"
+      />
     </div>
 
     <!-- Bottom Section: Tags, Favorites, Trash -->

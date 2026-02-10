@@ -19,7 +19,7 @@ impl<'a> CategoryService<'a> {
     // 加载整棵树，转为 CategoryDto[]（含 ltree_path）
     pub async fn load_tree(&self) -> Result<Vec<CategoryDto>, DbErr> {
         let all = Category::find()
-            .order_by_asc(entities::category::Column::LtreePath)
+            .order_by_asc(entities::category::Column::SortOrder)
             .all(self.db)
             .await?;
 
@@ -51,30 +51,54 @@ impl<'a> CategoryService<'a> {
             None => None,
         };
 
-        // 2. 插入新记录，使用临时路径 "tmp" (只要符合 ltree 格式即可，字母数字)
-        // 随后立即更新为基于 ID 的路径，确保唯一性和一致性
+        // 2. 计算新的 sort_order（同级节点数量）
+        let new_sort_order = if let Some(ref parent) = parent_opt {
+            // 有父节点：计算同级节点数量
+            Category::find()
+                .filter(entities::category::Column::ParentId.eq(parent.id))
+                .count(self.db)
+                .await? as i64
+        } else {
+            // 根节点：计算所有根节点数量
+            Category::find()
+                .filter(entities::category::Column::ParentId.is_null())
+                .count(self.db)
+                .await? as i64
+        };
+
+        // 3. 计算新的 ltree_path（使用 ID，保证唯一性）
+        // ltree_path 只用于标识层级关系，排序由 sort_order 负责
+        let new_ltree_path = if let Some(ref parent) = parent_opt {
+            format!("{}.{}", parent.ltree_path, parent.id)
+        } else {
+            // 使用临时值，插入后会用实际的 ID 更新
+            "tmp".to_string()
+        };
+
+        // 4. 插入新记录
         let active = entities::category::ActiveModel {
             id: ActiveValue::NotSet,
             name: ActiveValue::Set(name.into()),
             parent_id: ActiveValue::Set(parent_opt.as_ref().map(|p| p.id)),
-            ltree_path: ActiveValue::Set("tmp".to_owned()),
-            sort_order: ActiveValue::Set(0),
+            ltree_path: ActiveValue::Set(new_ltree_path.clone()),
+            sort_order: ActiveValue::Set(new_sort_order),
             created_at: ActiveValue::Set(chrono::Local::now().to_rfc3339()),
         };
 
         let inserted = active.insert(self.db).await?;
         let new_id = inserted.id;
 
-        // 3. 更新为真正的 ltree_path (基于 ID)
-        let real_path = if let Some(parent) = parent_opt {
-            format!("{}.{}", parent.ltree_path, new_id)
-        } else {
-            new_id.to_string()
-        };
+        // 5. 如果是根节点，更新 ltree_path 为 ID
+        if parent_opt.is_none() {
+            let mut active_update: entities::category::ActiveModel = inserted.into();
+            active_update.ltree_path = ActiveValue::Set(new_id.to_string());
+            active_update.update(self.db).await?;
+        }
 
-        let mut active_update: entities::category::ActiveModel = inserted.into();
-        active_update.ltree_path = ActiveValue::Set(real_path);
-        active_update.update(self.db).await?;
+        info!(
+            "Category created: name={}, path={}, sort_order={}",
+            name, new_ltree_path, new_sort_order
+        );
 
         Ok(())
     }

@@ -72,15 +72,15 @@ async function loadCategories() {
 function buildCategoryTree(flat: CategoryDto[]): CategoryNode[] {
   if (flat.length === 0) return [];
 
-  // Sort by path to ensure parents come before children
-  const sorted = [...flat].sort((a, b) => a.path.localeCompare(b.path));
+  // Sort by sort_order to ensure correct order
+  const sorted = [...flat].sort((a, b) => a.sort_order - b.sort_order);
 
   // Map to store all nodes
-  const nodeMap = new Map<string, CategoryNode>();
+  const nodeMap = new Map<number, CategoryNode>();
 
   // First pass: create all nodes
   sorted.forEach((dto) => {
-    nodeMap.set(dto.path, {
+    nodeMap.set(dto.id, {
       id: dto.id,
       path: dto.path,
       name: dto.name,
@@ -93,23 +93,21 @@ function buildCategoryTree(flat: CategoryDto[]): CategoryNode[] {
   // Second pass: build tree structure
   const root: CategoryNode[] = [];
   sorted.forEach((dto) => {
-    const node = nodeMap.get(dto.path)!;
+    const node = nodeMap.get(dto.id)!;
 
-    // Check if this is a root node (path doesn't contain dots or only one level)
-    const pathParts = dto.path.split(".");
-    if (pathParts.length === 1) {
+    // Check if this is a root node
+    if (dto.parent_id === null) {
       // Root node
       root.push(node);
     } else {
-      // Child node - find parent
-      const parentPath = pathParts.slice(0, -1).join(".");
-      const parent = nodeMap.get(parentPath);
+      // Child node - find parent by parent_id
+      const parent = nodeMap.get(dto.parent_id);
       if (parent) {
         parent.children = parent.children || [];
         parent.children.push(node);
       } else {
         // Parent not found, treat as root
-        console.warn(`Parent not found for path: ${dto.path}`);
+        console.warn(`Parent not found for id: ${dto.id}`);
         root.push(node);
       }
     }

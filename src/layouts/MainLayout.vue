@@ -11,15 +11,15 @@ const { t } = useI18n();
 // Determine if we should show left navigation drawer for papers page
 const isPapersPage = computed(() => route.path.startsWith("/papers"));
 
-// Selected category path (for communication with PapersPage)
-const selectedCategory = ref<string | null>(null);
+// Selected category ID (for communication with PapersPage)
+const selectedCategory = ref<number | null>(null);
 
 // Current view state (library, favorites, trash)
 const currentView = ref<"library" | "favorites" | "trash">("library");
 
 // Handle category selection from navigation
-function handleCategorySelect(path: string | null) {
-  selectedCategory.value = path;
+function handleCategorySelect(categoryId: number | null) {
+  selectedCategory.value = categoryId;
 }
 
 // Handle view change from navigation

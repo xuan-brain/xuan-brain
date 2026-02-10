@@ -10,7 +10,7 @@ use tauri_plugin_opener::OpenerExt;
 use tracing::{info, instrument};
 
 use crate::database::entities::{
-    attachments, authors, category, paper_authors, paper_category, paper_labels, papers, prelude::*,
+    attachments, authors, paper_authors, paper_category, paper_labels, papers, prelude::*,
 };
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
@@ -77,7 +77,6 @@ pub struct PaperDetailDto {
     pub labels: Vec<LabelDto>,
     pub category_id: Option<i64>,
     pub category_name: Option<String>,
-    pub category_path: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -258,7 +257,6 @@ pub async fn get_paper(
                 .collect(),
             category_id: category.map(|c| c.id),
             category_name: category.map(|c| c.name.clone()),
-            category_path: category.map(|c| c.ltree_path.clone()),
         }))
     } else {
         info!("Paper id {} not found", id);
@@ -320,7 +318,7 @@ pub async fn delete_paper(db: State<'_, DatabaseConnection>, id: i64) -> Result<
 #[instrument(skip(db))]
 pub async fn import_paper_by_doi(
     doi: String,
-    category_path: Option<String>,
+    category_id: Option<i64>,
     db: State<'_, DatabaseConnection>,
 ) -> Result<PaperDto> {
     info!("Importing paper with DOI: {}", doi);
@@ -407,19 +405,13 @@ pub async fn import_paper_by_doi(
     }
 
     // Link category if provided
-    if let Some(path) = category_path {
-        if let Some(cat) = Category::find()
-            .filter(category::Column::LtreePath.eq(&path))
-            .one(db.inner())
-            .await?
-        {
-            paper_category::ActiveModel {
-                paper_id: Set(paper.id),
-                category_id: Set(cat.id),
-            }
-            .insert(db.inner())
-            .await?;
+    if let Some(cat_id) = category_id {
+        paper_category::ActiveModel {
+            paper_id: Set(paper.id),
+            category_id: Set(cat_id),
         }
+        .insert(db.inner())
+        .await?;
     }
 
     info!(
@@ -444,7 +436,7 @@ pub async fn import_paper_by_doi(
 #[instrument(skip(db))]
 pub async fn import_paper_by_arxiv_id(
     arxiv_id: String,
-    category_path: Option<String>,
+    category_id: Option<i64>,
     db: State<'_, DatabaseConnection>,
 ) -> Result<PaperDto> {
     info!("Importing paper with arXiv ID: {}", arxiv_id);
@@ -535,19 +527,13 @@ pub async fn import_paper_by_arxiv_id(
     }
 
     // Link category if provided
-    if let Some(path) = category_path {
-        if let Some(cat) = Category::find()
-            .filter(category::Column::LtreePath.eq(&path))
-            .one(db.inner())
-            .await?
-        {
-            paper_category::ActiveModel {
-                paper_id: Set(paper.id),
-                category_id: Set(cat.id),
-            }
-            .insert(db.inner())
-            .await?;
+    if let Some(cat_id) = category_id {
+        paper_category::ActiveModel {
+            paper_id: Set(paper.id),
+            category_id: Set(cat_id),
         }
+        .insert(db.inner())
+        .await?;
     }
 
     info!(
@@ -615,21 +601,14 @@ pub async fn remove_paper_label(
 #[instrument(skip(db))]
 pub async fn get_papers_by_category(
     db: State<'_, DatabaseConnection>,
-    category_path: String,
+    category_id: i64,
 ) -> Result<Vec<PaperDto>> {
-    info!("Fetching papers for category path: {}", category_path);
+    info!("Fetching papers for category id: {}", category_id);
 
-    // First, get the category ID by path
-    let category_entity = Category::find()
-        .filter(category::Column::LtreePath.eq(&category_path))
-        .one(db.inner())
-        .await?
-        .ok_or_else(|| AppError::not_found("Category", category_path.clone()))?;
-
-    // Then get papers associated with this category
+    // Get papers associated with this category
     let papers = Papers::find()
         .inner_join(PaperCategory)
-        .filter(paper_category::Column::CategoryId.eq(category_entity.id))
+        .filter(paper_category::Column::CategoryId.eq(category_id))
         .filter(papers::Column::DeletedAt.is_null())
         .order_by_desc(papers::Column::Id)
         .all(db.inner())
@@ -679,11 +658,7 @@ pub async fn get_papers_by_category(
         })
         .collect();
 
-    info!(
-        "Fetched {} papers for category {}",
-        dtos.len(),
-        category_path
-    );
+    info!("Fetched {} papers for category {}", dtos.len(), category_id);
     Ok(dtos)
 }
 
@@ -868,7 +843,7 @@ pub async fn import_paper_by_pdf(
     db: State<'_, DatabaseConnection>,
     app_dirs: State<'_, AppDirs>,
     file_path: String,
-    category_path: Option<String>,
+    category_id: Option<i64>,
 ) -> Result<PaperDto> {
     info!("Importing paper from PDF: {}", file_path);
     let path = PathBuf::from(&file_path);
@@ -953,19 +928,13 @@ pub async fn import_paper_by_pdf(
     }
 
     // 7. Link category
-    if let Some(path_str) = category_path {
-        if let Some(cat) = Category::find()
-            .filter(category::Column::LtreePath.eq(&path_str))
-            .one(db.inner())
-            .await?
-        {
-            paper_category::ActiveModel {
-                paper_id: Set(paper.id),
-                category_id: Set(cat.id),
-            }
-            .insert(db.inner())
-            .await?;
+    if let Some(cat_id) = category_id {
+        paper_category::ActiveModel {
+            paper_id: Set(paper.id),
+            category_id: Set(cat_id),
         }
+        .insert(db.inner())
+        .await?;
     }
 
     // 8. Copy file to attachment path

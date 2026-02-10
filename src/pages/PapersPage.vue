@@ -5,7 +5,7 @@ import DocumentDetails from "@/components/document/DocumentDetails.vue";
 
 // Props
 interface Props {
-  selectedCategory?: string | null;
+  selectedCategory?: number | null;
   currentView?: "library" | "favorites" | "trash";
 }
 
@@ -141,7 +141,7 @@ onUnmounted(() => {
         <div class="panel-content scrollable">
           <DocumentList
             ref="documentListRef"
-            :category-path="props.selectedCategory"
+            :category-id="props.selectedCategory"
             :current-view="props.currentView"
             @paper-select="handlePaperSelect"
           />

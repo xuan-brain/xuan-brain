@@ -59,7 +59,7 @@ const editingTag = ref<Label | null>(null);
 
 // Emit events
 const emit = defineEmits<{
-  categorySelect: [path: string | null];
+  categorySelect: [categoryId: number | null];
   viewChange: [view: "library" | "favorites" | "trash"];
 }>();
 
@@ -76,9 +76,9 @@ async function loadLabels() {
 }
 
 // Handle category selection from CategoryTree
-function handleCategorySelect(path: string | null) {
+function handleCategorySelect(categoryId: number | null) {
   activeNavItem.value = "library";
-  emit("categorySelect", path);
+  emit("categorySelect", categoryId);
   emit("viewChange", "library");
 }
 

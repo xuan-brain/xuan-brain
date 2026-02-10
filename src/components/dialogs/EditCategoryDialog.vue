@@ -7,7 +7,7 @@ const { t } = useI18n();
 
 interface Props {
   modelValue: boolean;
-  categoryPath?: string;
+  categoryId?: number;
   categoryName?: string;
 }
 
@@ -43,8 +43,8 @@ function handleClose() {
 
 // Submit form
 async function handleSubmit() {
-  if (!props.categoryPath) {
-    error.value = "Category path is required";
+  if (!props.categoryId) {
+    error.value = "Category ID is required";
     return;
   }
 
@@ -61,7 +61,7 @@ async function handleSubmit() {
   loading.value = true;
   try {
     await invokeCommand("update_category", {
-      path: props.categoryPath,
+      id: props.categoryId,
       name: name.value.trim(),
     });
     console.info("Category updated successfully:", name.value.trim());

@@ -32,12 +32,12 @@ interface PaperDto {
 }
 
 interface Props {
-  categoryPath?: string | null;
+  categoryId?: number | null;
   currentView?: "library" | "favorites" | "trash";
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  categoryPath: null,
+  categoryId: null,
   currentView: "library",
 });
 
@@ -98,10 +98,10 @@ async function loadPapers() {
     if (props.currentView === "trash") {
       // Load deleted papers
       data = await invokeCommand<PaperDto[]>("get_deleted_papers");
-    } else if (props.categoryPath) {
+    } else if (props.categoryId) {
       // Load papers for specific category
       data = await invokeCommand<PaperDto[]>("get_papers_by_category", {
-        categoryPath: props.categoryPath,
+        categoryId: props.categoryId,
       });
     } else {
       // Load all papers (library view)
@@ -201,9 +201,9 @@ function getFileIcon(fileType: string | null): string {
   return "mdi-file";
 }
 
-// Watch category path changes
+// Watch category ID changes
 watch(
-  () => props.categoryPath,
+  () => props.categoryId,
   () => {
     loadPapers();
   },

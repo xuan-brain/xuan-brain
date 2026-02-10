@@ -9,7 +9,6 @@ import EditCategoryDialog from "@/components/dialogs/EditCategoryDialog.vue";
 
 interface CategoryDto {
   id: number;
-  path: string;
   name: string;
   parent_id: number | null;
   sort_order: number;
@@ -17,7 +16,6 @@ interface CategoryDto {
 
 interface CategoryNode {
   id: number;
-  path: string;
   name: string;
   parent_id: number | null;
   sort_order: number;
@@ -25,20 +23,20 @@ interface CategoryNode {
 }
 
 interface Props {
-  onCategorySelect?: (path: string | null) => void;
+  onCategorySelect?: (categoryId: number | null) => void;
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  categorySelect: [path: string | null];
+  categorySelect: [categoryId: number | null];
 }>();
 
 const { t } = useI18n();
 
 const treeData = ref<CategoryNode[]>([]);
 const loading = ref(false);
-const selectedPath = ref<string | null>(null);
+const selectedId = ref<number | null>(null);
 const errorMsg = ref<string | null>(null);
 
 // Context menu state
@@ -50,7 +48,7 @@ const selectedNode = ref<CategoryNode | null>(null);
 // Dialog states
 const showAddCategoryDialog = ref(false);
 const showEditCategoryDialog = ref(false);
-const editingNodePath = ref("");
+const editingNodeId = ref<number | undefined>(undefined);
 const editingNodeName = ref("");
 
 // Load categories from backend
@@ -68,7 +66,7 @@ async function loadCategories() {
   }
 }
 
-// Build tree structure from flat list using ltree path
+// Build tree structure from flat list using parent_id
 function buildCategoryTree(flat: CategoryDto[]): CategoryNode[] {
   if (flat.length === 0) return [];
 
@@ -82,7 +80,6 @@ function buildCategoryTree(flat: CategoryDto[]): CategoryNode[] {
   sorted.forEach((dto) => {
     nodeMap.set(dto.id, {
       id: dto.id,
-      path: dto.path,
       name: dto.name,
       parent_id: dto.parent_id,
       sort_order: dto.sort_order,
@@ -118,14 +115,14 @@ function buildCategoryTree(flat: CategoryDto[]): CategoryNode[] {
 
 // Handle node selection
 function handleNodeClick(node: CategoryNode) {
-  if (selectedPath.value === node.path) {
+  if (selectedId.value === node.id) {
     // If already selected, deselect all
-    selectedPath.value = null;
+    selectedId.value = null;
     emit("categorySelect", null);
   } else {
     // Select the clicked node
-    selectedPath.value = node.path;
-    emit("categorySelect", node.path);
+    selectedId.value = node.id;
+    emit("categorySelect", node.id);
   }
 }
 
@@ -159,7 +156,7 @@ function handleAddSubcategory() {
 
 function handleEditCategory() {
   if (!selectedNode.value) return;
-  editingNodePath.value = selectedNode.value.path;
+  editingNodeId.value = selectedNode.value.id;
   editingNodeName.value = selectedNode.value.name;
   showEditCategoryDialog.value = true;
   hideContextMenu();
@@ -177,7 +174,7 @@ async function handleDeleteCategory() {
   }
 
   try {
-    await invokeCommand("delete_category", { path: selectedNode.value.path });
+    await invokeCommand("delete_category", { id: selectedNode.value.id });
     await loadCategories();
   } catch (error) {
     console.error("Failed to delete category:", error);
@@ -293,7 +290,7 @@ defineExpose({
       <template #default="{ node }">
         <div
           class="tree-node-content"
-          :class="{ 'tree-node-selected': selectedPath === node.path }"
+          :class="{ 'tree-node-selected': selectedId === node.id }"
           @click="handleNodeClick(node)"
           @contextmenu="showContextMenu($event, node)"
         >
@@ -346,14 +343,14 @@ defineExpose({
     <!-- Add Category Dialog -->
     <AddCategoryDialog
       v-model="showAddCategoryDialog"
-      :parent-path="selectedNode?.path"
+      :parent-id="selectedNode?.id"
       @category-created="handleCategoryCreated"
     />
 
     <!-- Edit Category Dialog -->
     <EditCategoryDialog
       v-model="showEditCategoryDialog"
-      :category-path="editingNodePath"
+      :category-id="editingNodeId"
       :category-name="editingNodeName"
       @category-updated="handleCategoryUpdated"
     />

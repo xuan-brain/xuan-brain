@@ -7,7 +7,7 @@ const { t } = useI18n();
 
 interface Props {
   modelValue: boolean;
-  parentPath?: string | null;
+  parentId?: number | null;
   parentName?: string;
 }
 
@@ -57,7 +57,7 @@ async function handleSubmit() {
   try {
     await invokeCommand("create_category", {
       name: name.value.trim(),
-      parentPath: props.parentPath || null,
+      parentId: props.parentId || null,
     });
     console.info("Category created successfully:", name.value.trim());
     name.value = "";
@@ -93,7 +93,7 @@ function handleKeyPress(event: KeyboardEvent) {
     <v-card>
       <v-card-title>
         <v-icon start>mdi-folder-plus</v-icon>
-        {{ parentPath ? t("dialog.addSubcategory") : t("dialog.addCategory") }}
+        {{ parentId ? t("dialog.addSubcategory") : t("dialog.addCategory") }}
       </v-card-title>
 
       <v-card-text>

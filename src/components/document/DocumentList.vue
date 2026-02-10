@@ -47,7 +47,6 @@ const emit = defineEmits<{
 // State
 const loading = ref(false);
 const papers = ref<PaperDto[]>([]);
-const selectedRowIds = ref<number[]>([]);
 const expandRowIds = ref<number[]>([]);
 
 // Table ref
@@ -126,40 +125,6 @@ function handleSortChange({
       return 0;
     });
   }
-}
-
-// Handle selection change
-function handleCheckboxChange({
-  checked,
-  row,
-}: {
-  checked: boolean;
-  row: PaperDto;
-}) {
-  if (checked) {
-    if (!selectedRowIds.value.includes(row.id)) {
-      selectedRowIds.value.push(row.id);
-    }
-  } else {
-    const index = selectedRowIds.value.indexOf(row.id);
-    if (index > -1) {
-      selectedRowIds.value.splice(index, 1);
-    }
-  }
-}
-
-// Handle select all
-function handleSelectAll({ checked }: { checked: boolean }) {
-  if (checked) {
-    selectedRowIds.value = papers.value.map((p) => p.id);
-  } else {
-    selectedRowIds.value = [];
-  }
-}
-
-// Check if row is selected
-function isRowSelected(row: PaperDto) {
-  return selectedRowIds.value.includes(row.id);
 }
 
 // Handle expand row toggle
@@ -269,7 +234,6 @@ defineExpose({
           expandField: 'id',
           accordion: false,
         }"
-        :checkbox-config="{ checkField: 'checked' }"
         :sort-config="{
           trigger: 'cell',
           defaultSort: sortConfig.defaultSort.field
@@ -289,12 +253,7 @@ defineExpose({
         @cell-click="handleCellClick"
         @row-dblclick="handleRowDblclick"
         @sort-change="handleSortChange"
-        @checkbox-change="handleCheckboxChange"
-        @checkbox-all="handleSelectAll"
       >
-        <!-- Checkbox column -->
-        <vxe-column type="checkbox" width="50" fixed="left" />
-
         <!-- Expand column (only for papers with attachments) -->
         <vxe-column width="40" fixed="left">
           <template #default="{ row }">

@@ -291,9 +291,11 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+/* Leave space for status bar (36px) */
 .panels-container {
   display: flex;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   position: relative;
 }
 

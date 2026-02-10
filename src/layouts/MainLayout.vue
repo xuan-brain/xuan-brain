@@ -296,6 +296,19 @@ const showThemeMenu = ref(false);
 <style scoped>
 .main-layout {
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure v-main takes available space but leaves room for footer */
+.main-layout :deep(.v-main) {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Ensure footer is visible at bottom */
+.main-layout :deep(.v-footer) {
+  flex-shrink: 0;
 }
 
 .category-drawer-wrapper {

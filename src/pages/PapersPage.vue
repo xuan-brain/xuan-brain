@@ -285,8 +285,7 @@ onUnmounted(() => {
 
 <style scoped>
 .papers-page {
-  /* Use max-height instead of height to leave room for status bar */
-  max-height: calc(100vh - 72px); /* 36px header + 36px footer (status bar) */
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;

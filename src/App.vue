@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// App root component - router-view handles content rendering
+import StatusBar from "@/components/layout/StatusBar.vue";
 </script>
 
 <template>
   <v-app>
     <router-view />
+    <StatusBar />
   </v-app>
 </template>
 

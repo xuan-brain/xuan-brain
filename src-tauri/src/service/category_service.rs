@@ -196,7 +196,7 @@ impl<'a> CategoryService<'a> {
                     .await?;
 
                 // 重新分配所有根节点的 ltree_path
-                for (index, root) in all_roots.iter().enumerate() {
+                for root in all_roots.iter() {
                     let new_path = root.id.to_string();
                     if root.ltree_path != new_path {
                         let mut am: entities::category::ActiveModel = root.clone().into();

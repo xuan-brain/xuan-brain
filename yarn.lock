@@ -1214,6 +1214,14 @@
   dependencies:
     upath "^2.0.1"
 
+"@vxe-ui/core@^4.3.1":
+  version "4.3.1"
+  resolved "https://registry.npmmirror.com/@vxe-ui/core/-/core-4.3.1.tgz#27a18b58ccb532249db50f3bd8a065d45a790a93"
+  integrity sha512-sr2WdFDWM3IKID02HbSaDxxRDvj1LZ5ZkOnH2POvGkkCfCWItkx3avkizfRUk8RtjNU+wXozaPbYTNha5kjSdg==
+  dependencies:
+    dom-zindex "^1.0.6"
+    xe-utils "^3.9.1"
+
 abort-controller@^3.0.0:
   version "3.0.0"
   resolved "https://registry.npmmirror.com/abort-controller/-/abort-controller-3.0.0.tgz"
@@ -1430,6 +1438,11 @@ dir-glob@^3.0.1:
   integrity sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==
   dependencies:
     path-type "^4.0.0"
+
+dom-zindex@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.npmmirror.com/dom-zindex/-/dom-zindex-1.0.6.tgz#0f911b39d3e542232ad91307638dbb869643f89e"
+  integrity sha512-FKWIhiU96bi3xpP9ewRMgANsoVmMUBnMnmpCT6dPMZOunVYJQmJhSRruoI0XSPoHeIif3kyEuiHbFrOJwEJaEA==
 
 drag-event-service@^2.0.0:
   version "2.0.0"
@@ -2441,6 +2454,20 @@ vuetify@^3.7.0:
   resolved "https://registry.npmmirror.com/vuetify/-/vuetify-3.11.8.tgz#8d7dc3615c924a8e10e42f4652002b476d5d790e"
   integrity sha512-4iKnntOnLFFklygZjzlVfcHrtLO8+iK4HOhiia6HP2U8v82x+ngaSCgm+epvPrGyCMfCpfuEttqD2qElrr1axw==
 
+vxe-pc-ui@^4.11.0:
+  version "4.12.36"
+  resolved "https://registry.npmmirror.com/vxe-pc-ui/-/vxe-pc-ui-4.12.36.tgz#29b1e935fc5c9d4a2aebbb3e05ec2eace0da4d64"
+  integrity sha512-XYTC8aQ26gXY8OZOaiB3zPCf4R29zqUqhMu8Ah7YtjPLrJSE+U5gel07vnNt7UQ78o13QBCehaf2TVlbH3cAPg==
+  dependencies:
+    "@vxe-ui/core" "^4.3.1"
+
+vxe-table@4:
+  version "4.17.48"
+  resolved "https://registry.npmmirror.com/vxe-table/-/vxe-table-4.17.48.tgz#cafecb4437f38c2a281c3a56f5528c27db0de64b"
+  integrity sha512-hd2j3FMA5vu3Qc3wyCavwMdsaT5uEq1GCux3eV5VKPkd/MoSdh9DIyMzmqDKh/0QnpVPsoQuIZPJi/govnw2Iw==
+  dependencies:
+    vxe-pc-ui "^4.11.0"
+
 webidl-conversions@^3.0.0:
   version "3.0.1"
   resolved "https://registry.npmmirror.com/webidl-conversions/-/webidl-conversions-3.0.1.tgz"
@@ -2469,6 +2496,11 @@ wrap-ansi@^7.0.0:
     ansi-styles "^4.0.0"
     string-width "^4.1.0"
     strip-ansi "^6.0.0"
+
+xe-utils@^3.9.1:
+  version "3.9.1"
+  resolved "https://registry.npmmirror.com/xe-utils/-/xe-utils-3.9.1.tgz#977f872b164d80f8cb8f5255361e4498ff03c6ab"
+  integrity sha512-Ujk5UmoH6Iaqhgz3oGwfCXVcMdUJKlXnfvLABdnMyseMG0eHsX2mcCvLd/8sGlIXtfwsprI9bW7vgcVognLmqQ==
 
 y18n@^5.0.5:
   version "5.0.8"

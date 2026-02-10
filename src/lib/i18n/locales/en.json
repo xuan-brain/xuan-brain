@@ -14,6 +14,9 @@
   },
   "main": {
     "title": "Library",
+    "documents": "Documents",
+    "details": "Details",
+    "categories": "Categories",
     "importDocuments": "Import Documents",
     "search": "Search",
     "noDocuments": "No documents yet",

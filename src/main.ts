@@ -44,7 +44,7 @@ const vuetify = createVuetify({
   // Global density and sizing defaults
   defaults: {
     VBtn: {
-      density: "comfortable",
+      density: "compact",
       size: "small",
     },
     VTextField: {

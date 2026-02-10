@@ -1,15 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useI18n } from "@/lib/i18n";
 import DocumentList from "@/components/document/DocumentList.vue";
 import DocumentDetails from "@/components/document/DocumentDetails.vue";
-import AddCategoryDialog from "@/components/dialogs/AddCategoryDialog.vue";
-import AddTagDialog from "@/components/dialogs/AddTagDialog.vue";
-import ImportByDoiDialog from "@/components/dialogs/ImportByDoiDialog.vue";
-import ImportByArxivDialog from "@/components/dialogs/ImportByArxivDialog.vue";
-import ImportPdfDialog from "@/components/dialogs/ImportPdfDialog.vue";
-
-const { t } = useI18n();
 
 // Props
 interface Props {
@@ -119,44 +111,9 @@ function stopDrag() {
 const selectedPaperId = ref<number | null>(null);
 const documentListRef = ref<InstanceType<typeof DocumentList> | null>(null);
 
-// Dialog states
-const showAddCategoryDialog = ref(false);
-const showAddTagDialog = ref(false);
-const showImportDoiDialog = ref(false);
-const showImportArxivDialog = ref(false);
-const showImportPdfDialog = ref(false);
-
 // Handle paper selection from document list
 function handlePaperSelect(paperId: number) {
   selectedPaperId.value = paperId;
-}
-
-// Refresh document list
-function refreshDocumentList() {
-  documentListRef.value?.loadPapers();
-}
-
-// Show add category dialog
-function showAddCategory() {
-  showAddCategoryDialog.value = true;
-}
-
-// Show add tag dialog
-function showAddTag() {
-  showAddTagDialog.value = true;
-}
-
-// Import paper functions
-function importByDoi() {
-  showImportDoiDialog.value = true;
-}
-
-function importByArxiv() {
-  showImportArxivDialog.value = true;
-}
-
-function importPdf() {
-  showImportPdfDialog.value = true;
 }
 
 // Cleanup event listeners on unmount
@@ -172,56 +129,6 @@ onUnmounted(() => {
     <div class="panels-container">
       <!-- Left Panel: Document List -->
       <div class="panel left-panel" :style="leftPanelStyle">
-        <div class="panel-header">
-          <v-toolbar density="compact" color="surface" class="pa-0">
-            <v-toolbar-title class="text-subtitle-2">{{
-              t("main.documents")
-            }}</v-toolbar-title>
-            <v-spacer />
-
-            <v-btn
-              icon="mdi-label-plus"
-              size="small"
-              @click="showAddTag"
-              :title="t('dialog.addLabel')"
-            >
-              <v-icon size="small">mdi-label-plus</v-icon>
-            </v-btn>
-
-            <v-btn
-              icon="mdi-folder-plus"
-              size="small"
-              @click="showAddCategory"
-              :title="t('dialog.addCategory')"
-            >
-              <v-icon size="small">mdi-folder-plus</v-icon>
-            </v-btn>
-
-            <v-menu>
-              <template #activator="{ props: menuProps }">
-                <v-btn
-                  icon="mdi-plus"
-                  size="small"
-                  v-bind="menuProps"
-                  :title="t('toolbar.import')"
-                >
-                  <v-icon size="small">mdi-plus</v-icon>
-                </v-btn>
-              </template>
-              <v-list>
-                <v-list-item @click="importByDoi">
-                  <v-list-item-title>Import by DOI</v-list-item-title>
-                </v-list-item>
-                <v-list-item @click="importByArxiv">
-                  <v-list-item-title>Import by arXiv ID</v-list-item-title>
-                </v-list-item>
-                <v-list-item @click="importPdf">
-                  <v-list-item-title>Import PDF File</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-          </v-toolbar>
-        </div>
         <div class="panel-content scrollable">
           <DocumentList
             ref="documentListRef"
@@ -243,43 +150,11 @@ onUnmounted(() => {
 
       <!-- Right Panel: Document Details -->
       <div class="panel right-panel" :style="rightPanelStyle">
-        <div class="panel-header">
-          <span class="text-caption font-weight-medium px-4 py-2 d-block"
-            >Details</span
-          >
-        </div>
         <div class="panel-content scrollable">
           <DocumentDetails :paper-id="selectedPaperId" />
         </div>
       </div>
     </div>
-
-    <!-- Dialogs -->
-    <AddCategoryDialog
-      v-model="showAddCategoryDialog"
-      :parent-path="props.selectedCategory"
-      @category-created="refreshDocumentList"
-    />
-
-    <AddTagDialog
-      v-model="showAddTagDialog"
-      @label-created="refreshDocumentList"
-    />
-
-    <ImportByDoiDialog
-      v-model="showImportDoiDialog"
-      @paper-imported="refreshDocumentList"
-    />
-
-    <ImportByArxivDialog
-      v-model="showImportArxivDialog"
-      @paper-imported="refreshDocumentList"
-    />
-
-    <ImportPdfDialog
-      v-model="showImportPdfDialog"
-      @paper-imported="refreshDocumentList"
-    />
   </div>
 </template>
 
@@ -305,11 +180,6 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
   flex-shrink: 0;
-}
-
-.panel-header {
-  flex-shrink: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .panel-content {

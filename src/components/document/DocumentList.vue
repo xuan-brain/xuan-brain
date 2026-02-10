@@ -98,9 +98,13 @@ async function loadPapers() {
     if (props.currentView === "trash") {
       // Load deleted papers
       data = await invokeCommand<PaperDto[]>("get_deleted_papers");
+    } else if (props.categoryPath) {
+      // Load papers for specific category
+      data = await invokeCommand<PaperDto[]>("get_papers_by_category", {
+        categoryPath: props.categoryPath,
+      });
     } else {
       // Load all papers (library view)
-      // TODO: implement category filtering later
       data = await invokeCommand<PaperDto[]>("get_all_papers");
     }
 

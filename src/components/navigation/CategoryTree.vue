@@ -120,8 +120,15 @@ function buildCategoryTree(flat: CategoryDto[]): CategoryNode[] {
 
 // Handle node selection
 function handleNodeClick(node: CategoryNode) {
-  selectedPath.value = node.path;
-  emit("categorySelect", node.path);
+  if (selectedPath.value === node.path) {
+    // If already selected, deselect all
+    selectedPath.value = null;
+    emit("categorySelect", null);
+  } else {
+    // Select the clicked node
+    selectedPath.value = node.path;
+    emit("categorySelect", node.path);
+  }
 }
 
 // Get node icon

@@ -236,7 +236,7 @@ defineExpose({
         </vxe-column>
 
         <!-- Authors column -->
-        <vxe-column field="authors" title="Authors" width="200" show-overflow>
+        <vxe-column field="authors" title="Authors" width="15%" show-overflow>
           <template #default="{ row }">
             <v-chip
               v-if="row.authors && row.authors.length > 0"
@@ -252,24 +252,19 @@ defineExpose({
         </vxe-column>
 
         <!-- Year column -->
-        <vxe-column
-          field="publication_year"
-          title="Year"
-          width="100"
-          sortable
-        />
+        <vxe-column field="publication_year" title="Year" width="80" sortable />
 
         <!-- Journal column -->
         <vxe-column
           field="journal_name"
           title="Journal"
-          width="200"
+          min-width="150"
           sortable
           show-overflow
         />
 
         <!-- Labels column -->
-        <vxe-column field="labels" title="Labels" width="200" show-overflow>
+        <vxe-column field="labels" title="Labels" width="15%" show-overflow>
           <template #default="{ row }">
             <v-chip
               v-if="row.labels && row.labels.length > 0"

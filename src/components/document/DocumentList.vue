@@ -272,13 +272,15 @@ defineExpose({
         <vxe-column field="labels" title="Labels" width="200" show-overflow>
           <template #default="{ row }">
             <v-chip
-              v-for="label in row.labels"
-              :key="label.id"
+              v-if="row.labels && row.labels.length > 0"
               size="x-small"
-              :color="label.color"
+              :color="row.labels[0].color"
               class="mr-1"
             >
-              {{ label.name }}
+              {{ row.labels[0].name }}
+            </v-chip>
+            <v-chip v-if="row.labels && row.labels.length > 1" size="x-small">
+              +{{ row.labels.length - 1 }}
             </v-chip>
           </template>
         </vxe-column>

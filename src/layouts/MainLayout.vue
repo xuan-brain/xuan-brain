@@ -119,7 +119,22 @@ onUnmounted(() => {
 
 <style scoped>
 .main-layout {
-  height: 100%;
+  height: calc(100vh - 36px); /* Subtract status bar height */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure v-main takes available space */
+.main-layout :deep(.v-main) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure router-view fills v-main */
+.main-layout :deep(.v-main > div) {
+  flex: 1;
   display: flex;
   flex-direction: column;
 }

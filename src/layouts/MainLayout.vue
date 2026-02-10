@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
-import { useRoute } from "vue-router";
-import GlobalSidebar from "@/components/layout/GlobalSidebar.vue";
+import { useRouter, useRoute } from "vue-router";
+import { useI18n } from "@/lib/i18n";
 import Navigation from "@/components/navigation/Navigation.vue";
 
-// Determine if we should show left navigation drawer for papers page
+const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
+
+// Determine if we should show left navigation drawer for papers page
 const isPapersPage = computed(() => route.path.startsWith("/papers"));
 
 // Selected category path (for communication with PapersPage)
@@ -14,6 +17,26 @@ const selectedCategory = ref<string | null>(null);
 // Handle category selection from navigation
 function handleCategorySelect(path: string | null) {
   selectedCategory.value = path;
+}
+
+// Navigation menu items
+const menuItems = [
+  { icon: "mdi-file-document", value: "papers", title: "navigation.papers" },
+  { icon: "mdi-content-cut", value: "clips", title: "navigation.clips" },
+  { icon: "mdi-pencil", value: "writing", title: "navigation.writing" },
+  {
+    icon: "mdi-rss",
+    value: "subscriptions",
+    title: "navigation.subscriptions",
+  },
+];
+
+// Current route
+const currentRoute = computed(() => route.path);
+
+// Navigate to route
+function navigateTo(path: string) {
+  router.push(path);
 }
 
 // Category drawer width management
@@ -87,7 +110,46 @@ onUnmounted(() => {
 <template>
   <div class="main-layout">
     <!-- Global sidebar (Rail mode) -->
-    <GlobalSidebar />
+    <div class="global-sidebar">
+      <div class="sidebar-content">
+        <!-- User avatar placeholder -->
+        <div class="user-avatar">
+          <v-avatar color="primary" size="40">
+            <span class="text-h6">U</span>
+          </v-avatar>
+        </div>
+
+        <v-divider class="my-2" />
+
+        <!-- Navigation menu -->
+        <v-list density="compact">
+          <v-list-item
+            v-for="item in menuItems"
+            :key="item.value"
+            :prepend-icon="item.icon"
+            :value="item.value"
+            :title="t(item.title)"
+            rounded="lg"
+            :active="currentRoute === `/${item.value}`"
+            @click="navigateTo(`/${item.value}`)"
+          />
+        </v-list>
+
+        <v-spacer />
+
+        <!-- Settings at bottom -->
+        <v-list density="compact">
+          <v-list-item
+            prepend-icon="mdi-cog"
+            value="settings"
+            :title="t('navigation.settings')"
+            rounded="lg"
+            :active="currentRoute === '/settings'"
+            @click="navigateTo('/settings')"
+          />
+        </v-list>
+      </div>
+    </div>
 
     <!-- Left navigation drawer (categories and labels) - only on papers page -->
     <template v-if="isPapersPage">
@@ -121,6 +183,27 @@ onUnmounted(() => {
 .main-layout {
   display: flex;
   height: calc(100vh - 36px);
+}
+
+.global-sidebar {
+  width: 72px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+}
+
+.user-avatar {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
 }
 
 .main-content {

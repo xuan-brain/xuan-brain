@@ -1,4 +1,4 @@
-import { createApp } from "vue";
+import { createApp, watch } from "vue";
 import { createPinia } from "pinia";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 import { createVuetify } from "vuetify";
@@ -10,6 +10,7 @@ import "@/assets/styles/main.css";
 
 import App from "./App.vue";
 import { i18n } from "./lib/i18n";
+import { useAppStore } from "./stores/useAppStore";
 
 const app = createApp(App);
 
@@ -17,6 +18,9 @@ const app = createApp(App);
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
 app.use(pinia);
+
+// Get app store for theme
+const appStore = useAppStore();
 
 // Vuetify
 const vuetify = createVuetify({
@@ -27,14 +31,15 @@ const vuetify = createVuetify({
     themes: {
       dark: {
         colors: {
-          primary: "#90caf9",
+          primary: appStore.accentColor,
+          "on-primary": "#1a2332",
           surface: "#1f1f1f",
           background: "#141414",
         },
       },
       light: {
         colors: {
-          primary: "#1976d2",
+          primary: appStore.accentColor,
           surface: "#ffffff",
           background: "#f5f5f5",
         },
@@ -88,6 +93,16 @@ const vuetify = createVuetify({
   },
 });
 app.use(vuetify);
+
+// Watch accent color changes and update Vuetify theme
+watch(
+  () => appStore.accentColor,
+  (newColor) => {
+    vuetify.theme.themes.value.dark.colors.primary = newColor;
+    vuetify.theme.themes.value.light.colors.primary = newColor;
+  },
+  { immediate: false },
+);
 
 // Vue Router
 import router from "./router";

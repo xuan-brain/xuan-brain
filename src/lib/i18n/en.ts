@@ -7,6 +7,15 @@ export default {
     tags: "Tags",
     favorites: "Favorites",
     trash: "Trash",
+    settings: "Settings",
+    user: "User",
+    system: "System",
+    ai: "AI",
+    papers: "Papers",
+    clips: "Clips",
+    writing: "Writing",
+    subscriptions: "Subscriptions",
+    about: "About",
   },
 
   // Main content
@@ -136,5 +145,31 @@ export default {
       "Enter the arXiv ID (e.g., 2301.12345) or URL to import the paper.",
     arxivPlaceholder: "e.g., 2301.12345 or https://arxiv.org/abs/2301.12345",
     import: "Import",
+  },
+
+  // Settings
+  settings: {
+    appearance: "Appearance",
+    llmProviders: "LLM Providers",
+    grobidServers: "GROBID Servers",
+    addProvider: "Add Provider",
+    addServer: "Add Server",
+    noProviders: "No LLM providers configured",
+    noServers: "No GROBID servers configured",
+    default: "Default",
+    active: "Active",
+    model: "Model",
+    version: "Version",
+    license: "License",
+    database: "Database",
+    orm: "ORM",
+    appVersion: "App Version",
+    tauriVersion: "Tauri Version",
+    vueVersion: "Vue Version",
+    vuetifyVersion: "Vuetify Version",
+    appDescription:
+      "AI-driven research literature management desktop application",
+    github: "GitHub",
+    reportIssue: "Report Issue",
   },
 } as const;

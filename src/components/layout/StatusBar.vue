@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useI18n, setLocale } from "@/lib/i18n";
 import { useAppStore } from "@/stores/useAppStore";
+import { invokeCommand } from "@/lib/tauri";
 
 const { t, locale: localeRef, availableLocales } = useI18n();
 const appStore = useAppStore();
@@ -27,6 +28,77 @@ const accentColors = [
 const showLanguageMenu = ref(false);
 const showColorMenu = ref(false);
 const showThemeMenu = ref(false);
+const showLLMMenu = ref(false);
+const showGrobidMenu = ref(false);
+
+// Load config on mount
+onMounted(async () => {
+  try {
+    const data = await invokeCommand<any>("get_app_config");
+    if (data?.system?.llm_providers) {
+      appStore.setLLMProviders(data.system.llm_providers);
+    }
+    if (data?.paper?.grobid?.servers) {
+      appStore.setGrobidServers(data.paper.grobid.servers);
+    }
+  } catch (error) {
+    console.error("Failed to load config for status bar:", error);
+  }
+});
+
+// Handle LLM Provider selection
+async function handleLLMProviderSelect(providerId: string) {
+  appStore.setSelectedLLMProvider(providerId);
+
+  // Update default provider and save to backend
+  const newProviders = appStore.llmProviders.map((p) => ({
+    ...p,
+    is_default: p.id === providerId,
+  }));
+
+  try {
+    await invokeCommand("save_app_config", {
+      config: {
+        system: {
+          llm_providers: newProviders,
+        },
+      },
+    });
+    // Update local store
+    appStore.setLLMProviders(newProviders);
+    showLLMMenu.value = false;
+  } catch (error) {
+    console.error("Failed to save LLM provider selection:", error);
+  }
+}
+
+// Handle GROBID Server selection
+async function handleGrobidServerSelect(serverId: string) {
+  appStore.setSelectedGrobidServer(serverId);
+
+  // Update default server and save to backend
+  const newServers = appStore.grobidServers.map((s) => ({
+    ...s,
+    is_default: s.id === serverId,
+  }));
+
+  try {
+    await invokeCommand("save_app_config", {
+      config: {
+        paper: {
+          grobid: {
+            servers: newServers,
+          },
+        },
+      },
+    });
+    // Update local store
+    appStore.setGrobidServers(newServers);
+    showGrobidMenu.value = false;
+  } catch (error) {
+    console.error("Failed to save GROBID server selection:", error);
+  }
+}
 </script>
 
 <template>
@@ -37,6 +109,107 @@ const showThemeMenu = ref(false);
     </div>
 
     <div class="status-bar-right">
+      <!-- LLM Provider selector -->
+      <v-menu
+        v-model="showLLMMenu"
+        location="top"
+        :close-on-content-click="false"
+      >
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            size="small"
+            variant="text"
+            class="status-bar-btn"
+            :disabled="appStore.llmProviders.length === 0"
+          >
+            <v-icon size="small" class="mr-1">mdi-brain</v-icon>
+            <span class="text-truncate" style="max-width: 100px">
+              {{ appStore.currentLLMProvider?.name || t("status.noLLM") }}
+            </span>
+            <v-icon size="small" class="ml-1">mdi-chevron-up</v-icon>
+          </v-btn>
+        </template>
+        <v-list density="compact">
+          <v-list-item
+            v-for="provider in appStore.llmProviders"
+            :key="provider.id"
+            @click="handleLLMProviderSelect(provider.id)"
+            :active="appStore.selectedLLMProvider === provider.id"
+          >
+            <template #prepend>
+              <v-icon size="small">mdi-brain</v-icon>
+            </template>
+            <v-list-item-title>{{ provider.name }}</v-list-item-title>
+            <v-list-item-subtitle>{{
+              provider.model_name
+            }}</v-list-item-subtitle>
+            <template #append v-if="provider.is_default">
+              <v-chip size="x-small" color="success">{{
+                t("settings.default")
+              }}</v-chip>
+            </template>
+          </v-list-item>
+          <v-list-item v-if="appStore.llmProviders.length === 0" disabled>
+            <v-list-item-title class="text-grey">
+              {{ t("status.noLLMConfigured") }}
+            </v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+
+      <!-- GROBID Server selector -->
+      <v-menu
+        v-model="showGrobidMenu"
+        location="top"
+        :close-on-content-click="false"
+      >
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            size="small"
+            variant="text"
+            class="status-bar-btn"
+            :disabled="appStore.grobidServers.length === 0"
+          >
+            <v-icon size="small" class="mr-1">mdi-file-document-outline</v-icon>
+            <span class="text-truncate" style="max-width: 100px">
+              {{ appStore.currentGrobidServer?.name || t("status.noGrobid") }}
+            </span>
+            <v-icon size="small" class="ml-1">mdi-chevron-up</v-icon>
+          </v-btn>
+        </template>
+        <v-list density="compact">
+          <v-list-item
+            v-for="server in appStore.grobidServers"
+            :key="server.id"
+            @click="handleGrobidServerSelect(server.id)"
+            :active="appStore.selectedGrobidServer === server.id"
+          >
+            <template #prepend>
+              <v-icon size="small">mdi-server</v-icon>
+            </template>
+            <v-list-item-title>{{ server.name }}</v-list-item-title>
+            <v-list-item-subtitle
+              class="text-truncate"
+              style="max-width: 200px"
+            >
+              {{ server.url }}
+            </v-list-item-subtitle>
+            <template #append v-if="server.is_default">
+              <v-chip size="x-small" color="success">{{
+                t("settings.default")
+              }}</v-chip>
+            </template>
+          </v-list-item>
+          <v-list-item v-if="appStore.grobidServers.length === 0" disabled>
+            <v-list-item-title class="text-grey">
+              {{ t("status.noGrobidConfigured") }}
+            </v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+
       <!-- Language selector -->
       <v-menu
         v-model="showLanguageMenu"

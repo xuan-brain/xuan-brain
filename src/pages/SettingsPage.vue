@@ -1,25 +1,109 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { useI18n } from "@/lib/i18n";
+import AppearanceSettings from "@/components/settings/AppearanceSettings.vue";
+import AISettings from "@/components/settings/AISettings.vue";
+import PapersSettings from "@/components/settings/PapersSettings.vue";
+import AboutSettings from "@/components/settings/AboutSettings.vue";
+import UserSettings from "@/components/settings/UserSettings.vue";
+import ClipsSettings from "@/components/settings/ClipsSettings.vue";
+import WritingSettings from "@/components/settings/WritingSettings.vue";
+import SubscriptionsSettings from "@/components/settings/SubscriptionsSettings.vue";
 
 const { t } = useI18n();
+
+// Active tab
+const activeTab = ref("system");
+
+// Tab items with i18n
+const tabItems = [
+  { key: "user", i18n: "navigation.user", icon: "mdi-account" },
+  { key: "system", i18n: "navigation.system", icon: "mdi-desktop-classic" },
+  { key: "ai", i18n: "navigation.ai", icon: "mdi-brain" },
+  { key: "papers", i18n: "navigation.papers", icon: "mdi-file-document" },
+  { key: "clips", i18n: "navigation.clips", icon: "mdi-content-cut" },
+  { key: "writing", i18n: "navigation.writing", icon: "mdi-pencil" },
+  { key: "subscriptions", i18n: "navigation.subscriptions", icon: "mdi-rss" },
+  { key: "about", i18n: "navigation.about", icon: "mdi-information" },
+];
+
+// Handle config updated event from child components
+function handleConfigUpdated() {
+  // Config has been updated, could trigger a refresh if needed
+  console.info("Settings configuration updated");
+}
 </script>
 
 <template>
-  <v-container fluid class="pa-6">
-    <v-row>
-      <v-col cols="12">
-        <h1>{{ t('navigation.settings') }}</h1>
-      </v-col>
-    </v-row>
+  <div class="settings-page">
+    <h1 class="text-h4 mb-6">{{ t("navigation.settings") }}</h1>
 
     <v-row>
-      <v-col cols="12">
+      <!-- Left Navigation -->
+      <v-col cols="2">
         <v-card>
-          <v-card-text>
-            <p>Settings feature coming soon...</p>
-          </v-card-text>
+          <v-list>
+            <v-list-item
+              v-for="item in tabItems"
+              :key="item.key"
+              :value="item.key"
+              :active="activeTab === item.key"
+              @click="activeTab = item.key"
+            >
+              <template #prepend>
+                <v-icon>{{ item.icon }}</v-icon>
+              </template>
+              <v-list-item-title>{{ t(item.i18n) }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
         </v-card>
       </v-col>
+
+      <!-- Right Content -->
+      <v-col cols="10">
+        <div class="settings-content">
+          <!-- User Settings -->
+          <UserSettings v-if="activeTab === 'user'" />
+
+          <!-- System Settings -->
+          <AppearanceSettings v-if="activeTab === 'system'" />
+
+          <!-- AI Settings -->
+          <AISettings
+            v-if="activeTab === 'ai'"
+            @config-updated="handleConfigUpdated"
+          />
+
+          <!-- Papers Settings -->
+          <PapersSettings
+            v-if="activeTab === 'papers'"
+            @config-updated="handleConfigUpdated"
+          />
+
+          <!-- Clips Settings -->
+          <ClipsSettings v-if="activeTab === 'clips'" />
+
+          <!-- Writing Settings -->
+          <WritingSettings v-if="activeTab === 'writing'" />
+
+          <!-- Subscriptions Settings -->
+          <SubscriptionsSettings v-if="activeTab === 'subscriptions'" />
+
+          <!-- About -->
+          <AboutSettings v-if="activeTab === 'about'" />
+        </div>
+      </v-col>
     </v-row>
-  </v-container>
+  </div>
 </template>
+
+<style scoped>
+.settings-page {
+  height: 100%;
+  padding: 24px;
+}
+
+.settings-content {
+  max-width: 800px;
+}
+</style>

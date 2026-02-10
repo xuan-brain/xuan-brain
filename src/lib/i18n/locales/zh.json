@@ -42,7 +42,9 @@
     "themeSelector": "主题",
     "colorTheme": "颜色主题",
     "selectTheme": "选择主题",
-    "accentColor": "主色调"
+    "accentColor": "主色调",
+    "dark": "深色",
+    "light": "浅色"
   },
   "status": {
     "synced": "已同步",

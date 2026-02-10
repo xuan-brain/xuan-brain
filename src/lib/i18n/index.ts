@@ -4,7 +4,10 @@ import zh from "./locales/zh.json";
 
 export type LocaleCode = "en" | "zh";
 
-export const availableLocales: Record<LocaleCode, { name: string; nativeName: string; flag: string }> = {
+export const availableLocales: Record<
+  LocaleCode,
+  { name: string; nativeName: string; flag: string }
+> = {
   en: { name: "English", nativeName: "English", flag: "🇺🇸" },
   zh: { name: "Chinese", nativeName: "中文", flag: "🇨🇳" },
 };
@@ -28,10 +31,19 @@ export const i18n = createI18n({
 });
 
 export function useI18n() {
-  return i18n.global;
+  const global = i18n.global;
+  return {
+    ...global,
+    availableLocales,
+  };
 }
 
 export function setLocale(locale: LocaleCode) {
   i18n.global.locale.value = locale;
   localStorage.setItem(STORAGE_KEY, locale);
+}
+
+// Get current locale as string
+export function getCurrentLocale(): LocaleCode {
+  return i18n.global.locale.value as LocaleCode;
 }

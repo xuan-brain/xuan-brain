@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, setLocale } from "@/lib/i18n";
+import { useAppStore } from "@/stores/useAppStore";
 import GlobalSidebar from "@/components/layout/GlobalSidebar.vue";
 import Navigation from "@/components/navigation/Navigation.vue";
 
-const { t } = useI18n();
+const { t, locale: localeRef, availableLocales } = useI18n();
+const appStore = useAppStore();
+
+// Current locale is already a string when using legacy: false
+const currentLocale = computed(
+  () => localeRef.value as keyof typeof availableLocales,
+);
 
 // Determine if we should show left navigation drawer for papers page
 const route = useRoute();
@@ -85,6 +92,23 @@ onUnmounted(() => {
   document.removeEventListener("mousemove", onResize);
   document.removeEventListener("mouseup", stopResize);
 });
+
+// Available accent colors
+const accentColors = [
+  { name: "Blue", value: "#3b82f6" },
+  { name: "Purple", value: "#8b5cf6" },
+  { name: "Pink", value: "#ec4899" },
+  { name: "Red", value: "#ef4444" },
+  { name: "Orange", value: "#f97316" },
+  { name: "Green", value: "#22c55e" },
+  { name: "Teal", value: "#14b8a6" },
+  { name: "Cyan", value: "#06b6d4" },
+];
+
+// Status bar menus
+const showLanguageMenu = ref(false);
+const showColorMenu = ref(false);
+const showThemeMenu = ref(false);
 </script>
 
 <template>
@@ -120,12 +144,150 @@ onUnmounted(() => {
 
     <!-- Bottom status bar -->
     <v-footer height="36" class="status-bar">
-      <div
-        class="d-flex align-center px-2"
-        style="height: 100%; font-size: 12px"
-      >
+      <div class="status-bar-left">
         <span class="mr-4">{{ t("status.documents") }}: 0</span>
         <span>{{ t("status.version") }}: 0.1.0</span>
+      </div>
+
+      <div class="status-bar-right">
+        <!-- Language selector -->
+        <v-menu
+          v-model="showLanguageMenu"
+          location="top"
+          :close-on-content-click="false"
+        >
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              size="small"
+              variant="text"
+              class="status-bar-btn"
+            >
+              <span class="status-bar-flag">{{
+                availableLocales[currentLocale]?.flag || "🌐"
+              }}</span>
+              <v-icon size="small" class="ml-1">mdi-chevron-up</v-icon>
+            </v-btn>
+          </template>
+          <v-list density="compact">
+            <v-list-item
+              v-for="(loc, code) in availableLocales"
+              :key="code"
+              @click="
+                setLocale(code as any);
+                showLanguageMenu = false;
+              "
+              :active="currentLocale === code"
+            >
+              <template #prepend>
+                <span class="mr-2">{{ loc.flag }}</span>
+              </template>
+              <v-list-item-title>{{ loc.nativeName }}</v-list-item-title>
+              <template #append v-if="currentLocale === code">
+                <v-icon size="small" color="success">mdi-check</v-icon>
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+
+        <!-- Color selector -->
+        <v-menu
+          v-model="showColorMenu"
+          location="top"
+          :close-on-content-click="false"
+        >
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              size="small"
+              variant="text"
+              class="status-bar-btn"
+            >
+              <div
+                class="color-dot"
+                :style="{ backgroundColor: appStore.accentColor }"
+              ></div>
+              <v-icon size="small" class="ml-1">mdi-chevron-up</v-icon>
+            </v-btn>
+          </template>
+          <v-list density="compact">
+            <v-list-item
+              v-for="color in accentColors"
+              :key="color.value"
+              @click="
+                appStore.setAccentColor(color.value);
+                showColorMenu = false;
+              "
+            >
+              <template #prepend>
+                <div
+                  class="color-dot"
+                  :style="{ backgroundColor: color.value }"
+                  :class="{
+                    'color-dot-active': appStore.accentColor === color.value,
+                  }"
+                ></div>
+              </template>
+              <v-list-item-title>{{ color.name }}</v-list-item-title>
+              <template #append v-if="appStore.accentColor === color.value">
+                <v-icon size="small" color="success">mdi-check</v-icon>
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+
+        <!-- Theme selector -->
+        <v-menu
+          v-model="showThemeMenu"
+          location="top"
+          :close-on-content-click="false"
+        >
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              size="small"
+              variant="text"
+              class="status-bar-btn"
+            >
+              <v-icon size="small">
+                {{
+                  appStore.isDark ? "mdi-weather-night" : "mdi-weather-sunny"
+                }}
+              </v-icon>
+              <v-icon size="small" class="ml-1">mdi-chevron-up</v-icon>
+            </v-btn>
+          </template>
+          <v-list density="compact">
+            <v-list-item
+              @click="
+                appStore.setTheme(true);
+                showThemeMenu = false;
+              "
+            >
+              <template #prepend>
+                <v-icon>mdi-weather-night</v-icon>
+              </template>
+              <v-list-item-title>{{ t("theme.dark") }}</v-list-item-title>
+              <template #append v-if="appStore.isDark">
+                <v-icon size="small" color="success">mdi-check</v-icon>
+              </template>
+            </v-list-item>
+            <v-list-item
+              @click="
+                appStore.setTheme(false);
+                showThemeMenu = false;
+              "
+            >
+              <template #prepend>
+                <v-icon>mdi-weather-sunny</v-icon>
+              </template>
+              <v-list-item-title>{{ t("theme.light") }}</v-list-item-title>
+              <template #append v-if="!appStore.isDark">
+                <v-icon size="small" color="success">mdi-check</v-icon>
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-menu>
       </div>
     </v-footer>
   </v-layout>
@@ -192,8 +354,41 @@ onUnmounted(() => {
   padding: 0 8px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   font-size: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.status-bar-left {
+  display: flex;
+  align-items: center;
+}
+
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-bar-btn {
+  min-width: auto;
+  height: 28px;
+  padding: 0 8px;
+}
+
+.status-bar-flag {
+  font-size: 14px;
+}
+
+.color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.color-dot-active {
+  border: 2px solid rgb(var(--v-theme-primary));
 }
 
 /* Disable transitions */

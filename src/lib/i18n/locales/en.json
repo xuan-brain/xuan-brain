@@ -42,7 +42,9 @@
     "themeSelector": "Theme",
     "colorTheme": "Color Theme",
     "selectTheme": "Select Theme",
-    "accentColor": "Accent Color"
+    "accentColor": "Accent Color",
+    "dark": "Dark",
+    "light": "Light"
   },
   "status": {
     "synced": "Synced",

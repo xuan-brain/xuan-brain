@@ -56,8 +56,9 @@ const expandRowIds = ref<number[]>([]);
 
 const expandConfig = computed<VxeTablePropTypes.ExpandConfig>(() => ({
   showIcon: true,
-  iconOpen: "mdi-paperclip",
-  iconClose: "mdi-paperclip",
+  trigger: "row",
+  // iconOpen: "vxe-icon-sort",
+  // iconClose: "vxe-icon-sort",
   expandRowKeys: expandRowIds.value,
   accordion: false,
   visibleMethod: ({ row }) => {

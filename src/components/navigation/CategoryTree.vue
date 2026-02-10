@@ -40,7 +40,6 @@ const treeData = ref<CategoryNode[]>([]);
 const loading = ref(false);
 const selectedPath = ref<string | null>(null);
 const errorMsg = ref<string | null>(null);
-const rawCount = ref(0);
 
 // Context menu state
 const contextMenu = ref(false);
@@ -60,10 +59,7 @@ async function loadCategories() {
   errorMsg.value = null;
   try {
     const data = await invokeCommand<CategoryDto[]>("load_categories");
-    console.log("Loaded categories:", data);
-    rawCount.value = data.length;
     treeData.value = buildCategoryTree(data);
-    console.log("Built tree:", treeData.value);
   } catch (error) {
     console.error("Failed to load categories:", error);
     errorMsg.value = String(error);
@@ -126,12 +122,6 @@ function buildCategoryTree(flat: CategoryDto[]): CategoryNode[] {
 function handleNodeClick(node: CategoryNode) {
   selectedPath.value = node.path;
   emit("categorySelect", node.path);
-}
-
-// Handle "All Papers" click
-function handleAllPapersClick() {
-  selectedPath.value = null;
-  emit("categorySelect", null);
 }
 
 // Get node icon
@@ -222,34 +212,26 @@ function convertToTreeNode(node: CategoryNode): any {
 
 // Handle drag end - save to database
 async function handleAfterDrop() {
-  console.log("=== Drag After Drop Started ===");
-
   // After drag, he-tree has already updated treeData
   // We just need to send the new structure to backend
   const treeStructure = treeData.value.map(convertToTreeNode);
-  console.log("Sending tree structure to backend:", treeStructure);
 
   try {
     await invokeCommand("reorder_tree", {
       treeData: treeStructure,
     });
-    console.info("✓ Tree reordered successfully in database");
-
     // Reload to ensure sync with database
     await loadCategories();
-
-    console.log("=== Drag After Drop Completed Successfully ===");
   } catch (error) {
-    console.error("✗ Failed to reorder tree in database:", error);
-    console.log("Reloading to revert local changes...");
+    console.error("Failed to reorder tree in database:", error);
+    // Reload to revert local changes
     await loadCategories();
-    console.log("=== Drag After Drop Failed ===");
   }
 }
 
 // Handle drag end
 function handleDragEnd() {
-  console.log("=== Drag End ===");
+  // Placeholder for future drag end handling
 }
 
 // Load categories on mount
@@ -265,18 +247,6 @@ defineExpose({
 
 <template>
   <div class="category-tree">
-    <!-- All Papers entry -->
-    <div
-      class="tree-node all-papers"
-      :class="{ 'tree-node-selected': selectedPath === null }"
-      @click="handleAllPapersClick"
-    >
-      <v-icon size="small" class="tree-node-icon">mdi-folder-open</v-icon>
-      <span class="tree-node-text">All Papers</span>
-    </div>
-
-    <v-divider class="my-2" />
-
     <!-- Error state -->
     <div v-if="errorMsg" class="tree-error">
       <v-alert type="error" density="compact">
@@ -416,10 +386,6 @@ defineExpose({
   color: rgb(var(--v-theme-on-primary));
 }
 
-.tree-node-icon {
-  margin-right: 4px;
-}
-
 .tree-node-folder {
   margin-right: 8px;
 }
@@ -429,19 +395,6 @@ defineExpose({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.all-papers {
-  display: flex;
-  align-items: center;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.all-papers:hover {
-  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .tree-loading,
@@ -466,8 +419,7 @@ defineExpose({
 }
 
 /* Disable transitions for non-drag elements */
-.tree-node-content,
-.all-papers {
+.tree-node-content {
   transition: background-color 150ms ease;
 }
 </style>

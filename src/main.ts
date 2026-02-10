@@ -41,6 +41,40 @@ const vuetify = createVuetify({
       },
     },
   },
+  // Global density and sizing defaults
+  defaults: {
+    VBtn: {
+      density: "comfortable",
+      size: "small",
+    },
+    VTextField: {
+      density: "compact",
+      variant: "outlined",
+    },
+    VSelect: {
+      density: "compact",
+      variant: "outlined",
+    },
+    VTextarea: {
+      density: "compact",
+      variant: "outlined",
+    },
+    VListItem: {
+      density: "compact",
+    },
+    VCard: {
+      density: "compact",
+    },
+    VChip: {
+      density: "comfortable",
+    },
+    VTooltip: {
+      density: "compact",
+    },
+    VMenu: {
+      density: "compact",
+    },
+  },
   // Disable all transitions globally
   display: {
     mobileBreakpoint: "md",

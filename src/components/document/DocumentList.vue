@@ -190,10 +190,14 @@ defineExpose({
     </div>
 
     <div class="table-container">
+      <!-- Loading overlay -->
+      <div v-if="loading" class="loading-overlay">
+        <v-progress-circular indeterminate size="48" />
+      </div>
+
       <vxe-table
         ref="tableRef"
         :data="papers"
-        :loading="loading"
         :checkbox-config="{ checkField: 'checked' }"
         :sort-config="{
           trigger: 'cell',
@@ -302,6 +306,20 @@ defineExpose({
 .table-container {
   flex: 1;
   overflow: hidden;
+  position: relative;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
 }
 
 .text-truncate {

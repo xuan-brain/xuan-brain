@@ -12,6 +12,9 @@ import "@/assets/styles/main.css";
 import VxeTable from "vxe-table";
 import "vxe-table/lib/style.css";
 
+// Register VxeTable plugins (optional, for additional features)
+// Note: loading functionality is built-in, no separate plugin needed for v4
+
 import App from "./App.vue";
 import { i18n } from "./lib/i18n";
 import { useAppStore } from "./stores/useAppStore";

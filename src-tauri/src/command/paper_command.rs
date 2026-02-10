@@ -53,6 +53,7 @@ pub struct PaperDto {
     pub authors: Vec<String>,
     pub labels: Vec<LabelDto>,
     pub attachment_count: usize,
+    pub attachments: Vec<AttachmentDto>,
 }
 
 #[derive(Serialize)]
@@ -137,6 +138,16 @@ pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<Pap
                 })
                 .collect(),
             attachment_count: attachments.len(),
+            attachments: attachments
+                .into_iter()
+                .map(|a| AttachmentDto {
+                    id: a.id,
+                    paper_id: a.paper_id,
+                    file_name: a.file_name,
+                    file_type: a.file_type,
+                    created_at: a.created_at.map(|d| d.to_string()),
+                })
+                .collect(),
         })
         .collect();
 
@@ -185,6 +196,16 @@ pub async fn get_deleted_papers(db: State<'_, DatabaseConnection>) -> Result<Vec
                 })
                 .collect(),
             attachment_count: attachments.len(),
+            attachments: attachments
+                .into_iter()
+                .map(|a| AttachmentDto {
+                    id: a.id,
+                    paper_id: a.paper_id,
+                    file_name: a.file_name,
+                    file_type: a.file_type,
+                    created_at: a.created_at.map(|d| d.to_string()),
+                })
+                .collect(),
         })
         .collect();
 
@@ -415,6 +436,7 @@ pub async fn import_paper_by_doi(
         authors: metadata.authors,
         labels: vec![],
         attachment_count: 0,
+        attachments: vec![],
     })
 }
 
@@ -542,6 +564,7 @@ pub async fn import_paper_by_arxiv_id(
         authors: metadata.authors,
         labels: vec![],
         attachment_count: 0,
+        attachments: vec![],
     })
 }
 
@@ -643,6 +666,16 @@ pub async fn get_papers_by_category(
                 })
                 .collect(),
             attachment_count: attachments.len(),
+            attachments: attachments
+                .into_iter()
+                .map(|a| AttachmentDto {
+                    id: a.id,
+                    paper_id: a.paper_id,
+                    file_name: a.file_name,
+                    file_type: a.file_type,
+                    created_at: a.created_at.map(|d| d.to_string()),
+                })
+                .collect(),
         })
         .collect();
 
@@ -951,7 +984,7 @@ pub async fn import_paper_by_pdf(
     // 9. Create attachment record
     attachments::ActiveModel {
         paper_id: Set(paper.id),
-        file_name: Set(Some(target_filename)),
+        file_name: Set(Some(target_filename.clone())),
         file_type: Set(Some("pdf".to_string())),
         created_at: Set(Some(chrono::Utc::now())),
         ..Default::default()
@@ -968,6 +1001,13 @@ pub async fn import_paper_by_pdf(
         authors: vec![],
         labels: vec![],
         attachment_count: 1,
+        attachments: vec![AttachmentDto {
+            id: 0, // Placeholder, will be updated if needed
+            paper_id: paper.id,
+            file_name: Some(target_filename),
+            file_type: Some("pdf".to_string()),
+            created_at: Some(chrono::Utc::now().to_string()),
+        }],
     })
 }
 

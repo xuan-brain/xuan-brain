@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { invokeCommand } from "@/lib/tauri";
+import type { VxeTablePropTypes } from "vxe-table";
 
 const router = useRouter();
 
@@ -47,10 +48,22 @@ const emit = defineEmits<{
 // State
 const loading = ref(false);
 const papers = ref<PaperDto[]>([]);
-const expandRowIds = ref<number[]>([]);
 
 // Table ref
-const tableRef = ref<VxeTable>();
+
+// Expand configuration
+const expandRowIds = ref<number[]>([]);
+
+const expandConfig = computed<VxeTablePropTypes.ExpandConfig>(() => ({
+  showIcon: true,
+  iconOpen: "mdi-paperclip",
+  iconClose: "mdi-paperclip",
+  expandRowKeys: expandRowIds.value,
+  accordion: false,
+  visibleMethod: ({ row }) => {
+    return ((row as PaperDto).attachment_count ?? 0) > 0;
+  },
+}));
 
 // Sort configuration
 const sortConfig = reactive({
@@ -61,13 +74,6 @@ const sortConfig = reactive({
 });
 
 // Table columns definition
-const columns = computed(() => [
-  { field: "title", title: "Title", sortable: true, minWidth: 300 },
-  { field: "authors", title: "Authors", sortable: false, width: 200 },
-  { field: "publication_year", title: "Year", sortable: true, width: 100 },
-  { field: "journal_name", title: "Journal", sortable: true, width: 200 },
-  { field: "labels", title: "Labels", sortable: false, width: 200 },
-]);
 
 // Load papers from backend based on current view
 async function loadPapers() {
@@ -103,12 +109,9 @@ function handleRowDblclick({ row }: { row: PaperDto }) {
 }
 
 // Handle sort change
-function handleSortChange({
-  sortList,
-}: {
-  sortList: Array<{ field: string; order: string }>;
-}) {
-  if (sortList.length > 0) {
+function handleSortChange(params: any) {
+  const { sortList } = params;
+  if (sortList && sortList.length > 0) {
     const { field, order } = sortList[0];
     sortConfig.defaultSort.field = field;
     sortConfig.defaultSort.order = order as "asc" | "desc";
@@ -128,34 +131,37 @@ function handleSortChange({
 }
 
 // Handle expand row toggle
-async function toggleExpandRow(row: PaperDto) {
+function handleToggleExpandChange({ row }: { row: any }) {
   const index = expandRowIds.value.indexOf(row.id);
+
+  console.info(
+    "Toggle expand clicked for row:",
+    row.id,
+    "current expanded rows:",
+    expandRowIds.value,
+  );
 
   if (index > -1) {
     // Collapse
     expandRowIds.value.splice(index, 1);
+    console.info("Collapsed row:", row.id);
   } else {
-    // Expand and load attachments if not loaded
+    // Expand - attachments are already loaded from backend
     expandRowIds.value.push(row.id);
-
-    if (!row.attachments && row.attachment_count && row.attachment_count > 0) {
-      try {
-        const attachments = await invokeCommand<Attachment[]>(
-          "get_attachments",
-          { paperId: row.id },
-        );
-        row.attachments = attachments;
-      } catch (error) {
-        console.error("Failed to load attachments:", error);
-      }
-    }
+    console.info(
+      "Expanded row:",
+      row.id,
+      "attachment_count:",
+      row.attachment_count,
+      "attachments:",
+      row.attachments?.length || 0,
+    );
   }
 }
 
+// Handle expand row change event (fallback)
+
 // Check if row is expanded
-function isRowExpanded(row: PaperDto) {
-  return expandRowIds.value.includes(row.id);
-}
 
 // Get file icon based on file type
 function getFileIcon(fileType: string | null): string {
@@ -223,11 +229,8 @@ defineExpose({
       <vxe-table
         ref="tableRef"
         :data="papers"
-        :expand-config="{
-          expandRowIds: expandRowIds,
-          expandField: 'id',
-          accordion: false,
-        }"
+        :expand-config="expandConfig"
+        :column-config="{ resizable: true }"
         :sort-config="{
           trigger: 'cell',
           defaultSort: sortConfig.defaultSort.field
@@ -242,24 +245,58 @@ defineExpose({
         height="100%"
         stripe
         border
-        resizable
         size="mini"
         @cell-click="handleCellClick"
         @row-dblclick="handleRowDblclick"
         @sort-change="handleSortChange"
+        @toggle-expand-change="handleToggleExpandChange"
       >
         <!-- Expand column (only for papers with attachments) -->
-        <vxe-column width="40" fixed="left">
-          <template #default="{ row }">
-            <v-icon
-              v-if="row.attachment_count && row.attachment_count > 0"
-              size="small"
-              :class="{ 'rotate-90': isRowExpanded(row) }"
-              @click.stop="toggleExpandRow(row)"
-              style="cursor: pointer; transition: transform 0.2s"
-            >
-              mdi-chevron-right
-            </v-icon>
+        <vxe-column type="expand" width="40" fixed="left">
+          <template #content="{ row }">
+            <div class="expand-row-content">
+              <div
+                v-if="row.attachments && row.attachments.length > 0"
+                class="attachments-list"
+              >
+                <div class="attachments-header">
+                  <v-icon size="small" class="mr-2">mdi-paperclip</v-icon>
+                  <span class="text-subtitle-2"
+                    >Attachments ({{ row.attachments.length }})</span
+                  >
+                </div>
+                <v-list density="compact" class="attachments-list-items">
+                  <v-list-item
+                    v-for="attachment in row.attachments"
+                    :key="attachment.id"
+                    class="attachment-item"
+                  >
+                    <template #prepend>
+                      <v-icon
+                        :icon="getFileIcon(attachment.file_type)"
+                        size="small"
+                      />
+                    </template>
+                    <v-list-item-title>
+                      {{ attachment.file_name || "Unnamed file" }}
+                    </v-list-item-title>
+                    <v-list-item-subtitle v-if="attachment.file_type">
+                      {{ attachment.file_type }}
+                      <span v-if="attachment.created_at">
+                        •
+                        {{
+                          new Date(attachment.created_at).toLocaleDateString()
+                        }}
+                      </span>
+                    </v-list-item-subtitle>
+                  </v-list-item>
+                </v-list>
+              </div>
+              <div v-else class="no-attachments">
+                <v-icon size="small" class="mr-2">mdi-information</v-icon>
+                <span class="text-caption">No attachments</span>
+              </div>
+            </div>
           </template>
         </vxe-column>
 
@@ -320,51 +357,6 @@ defineExpose({
             </v-chip>
           </template>
         </vxe-column>
-
-        <!-- Expand row template for attachments -->
-        <template #expand="{ row }">
-          <div class="expand-row-content">
-            <div
-              v-if="row.attachments && row.attachments.length > 0"
-              class="attachments-list"
-            >
-              <div class="attachments-header">
-                <v-icon size="small" class="mr-2">mdi-paperclip</v-icon>
-                <span class="text-subtitle-2"
-                  >Attachments ({{ row.attachments.length }})</span
-                >
-              </div>
-              <v-list density="compact" class="attachments-list-items">
-                <v-list-item
-                  v-for="attachment in row.attachments"
-                  :key="attachment.id"
-                  class="attachment-item"
-                >
-                  <template #prepend>
-                    <v-icon
-                      :icon="getFileIcon(attachment.file_type)"
-                      size="small"
-                    />
-                  </template>
-                  <v-list-item-title>
-                    {{ attachment.file_name || "Unnamed file" }}
-                  </v-list-item-title>
-                  <v-list-item-subtitle v-if="attachment.file_type">
-                    {{ attachment.file_type }}
-                    <span v-if="attachment.created_at">
-                      •
-                      {{ new Date(attachment.created_at).toLocaleDateString() }}
-                    </span>
-                  </v-list-item-subtitle>
-                </v-list-item>
-              </v-list>
-            </div>
-            <div v-else class="no-attachments">
-              <v-icon size="small" class="mr-2">mdi-information</v-icon>
-              <span class="text-caption">No attachments</span>
-            </div>
-          </div>
-        </template>
       </vxe-table>
     </div>
   </div>

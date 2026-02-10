@@ -13,10 +13,10 @@ interface Label {
 
 interface Attachment {
   id: number;
-  file_name: string;
-  file_type: string;
-  file_size: number;
-  created_at: string;
+  paper_id: number;
+  file_name: string | null;
+  file_type: string | null;
+  created_at: string | null;
 }
 
 interface PaperDto {
@@ -157,15 +157,9 @@ function isRowExpanded(row: PaperDto) {
   return expandRowIds.value.includes(row.id);
 }
 
-// Format file size for display
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-}
-
 // Get file icon based on file type
-function getFileIcon(fileType: string): string {
+function getFileIcon(fileType: string | null): string {
+  if (!fileType) return "mdi-file";
   const type = fileType.toLowerCase();
   if (type.includes("pdf")) return "mdi-file-pdf-box";
   if (type.includes("doc") || type.includes("word")) return "mdi-file-word-box";
@@ -195,8 +189,8 @@ watch(
 watch(
   () => props.currentView,
   () => {
-    // Clear selection when view changes
-    selectedRowIds.value = [];
+    // Clear expanded rows when view changes
+    expandRowIds.value = [];
     loadPapers();
   },
 );
@@ -353,11 +347,14 @@ defineExpose({
                     />
                   </template>
                   <v-list-item-title>
-                    {{ attachment.file_name }}
+                    {{ attachment.file_name || "Unnamed file" }}
                   </v-list-item-title>
-                  <v-list-item-subtitle>
-                    {{ formatFileSize(attachment.file_size) }} •
-                    {{ new Date(attachment.created_at).toLocaleDateString() }}
+                  <v-list-item-subtitle v-if="attachment.file_type">
+                    {{ attachment.file_type }}
+                    <span v-if="attachment.created_at">
+                      •
+                      {{ new Date(attachment.created_at).toLocaleDateString() }}
+                    </span>
                   </v-list-item-subtitle>
                 </v-list-item>
               </v-list>

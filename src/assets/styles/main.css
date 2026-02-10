@@ -81,3 +81,51 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* 禁用所有 Vuetify 过渡动画 */
+.v-application,
+.v-application > * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* 禁用所有 Vuetify 组件的过渡 */
+.v-btn,
+.v-card,
+.v-list-item,
+.v-navigation-drawer,
+.v-dialog,
+.v-menu,
+.v-tooltip,
+.v-expansion-panel,
+.v-tabs,
+.v-window,
+.v-carousel,
+.v-slide-group,
+.v-btn-toggle {
+  transition: none !important;
+}
+
+/* 禁用所有 Vuetify 的过渡和动画类 */
+* {
+  transition: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+
+/* 禁用 Vuetify 的 fade、slide、scale 等过渡 */
+.fade-enter-active,
+.fade-leave-active,
+.fade-slide-transition,
+.slide-x-transition,
+.slide-y-transition,
+.slide-x-reverse-transition,
+.slide-y-reverse-transition,
+.scale-transition,
+.expand-transition,
+.scroll-x-transition,
+.scroll-y-transition,
+.scroll-x-reverse-transition,
+.scroll-y-reverse-transition {
+  transition: none !important;
+}

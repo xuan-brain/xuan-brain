@@ -226,7 +226,7 @@ defineExpose({
         <vxe-column
           field="title"
           title="Title"
-          min-width="300"
+          min-width="200"
           sortable
           show-overflow
         >
@@ -258,7 +258,7 @@ defineExpose({
         <vxe-column
           field="journal_name"
           title="Journal"
-          min-width="150"
+          width="20%"
           sortable
           show-overflow
         />

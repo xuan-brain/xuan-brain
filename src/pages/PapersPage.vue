@@ -111,7 +111,6 @@ function stopDrag() {
 
 // State
 const selectedPaperId = ref<number | null>(null);
-const documentListRef = ref<InstanceType<typeof DocumentList> | null>(null);
 
 // Handle paper selection from document list
 function handlePaperSelect(paperId: number) {
@@ -243,10 +242,6 @@ onUnmounted(() => {
 /* Panel borders */
 .left-panel {
   border-right: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.right-panel {
-  /* No border on rightmost panel */
 }
 
 /* Disable Vuetify transitions in this component */

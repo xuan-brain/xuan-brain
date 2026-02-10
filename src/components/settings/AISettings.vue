@@ -19,7 +19,6 @@ const llmForm = ref({
   model_name: "",
 });
 const testingConnection = ref(false);
-const testingDialog = ref(false);
 
 // Emit event for parent to refresh config
 const emit = defineEmits<{

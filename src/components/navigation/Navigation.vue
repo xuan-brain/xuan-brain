@@ -89,7 +89,7 @@ function handleNavClick(item: "library" | "favorites" | "trash") {
 }
 
 // Handle label click
-function handleLabelClick(labelId: number) {
+function handleLabelClick(_: number) {
   activeNavItem.value = "library";
   // TODO: Filter by label
   emit("viewChange", "library");
@@ -176,9 +176,6 @@ function handleTagUpdated() {
 }
 
 // Get color display value from color key
-function getColorDisplay(colorKey: string): string {
-  return TAG_COLORS[colorKey] || TAG_COLORS.blue;
-}
 
 // Initialize on mount
 onMounted(() => {

@@ -8,7 +8,7 @@ mod sys;
 use std::path::PathBuf;
 
 use crate::command::category_command::{
-    create_category, delete_category, load_categories, move_category, update_category,
+    create_category, delete_category, load_categories, move_category, reorder_tree, update_category,
 };
 use crate::command::config_command::{get_app_config, save_app_config};
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
@@ -95,6 +95,7 @@ pub fn run() -> Result<()> {
             delete_category,
             update_category,
             move_category,
+            reorder_tree,
             get_all_papers,
             get_deleted_papers,
             get_papers_by_category,

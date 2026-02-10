@@ -77,8 +77,24 @@ pub async fn move_category(
     Ok(new_path)
 }
 
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn reorder_tree(
+    db: State<'_, DatabaseConnection>,
+    tree_data: Vec<TreeNodeDto>,
+) -> Result<()> {
+    info!(
+        "Reordering tree based on new structure, {} root nodes",
+        tree_data.len()
+    );
+    let service = CategoryService::new(db.inner());
+    service.rebuild_tree_from_structure(&tree_data).await?;
+    info!("Tree reordered successfully");
+    Ok(())
+}
+
 // 传给前端的 DTO，包含 path 字段（svelte-treeview 需要）
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct CategoryDto {
     pub id: i64,
     pub path: String,
@@ -86,4 +102,13 @@ pub struct CategoryDto {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_id: Option<i64>,
     pub sort_order: i64,
+}
+
+// 用于重建树的 DTO，包含完整的层级结构
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct TreeNodeDto {
+    pub id: i64,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub children: Option<Vec<TreeNodeDto>>,
 }

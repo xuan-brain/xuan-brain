@@ -2,7 +2,7 @@ use sea_orm::*;
 use tracing::info;
 
 use crate::{
-    command::category_command::CategoryDto,
+    command::category_command::{CategoryDto, TreeNodeDto},
     database::entities::prelude::Category,
     database::entities::{self},
 };
@@ -155,8 +155,12 @@ impl<'a> CategoryService<'a> {
         };
 
         // 4. 更新子树路径 (如果路径改变了)
-        // 即使 parent 没变，如果原本 path 不是以 ID 结尾（旧数据），这里也会统一规范化
-        if new_ltree_path != dragged_node.ltree_path {
+        // 如果从有parent变为root，或者从root变为有parent，或者在根级别重新排序，需要更新所有其他root节点的路径
+        let need_reindex_roots = (dragged_node.parent_id.is_some() && new_parent_id.is_none())
+            || (dragged_node.parent_id.is_none() && new_parent_id.is_some())
+            || (dragged_node.parent_id.is_none() && new_parent_id.is_none()); // 始终在根级别移动时重新索引
+
+        if new_ltree_path != dragged_node.ltree_path || need_reindex_roots {
             // 查找所有以 dragged_path 开头的节点
             let all_descendants = Category::find()
                 .filter(entities::category::Column::LtreePath.starts_with(dragged_path))
@@ -179,6 +183,49 @@ impl<'a> CategoryService<'a> {
                     am.parent_id = ActiveValue::Set(new_parent_id);
                 }
                 am.update(self.db).await?;
+            }
+
+            // 如果是在根级别之间移动，需要重新索引所有根节点
+            if need_reindex_roots {
+                // 获取所有根节点（按 sort_order 排序）
+                let all_roots = Category::find()
+                    .filter(entities::category::Column::ParentId.is_null())
+                    .order_by_asc(entities::category::Column::SortOrder)
+                    .order_by_asc(entities::category::Column::LtreePath)
+                    .all(self.db)
+                    .await?;
+
+                // 重新分配所有根节点的 ltree_path
+                for (index, root) in all_roots.iter().enumerate() {
+                    let new_path = root.id.to_string();
+                    if root.ltree_path != new_path {
+                        let mut am: entities::category::ActiveModel = root.clone().into();
+                        am.ltree_path = ActiveValue::Set(new_path.clone());
+
+                        // 更新此根节点下所有子节点的路径
+                        let children = Category::find()
+                            .filter(
+                                entities::category::Column::LtreePath.starts_with(&root.ltree_path),
+                            )
+                            .filter(entities::category::Column::LtreePath.ne(&root.ltree_path))
+                            .all(self.db)
+                            .await?;
+
+                        for child in children {
+                            let suffix = child
+                                .ltree_path
+                                .strip_prefix(&root.ltree_path)
+                                .unwrap_or("")
+                                .to_string();
+                            let new_child_path = format!("{}{}", new_path, suffix);
+                            let mut child_am: entities::category::ActiveModel = child.into();
+                            child_am.ltree_path = ActiveValue::Set(new_child_path);
+                            child_am.update(self.db).await?;
+                        }
+
+                        am.update(self.db).await?;
+                    }
+                }
             }
         } else {
             // 路径没变（同级移动且 parent 没变），但可能需要更新 parent_id
@@ -261,6 +308,79 @@ impl<'a> CategoryService<'a> {
         }
 
         Ok(new_ltree_path)
+    }
+
+    // 根据新的树结构重建整个数据库
+    // 前端拖拽后调用此方法，基于新的树结构刷新所有节点的路径
+    pub async fn rebuild_tree_from_structure(
+        &self,
+        new_structure: &[TreeNodeDto],
+    ) -> Result<(), DbErr> {
+        info!(
+            "Rebuilding tree from structure with {} root nodes",
+            new_structure.len()
+        );
+
+        // 递归处理整个树结构
+        self.rebuild_tree_recursive(new_structure, None, None, 0)
+            .await?;
+
+        info!("Tree rebuild completed");
+        Ok(())
+    }
+
+    // 递归重建树结构
+    async fn rebuild_tree_recursive(
+        &self,
+        nodes: &[TreeNodeDto],
+        parent_path: Option<&str>,
+        parent_id: Option<i64>,
+        sort_order: i64,
+    ) -> Result<(), DbErr> {
+        for (index, node) in nodes.iter().enumerate() {
+            let current_sort_order = sort_order + index as i64;
+            let current_index = (index + 1) as i64; // ltree_path 编号从 1 开始
+
+            // 计算新的 ltree_path
+            let new_path = if let Some(pp) = parent_path {
+                // 子节点：parent_path.index
+                format!("{}.{}", pp, current_index)
+            } else {
+                // 根节点：直接用 index
+                current_index.to_string()
+            };
+
+            // 更新当前节点
+            let category = Category::find_by_id(node.id)
+                .one(self.db)
+                .await?
+                .ok_or_else(|| DbErr::Custom(format!("Category {} not found", node.id)))?;
+
+            let mut am: entities::category::ActiveModel = category.into();
+            am.ltree_path = ActiveValue::Set(new_path.clone());
+            am.parent_id = ActiveValue::Set(parent_id);
+            am.sort_order = ActiveValue::Set(current_sort_order);
+            am.update(self.db).await?;
+
+            info!(
+                "Updated category {}: path={}, parent_id={:?}, sort_order={}",
+                node.id, new_path, parent_id, current_sort_order
+            );
+
+            // 递归处理子节点
+            if let Some(children) = &node.children {
+                if !children.is_empty() {
+                    Box::pin(self.rebuild_tree_recursive(
+                        children,
+                        Some(new_path.as_str()),
+                        Some(node.id),
+                        0,
+                    ))
+                    .await?;
+                }
+            }
+        }
+        Ok(())
     }
 
     // 工具：计算新建节点的 ltree_path

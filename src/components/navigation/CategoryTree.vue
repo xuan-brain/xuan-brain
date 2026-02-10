@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { Draggable, context as dragContext } from "@he-tree/vue";
+import { Draggable } from "@he-tree/vue";
 import "@he-tree/vue/style/default.css";
 import { invokeCommand } from "@/lib/tauri";
 import { useI18n } from "@/lib/i18n";
@@ -208,50 +208,39 @@ async function handleCategoryUpdated() {
   await loadCategories();
 }
 
+// Convert CategoryNode to TreeNodeDto (for backend)
+function convertToTreeNode(node: CategoryNode): any {
+  return {
+    id: node.id,
+    name: node.name,
+    children:
+      node.children && node.children.length > 0
+        ? node.children.map(convertToTreeNode)
+        : undefined,
+  };
+}
+
 // Handle drag end - save to database
 async function handleAfterDrop() {
   console.log("=== Drag After Drop Started ===");
 
-  if (!dragContext.startInfo || !dragContext.targetInfo) {
-    console.warn("Invalid drag context: missing startInfo or targetInfo");
-    return;
-  }
-
-  const { startInfo, targetInfo } = dragContext;
-
-  // Get the node data from stat
-  const draggedStat = startInfo.dragNode;
-  const targetStat = targetInfo.dragNode;
-
-  if (!draggedStat || !draggedStat.data) {
-    console.warn("No dragged node data available");
-    return;
-  }
-
-  const draggedNode = draggedStat.data as CategoryNode;
-  const draggedPath = draggedNode.path;
-
-  // Determine target path and position
-  let targetPath: string | null = null;
-  let dropPosition: "child" | "above" | "below" = "child";
-
-  if (targetStat && targetStat.data) {
-    const targetNode = targetStat.data as CategoryNode;
-    targetPath = targetNode.path;
-  }
-
-  console.log("Saving to database:", { draggedPath, targetPath, dropPosition });
+  // After drag, he-tree has already updated treeData
+  // We just need to send the new structure to backend
+  const treeStructure = treeData.value.map(convertToTreeNode);
+  console.log("Sending tree structure to backend:", treeStructure);
 
   try {
-    const newPath = await invokeCommand<string>("move_category", {
-      draggedPath: draggedPath,
-      targetPath: targetPath,
-      position: dropPosition,
+    await invokeCommand("reorder_tree", {
+      treeData: treeStructure,
     });
-    console.info("✓ Category saved to database, new path:", newPath);
+    console.info("✓ Tree reordered successfully in database");
+
+    // Reload to ensure sync with database
+    await loadCategories();
+
     console.log("=== Drag After Drop Completed Successfully ===");
   } catch (error) {
-    console.error("✗ Failed to save category to database:", error);
+    console.error("✗ Failed to reorder tree in database:", error);
     console.log("Reloading to revert local changes...");
     await loadCategories();
     console.log("=== Drag After Drop Failed ===");

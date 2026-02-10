@@ -113,10 +113,8 @@ onMounted(() => {
 
     <!-- Bottom Section: Tags, Favorites, Trash -->
     <div class="nav-bottom">
-      <v-divider />
-
       <!-- Tags Section -->
-      <div class="bottom-section">
+      <div class="bottom-section tags-section">
         <div class="section-header">
           <v-icon size="small" class="mr-2">mdi-label</v-icon>
           <span class="text-caption text-grey">{{ t("navigation.tags") }}</span>
@@ -129,20 +127,19 @@ onMounted(() => {
           />
         </div>
 
-        <v-list density="compact">
-          <v-list-item
+        <!-- Tags as chips in a flex wrap layout -->
+        <div class="tags-chips">
+          <v-chip
             v-for="label in labels"
             :key="label.id"
+            :color="label.color"
+            size="small"
+            class="tag-chip"
             @click="handleLabelClick(label.id)"
           >
-            <template #prepend>
-              <v-icon :color="label.color" size="small">mdi-label</v-icon>
-            </template>
-            <v-list-item-title class="text-body-2">{{
-              label.name
-            }}</v-list-item-title>
-          </v-list-item>
-        </v-list>
+            {{ label.name }}
+          </v-chip>
+        </div>
       </div>
 
       <v-divider />
@@ -244,6 +241,10 @@ onMounted(() => {
   padding: 8px 0;
 }
 
+.tags-section {
+  padding-bottom: 8px;
+}
+
 .section-header {
   display: flex;
   align-items: center;
@@ -252,5 +253,20 @@ onMounted(() => {
 
 .section-header .text-caption {
   flex: 1;
+}
+
+.tags-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px;
+}
+
+.tag-chip {
+  cursor: pointer;
+}
+
+.tag-chip:hover {
+  opacity: 0.8;
 }
 </style>

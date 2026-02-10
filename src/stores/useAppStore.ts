@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
 
 export interface Document {
   id: number;
@@ -11,37 +11,59 @@ export interface Document {
   fileType?: string;
   fileSize?: string;
   addedDate?: string;
-  tags?: { id: number; name: string; color: string }[];
+  tags?: Tag[];
 }
 
-interface AppState {
-  isDark: boolean;
-  accentColor: string;
-  selectedDocument: Document | null;
-  toggleTheme: () => void;
-  setTheme: (isDark: boolean) => void;
-  setAccentColor: (color: string) => void;
-  setSelectedDocument: (doc: Document | null) => void;
+export interface Tag {
+  id: number;
+  name: string;
+  color: string;
 }
 
-export const useAppStore = create<AppState>()(
-  persist(
-    (set) => ({
-      isDark: true, // Default to dark
-      accentColor: "#3b82f6", // Default accent color
-      selectedDocument: null,
+export const useAppStore = defineStore(
+  "app",
+  () => {
+    // State
+    const isDark = ref(true);
+    const accentColor = ref("#3b82f6");
+    const selectedDocument = ref<Document | null>(null);
 
-      toggleTheme: () => set((state) => ({ isDark: !state.isDark })),
-      setTheme: (isDark) => set({ isDark }),
-      setAccentColor: (accentColor) => set({ accentColor }),
-      setSelectedDocument: (selectedDocument) => set({ selectedDocument }),
-    }),
-    {
-      name: "app-storage",
-      partialize: (state) => ({
-        isDark: state.isDark,
-        accentColor: state.accentColor,
-      }), // Only persist theme settings
+    // Getters
+    const currentTheme = computed(() => (isDark.value ? "dark" : "light"));
+
+    // Actions
+    function toggleTheme() {
+      isDark.value = !isDark.value;
+    }
+
+    function setTheme(value: boolean) {
+      isDark.value = value;
+    }
+
+    function setAccentColor(color: string) {
+      accentColor.value = color;
+    }
+
+    function setSelectedDocument(doc: Document | null) {
+      selectedDocument.value = doc;
+    }
+
+    return {
+      isDark,
+      accentColor,
+      selectedDocument,
+      currentTheme,
+      toggleTheme,
+      setTheme,
+      setAccentColor,
+      setSelectedDocument,
+    };
+  },
+  {
+    persist: {
+      key: "xuan-brain-app-storage",
+      storage: localStorage,
+      pick: ["isDark", "accentColor"],
     },
-  ),
+  },
 );

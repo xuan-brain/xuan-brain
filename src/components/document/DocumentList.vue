@@ -141,7 +141,7 @@ async function toggleExpandRow(row: PaperDto) {
     if (!row.attachments && row.attachment_count && row.attachment_count > 0) {
       try {
         const attachments = await invokeCommand<Attachment[]>(
-          "get_paper_attachments",
+          "get_attachments",
           { paperId: row.id },
         );
         row.attachments = attachments;

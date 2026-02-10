@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import DocumentList from "@/components/document/DocumentList.vue";
 import DocumentDetails from "@/components/document/DocumentDetails.vue";
 
 // Props
 interface Props {
   selectedCategory?: string | null;
+  currentView?: "library" | "favorites" | "trash";
 }
 
 const props = withDefaults(defineProps<Props>(), {
   selectedCategory: null,
+  currentView: "library",
 });
 
 // Panel widths (in percentage)
@@ -116,6 +118,14 @@ function handlePaperSelect(paperId: number) {
   selectedPaperId.value = paperId;
 }
 
+// Watch for view changes to clear selection
+watch(
+  () => props.currentView,
+  () => {
+    selectedPaperId.value = null;
+  },
+);
+
 // Cleanup event listeners on unmount
 onUnmounted(() => {
   document.removeEventListener("mousemove", onDrag);
@@ -133,6 +143,7 @@ onUnmounted(() => {
           <DocumentList
             ref="documentListRef"
             :category-path="props.selectedCategory"
+            :current-view="props.currentView"
             @paper-select="handlePaperSelect"
           />
         </div>

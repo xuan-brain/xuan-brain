@@ -14,9 +14,21 @@ const isPapersPage = computed(() => route.path.startsWith("/papers"));
 // Selected category path (for communication with PapersPage)
 const selectedCategory = ref<string | null>(null);
 
+// Current view state (library, favorites, trash)
+const currentView = ref<"library" | "favorites" | "trash">("library");
+
 // Handle category selection from navigation
 function handleCategorySelect(path: string | null) {
   selectedCategory.value = path;
+}
+
+// Handle view change from navigation
+function handleViewChange(view: "library" | "favorites" | "trash") {
+  currentView.value = view;
+  // Clear category selection when switching views
+  if (view !== "library") {
+    selectedCategory.value = null;
+  }
 }
 
 // Navigation menu items
@@ -158,7 +170,10 @@ onUnmounted(() => {
         :style="{ width: `${categoryDrawerWidth}px` }"
       >
         <div class="category-drawer-content">
-          <Navigation @category-select="handleCategorySelect" />
+          <Navigation
+            @category-select="handleCategorySelect"
+            @view-change="handleViewChange"
+          />
         </div>
 
         <!-- Resize handle -->
@@ -174,7 +189,10 @@ onUnmounted(() => {
 
     <!-- Main content area -->
     <div class="main-content">
-      <router-view :selected-category="selectedCategory" />
+      <router-view
+        :selected-category="selectedCategory"
+        :current-view="currentView"
+      />
     </div>
   </div>
 </template>

@@ -23,9 +23,17 @@ interface PaperDto {
 
 interface Props {
   categoryPath?: string | null;
+  currentView?: "library" | "favorites" | "trash";
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  categoryPath: null,
+  currentView: "library",
+});
+
+const emit = defineEmits<{
+  paperSelect: [paperId: number];
+}>();
 
 // State
 const loading = ref(false);
@@ -49,12 +57,21 @@ const headers = computed(() => [
   { title: "Labels", key: "labels", sortable: false },
 ]);
 
-// Load papers from backend
+// Load papers from backend based on current view
 async function loadPapers() {
   loading.value = true;
   try {
-    // For now, load all papers. Later implement pagination with backend
-    const data = await invokeCommand<PaperDto[]>("get_all_papers");
+    let data: PaperDto[];
+
+    if (props.currentView === "trash") {
+      // Load deleted papers
+      data = await invokeCommand<PaperDto[]>("get_deleted_papers");
+    } else {
+      // Load all papers (library view)
+      // TODO: implement category filtering later
+      data = await invokeCommand<PaperDto[]>("get_all_papers");
+    }
+
     papers.value = data;
     totalItems.value = data.length;
   } catch (error) {
@@ -64,23 +81,42 @@ async function loadPapers() {
   }
 }
 
-// Handle row click - navigate to paper detail
+// Handle row click - emit paper selection
 function handleRowClick(event: MouseEvent, item: { item: PaperDto }) {
-  // Double click to open detail
+  emit("paperSelect", item.item.id);
+
+  // Double click to navigate to paper detail
   if (event.detail === 2) {
     router.push(`/papers/${item.item.id}`);
   }
 }
 
 // Watch server options for changes (pagination, sorting)
-watch(serverOptions, () => {
-  loadPapers();
-}, { deep: true });
+watch(
+  serverOptions,
+  () => {
+    loadPapers();
+  },
+  { deep: true },
+);
 
 // Watch category path changes
-watch(() => props.categoryPath, () => {
-  loadPapers();
-});
+watch(
+  () => props.categoryPath,
+  () => {
+    loadPapers();
+  },
+);
+
+// Watch current view changes
+watch(
+  () => props.currentView,
+  () => {
+    // Clear selection when view changes
+    selected.value = [];
+    loadPapers();
+  },
+);
 
 // Load on mount
 onMounted(() => {
@@ -95,6 +131,12 @@ defineExpose({
 
 <template>
   <div class="document-list">
+    <!-- View indicator -->
+    <div v-if="currentView === 'trash'" class="view-indicator">
+      <v-icon size="small" color="warning" class="mr-2">mdi-delete</v-icon>
+      <span class="text-caption">{{ $t("navigation.trash") }}</span>
+    </div>
+
     <v-data-table-server
       v-model:selected="selected"
       v-model:items-per-page="serverOptions.itemsPerPage"
@@ -147,6 +189,14 @@ defineExpose({
 .document-list {
   height: 100%;
   overflow: auto;
+}
+
+.view-indicator {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: rgba(255, 152, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 :deep(.v-data-table__tr:hover) {

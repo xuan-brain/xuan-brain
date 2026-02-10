@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { invokeCommand } from "@/lib/tauri";
 import { useI18n } from "@/lib/i18n";
 
@@ -7,36 +7,37 @@ const { t } = useI18n();
 
 interface Props {
   modelValue: boolean;
+  tagId?: number;
+  tagName?: string;
+  tagColor?: string;
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
-  labelCreated: [];
+  tagCreated: [];
 }>();
 
 // Available colors for labels
 const labelColors = [
-  { value: "red", color: "#f44336" },
-  { value: "pink", color: "#e91e63" },
-  { value: "purple", color: "#9c27b0" },
-  { value: "deep-purple", color: "#673ab7" },
-  { value: "indigo", color: "#3f51b5" },
-  { value: "blue", color: "#2196f3" },
-  { value: "light-blue", color: "#03a9f4" },
-  { value: "cyan", color: "#00bcd4" },
-  { value: "teal", color: "#009688" },
-  { value: "green", color: "#4caf50" },
-  { value: "light-green", color: "#8bc34a" },
-  { value: "lime", color: "#cddc39" },
-  { value: "yellow", color: "#ffeb3b" },
-  { value: "amber", color: "#ffc107" },
-  { value: "orange", color: "#ff9800" },
-  { value: "deep-orange", color: "#ff5722" },
-  { value: "brown", color: "#795548" },
-  { value: "grey", color: "#9e9e9e" },
-  { value: "blue-grey", color: "#607d8b" },
+  { value: "red", color: "#ef4444" },
+  { value: "orange", color: "#f97316" },
+  { value: "amber", color: "#f59e0b" },
+  { value: "yellow", color: "#eab308" },
+  { value: "lime", color: "#84cc16" },
+  { value: "green", color: "#22c55e" },
+  { value: "emerald", color: "#10b981" },
+  { value: "teal", color: "#14b8a6" },
+  { value: "cyan", color: "#06b6d4" },
+  { value: "sky", color: "#0ea5e9" },
+  { value: "blue", color: "#3b82f6" },
+  { value: "indigo", color: "#6366f1" },
+  { value: "violet", color: "#8b5cf6" },
+  { value: "purple", color: "#a855f7" },
+  { value: "fuchsia", color: "#d946ef" },
+  { value: "pink", color: "#ec4899" },
+  { value: "rose", color: "#f43f5e" },
 ];
 
 // State
@@ -45,13 +46,26 @@ const selectedColor = ref("blue");
 const error = ref("");
 const loading = ref(false);
 
+// Check if editing mode
+const isEditMode = computed(() => !!props.tagId);
+
+// Dialog title
+const dialogTitle = computed(() =>
+  isEditMode.value ? t("dialog.editTag") : t("dialog.addTag"),
+);
+
 // Reset form when dialog opens
 watch(
   () => props.modelValue,
   (isOpen) => {
     if (isOpen) {
-      name.value = "";
-      selectedColor.value = "blue";
+      if (isEditMode.value) {
+        name.value = props.tagName || "";
+        selectedColor.value = props.tagColor || "blue";
+      } else {
+        name.value = "";
+        selectedColor.value = "blue";
+      }
       error.value = "";
     }
   },
@@ -68,26 +82,38 @@ function handleClose() {
 // Submit form
 async function handleSubmit() {
   if (!name.value.trim()) {
-    error.value = t("dialog.labelNameRequired");
+    error.value = t("dialog.tagNameRequired");
     return;
   }
 
   if (name.value.length > 30) {
-    error.value = t("dialog.labelNameMaxLength");
+    error.value = t("dialog.tagNameMaxLength");
     return;
   }
 
   loading.value = true;
   try {
-    await invokeCommand("create_label", {
-      name: name.value.trim(),
-      color: selectedColor.value,
-    });
-    console.info("Label created successfully:", name.value.trim());
+    if (isEditMode.value && props.tagId) {
+      // Update existing tag
+      await invokeCommand("update_label", {
+        id: props.tagId,
+        name: name.value.trim(),
+        color: selectedColor.value,
+      });
+      console.info("Label updated successfully:", name.value.trim());
+    } else {
+      // Create new tag
+      await invokeCommand("create_label", {
+        name: name.value.trim(),
+        color: selectedColor.value,
+      });
+      console.info("Label created successfully:", name.value.trim());
+    }
+
     name.value = "";
     selectedColor.value = "blue";
     error.value = "";
-    emit("labelCreated");
+    emit("tagCreated");
     emit("update:modelValue", false);
   } catch (err) {
     error.value = err as string;
@@ -118,7 +144,7 @@ function handleKeyPress(event: KeyboardEvent) {
     <v-card>
       <v-card-title>
         <v-icon start>mdi-label</v-icon>
-        {{ t("dialog.addLabel") }}
+        {{ dialogTitle }}
       </v-card-title>
 
       <v-card-text>
@@ -127,7 +153,7 @@ function handleKeyPress(event: KeyboardEvent) {
         <v-text-field
           v-model="name"
           autofocus
-          :label="t('dialog.enterLabelName')"
+          :label="t('dialog.enterTagName')"
           variant="outlined"
           :error-messages="error ? [error] : []"
           :disabled="loading"
@@ -170,7 +196,7 @@ function handleKeyPress(event: KeyboardEvent) {
           :loading="loading"
           :disabled="!name.trim() || name.length > 30"
         >
-          {{ t("dialog.add") }}
+          {{ t("dialog.save") }}
         </v-btn>
       </v-card-actions>
     </v-card>

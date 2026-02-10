@@ -11,6 +11,14 @@ interface Label {
   color: string;
 }
 
+interface Attachment {
+  id: number;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  created_at: string;
+}
+
 interface PaperDto {
   id: number;
   title: string;
@@ -19,6 +27,7 @@ interface PaperDto {
   journal_name?: string;
   labels: Label[];
   attachment_count?: number;
+  attachments?: Attachment[];
 }
 
 interface Props {
@@ -39,6 +48,7 @@ const emit = defineEmits<{
 const loading = ref(false);
 const papers = ref<PaperDto[]>([]);
 const selectedRowIds = ref<number[]>([]);
+const expandRowIds = ref<number[]>([]);
 
 // Table ref
 const tableRef = ref<VxeTable>();
@@ -152,6 +162,62 @@ function isRowSelected(row: PaperDto) {
   return selectedRowIds.value.includes(row.id);
 }
 
+// Handle expand row toggle
+async function toggleExpandRow(row: PaperDto) {
+  const index = expandRowIds.value.indexOf(row.id);
+
+  if (index > -1) {
+    // Collapse
+    expandRowIds.value.splice(index, 1);
+  } else {
+    // Expand and load attachments if not loaded
+    expandRowIds.value.push(row.id);
+
+    if (!row.attachments && row.attachment_count && row.attachment_count > 0) {
+      try {
+        const attachments = await invokeCommand<Attachment[]>(
+          "get_paper_attachments",
+          { paperId: row.id },
+        );
+        row.attachments = attachments;
+      } catch (error) {
+        console.error("Failed to load attachments:", error);
+      }
+    }
+  }
+}
+
+// Check if row is expanded
+function isRowExpanded(row: PaperDto) {
+  return expandRowIds.value.includes(row.id);
+}
+
+// Format file size for display
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+// Get file icon based on file type
+function getFileIcon(fileType: string): string {
+  const type = fileType.toLowerCase();
+  if (type.includes("pdf")) return "mdi-file-pdf-box";
+  if (type.includes("doc") || type.includes("word")) return "mdi-file-word-box";
+  if (
+    type.includes("xls") ||
+    type.includes("excel") ||
+    type.includes("spreadsheet")
+  )
+    return "mdi-file-excel-box";
+  if (type.includes("ppt") || type.includes("powerpoint"))
+    return "mdi-file-powerpoint-box";
+  if (type.includes("txt")) return "mdi-file-document-box";
+  if (type.includes("zip") || type.includes("rar") || type.includes("archive"))
+    return "mdi-file-zip-box";
+  return "mdi-file";
+}
+
 // Watch category path changes
 watch(
   () => props.categoryPath,
@@ -198,6 +264,11 @@ defineExpose({
       <vxe-table
         ref="tableRef"
         :data="papers"
+        :expand-config="{
+          expandRowIds: expandRowIds,
+          expandField: 'id',
+          accordion: false,
+        }"
         :checkbox-config="{ checkField: 'checked' }"
         :sort-config="{
           trigger: 'cell',
@@ -223,6 +294,21 @@ defineExpose({
       >
         <!-- Checkbox column -->
         <vxe-column type="checkbox" width="50" fixed="left" />
+
+        <!-- Expand column (only for papers with attachments) -->
+        <vxe-column width="40" fixed="left">
+          <template #default="{ row }">
+            <v-icon
+              v-if="row.attachment_count && row.attachment_count > 0"
+              size="small"
+              :class="{ 'rotate-90': isRowExpanded(row) }"
+              @click.stop="toggleExpandRow(row)"
+              style="cursor: pointer; transition: transform 0.2s"
+            >
+              mdi-chevron-right
+            </v-icon>
+          </template>
+        </vxe-column>
 
         <!-- Title column -->
         <vxe-column
@@ -281,6 +367,48 @@ defineExpose({
             </v-chip>
           </template>
         </vxe-column>
+
+        <!-- Expand row template for attachments -->
+        <template #expand="{ row }">
+          <div class="expand-row-content">
+            <div
+              v-if="row.attachments && row.attachments.length > 0"
+              class="attachments-list"
+            >
+              <div class="attachments-header">
+                <v-icon size="small" class="mr-2">mdi-paperclip</v-icon>
+                <span class="text-subtitle-2"
+                  >Attachments ({{ row.attachments.length }})</span
+                >
+              </div>
+              <v-list density="compact" class="attachments-list-items">
+                <v-list-item
+                  v-for="attachment in row.attachments"
+                  :key="attachment.id"
+                  class="attachment-item"
+                >
+                  <template #prepend>
+                    <v-icon
+                      :icon="getFileIcon(attachment.file_type)"
+                      size="small"
+                    />
+                  </template>
+                  <v-list-item-title>
+                    {{ attachment.file_name }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ formatFileSize(attachment.file_size) }} •
+                    {{ new Date(attachment.created_at).toLocaleDateString() }}
+                  </v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+            </div>
+            <div v-else class="no-attachments">
+              <v-icon size="small" class="mr-2">mdi-information</v-icon>
+              <span class="text-caption">No attachments</span>
+            </div>
+          </div>
+        </template>
       </vxe-table>
     </div>
   </div>
@@ -361,5 +489,65 @@ defineExpose({
 :deep(.vxe-table--render-default.size--mini .vxe-header--column) {
   padding: 4px 8px;
   font-size: 12px;
+}
+
+/* Expand row styles */
+.expand-row-content {
+  padding: 12px 16px;
+  background-color: rgba(var(--v-theme-surface-variant), 0.3);
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachments-header {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.attachments-list-items {
+  background-color: transparent;
+  padding: 0;
+}
+
+.attachment-item {
+  padding: 4px 8px;
+  min-height: auto;
+}
+
+.attachment-item :deep(.v-list-item-title) {
+  font-size: 13px;
+}
+
+.attachment-item :deep(.v-list-item-subtitle) {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.no-attachments {
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Expand icon rotation */
+.rotate-90 {
+  transform: rotate(90deg);
+}
+
+/* Expand row styling */
+:deep(.vxe-table--expand-icon) {
+  transition: transform 0.2s ease;
+}
+
+:deep(.vxe-body--row.row--expanded .vxe-body--expand-row) {
+  background-color: rgba(var(--v-theme-surface-variant), 0.3);
 }
 </style>

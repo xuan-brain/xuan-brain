@@ -85,7 +85,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <v-layout class="main-layout">
+  <div class="main-layout">
     <!-- Global sidebar (Rail mode) -->
     <GlobalSidebar />
 
@@ -111,32 +111,21 @@ onUnmounted(() => {
     </template>
 
     <!-- Main content area -->
-    <v-main>
+    <div class="main-content">
       <router-view :selected-category="selectedCategory" />
-    </v-main>
-  </v-layout>
+    </div>
+  </div>
 </template>
 
 <style scoped>
 .main-layout {
-  height: calc(100vh - 36px); /* Subtract status bar height */
   display: flex;
-  flex-direction: column;
+  height: calc(100vh - 36px);
 }
 
-/* Ensure v-main takes available space */
-.main-layout :deep(.v-main) {
+.main-content {
   flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Ensure router-view fills v-main */
-.main-layout :deep(.v-main > div) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
 }
 
 .category-drawer-wrapper {

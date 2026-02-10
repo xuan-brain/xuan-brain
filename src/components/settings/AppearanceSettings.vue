@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
-import { useI18n, setLocale, getCurrentLocale } from "@/lib/i18n";
+import {
+  useI18n,
+  setLocale,
+  getCurrentLocale,
+  type LocaleCode,
+} from "@/lib/i18n";
 import { useAppStore } from "@/stores/useAppStore";
 
 const { t } = useI18n();
@@ -39,7 +44,7 @@ const availableLocales = [
 const currentLocale = ref(getCurrentLocale());
 
 // Handle language change
-function handleLanguageChange(localeCode: string) {
+function handleLanguageChange(localeCode: LocaleCode) {
   currentLocale.value = localeCode;
   setLocale(localeCode);
 }

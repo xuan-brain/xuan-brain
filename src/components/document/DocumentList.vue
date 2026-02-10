@@ -57,12 +57,25 @@ const expandRowIds = ref<number[]>([]);
 const expandConfig = computed<VxeTablePropTypes.ExpandConfig>(() => ({
   showIcon: true,
   trigger: "row",
-  // iconOpen: "vxe-icon-sort",
-  // iconClose: "vxe-icon-sort",
   expandRowKeys: expandRowIds.value,
   accordion: false,
   visibleMethod: ({ row }) => {
+    // 只对有附件的行显示展开图标
     return ((row as PaperDto).attachment_count ?? 0) > 0;
+  },
+  toggleMethod({ expanded, row }) {
+    const paper = row as PaperDto;
+    if (expanded) {
+      if ((paper.attachment_count ?? 0) === 0) {
+        return false; // 没有附件，禁止展开
+      }
+      return true;
+    } else {
+      if ((paper.attachment_count ?? 0) === 0) {
+        return false; // 没有附件，禁止展开
+      }
+      return true; // 有附件，允许展开
+    }
   },
 }));
 
@@ -243,6 +256,12 @@ defineExpose({
         }"
         :row-config="{ isCurrent: true, isHover: true }"
         :cell-config="{ height: 32 }"
+        :style="{
+          '--vxe-ui-table-row-current-background-color':
+            'rgba(var(--v-theme-primary), 0.2)',
+          '--vxe-ui-table-row-hover-current-background-color':
+            'rgba(var(--v-theme-primary), 0.3)',
+        }"
         height="100%"
         stripe
         border

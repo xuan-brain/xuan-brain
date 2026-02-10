@@ -24,6 +24,11 @@
   dependencies:
     "@babel/types" "^7.29.0"
 
+"@babel/runtime@^7.7.7":
+  version "7.28.6"
+  resolved "https://registry.npmmirror.com/@babel/runtime/-/runtime-7.28.6.tgz#d267a43cb1836dc4d182cce93ae75ba954ef6d2b"
+  integrity sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==
+
 "@babel/types@^7.29.0":
   version "7.29.0"
   resolved "https://registry.npmjs.org/@babel/types/-/types-7.29.0.tgz#9f5b1e838c446e72cf3cd4b918152b8c605e37c7"
@@ -350,6 +355,35 @@
   dependencies:
     "@tauri-apps/api" "2.9.1"
     covector "^0.12.4"
+
+"@he-tree/dnd-utils@^0.1.0-alpha.4":
+  version "0.1.0-alpha.4"
+  resolved "https://registry.npmmirror.com/@he-tree/dnd-utils/-/dnd-utils-0.1.0-alpha.4.tgz#7438684dba7b69abc5f8b1aa386a910d9091cf7a"
+  integrity sha512-DuxkFOQ8eztoHrX1/VelqOnQphQbRszemfMKSKlAEEhVjqR/IkaOE2QSRlAdj6OC6AfMvHDPvIZOiEPFwP6/ZQ==
+  dependencies:
+    "@babel/runtime" "^7.7.7"
+    drag-event-service "^2.0.0"
+    helper-js "^3.1.2"
+
+"@he-tree/tree-utils@^0.1.0-alpha.8":
+  version "0.1.0-alpha.8"
+  resolved "https://registry.npmmirror.com/@he-tree/tree-utils/-/tree-utils-0.1.0-alpha.8.tgz#a806073208a92685f529def942cd57b0e2f6d3ad"
+  integrity sha512-4M4BzXbjCg2uY/GDPUGzq1EFGgna5L7NGFF85fF2pSnCIUkWOZY18eaSqvvlOFtyD5DWkkDqxzu0GHFlp/Zb4g==
+  dependencies:
+    "@babel/runtime" "^7.7.7"
+    drag-event-service "^2.0.0"
+    helper-js "^3.1.2"
+
+"@he-tree/vue@^2.10.1":
+  version "2.10.1"
+  resolved "https://registry.npmmirror.com/@he-tree/vue/-/vue-2.10.1.tgz#d9e19ebfd998300be31a7bd070bc0a1e9fee5af7"
+  integrity sha512-0L0jIWfb92YQfv5ndY5Sv8l3ZSn39MZC41Edl6ux7DQ9grfaEPigpHLxElUVm2XV3bUCfX1xg4ooi116Uwg4HQ==
+  dependencies:
+    "@he-tree/dnd-utils" "^0.1.0-alpha.4"
+    "@he-tree/tree-utils" "^0.1.0-alpha.8"
+    "@virtual-list/vue" "^1.2.1"
+    helper-js "^3.1.2"
+    vue-demi latest
 
 "@hookform/resolvers@^5.2.2":
   version "5.2.2"
@@ -1034,6 +1068,14 @@
   resolved "https://registry.npmmirror.com/@types/unist/-/unist-2.0.11.tgz"
   integrity sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==
 
+"@virtual-list/vue@^1.2.1":
+  version "1.2.1"
+  resolved "https://registry.npmmirror.com/@virtual-list/vue/-/vue-1.2.1.tgz#6920dc3850362587cc71f6955fec382e4bb8dbab"
+  integrity sha512-sVangNRLgHJsrwjf2EeXuc8mUExbLRJO39J9/FXFWXXQkue/FBT4ZWN7GH5+GJTeVaEEfHW1W2UuVaf3LEB3jQ==
+  dependencies:
+    helper-js "^3.1.2"
+    vue-demi latest
+
 "@vitejs/plugin-vue@^6.0.4":
   version "6.0.4"
   resolved "https://registry.npmmirror.com/@vitejs/plugin-vue/-/plugin-vue-6.0.4.tgz#f571fe5aeb0be511e3bfdd43844d8eaa0738b28e"
@@ -1389,6 +1431,14 @@ dir-glob@^3.0.1:
   dependencies:
     path-type "^4.0.0"
 
+drag-event-service@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.npmmirror.com/drag-event-service/-/drag-event-service-2.0.0.tgz#7e9fd5beacdf9c3e7c502c717164a4fc284a696f"
+  integrity sha512-JVEnOEbbNDS3RrWd+tVVIDu2SHQZ9luhEFGSQ1hXMjl+ABw0PxhHmnkGjzPVE836Tsg+k7rkm5GM9Ln/UgbYpA==
+  dependencies:
+    "@babel/runtime" "^7.7.7"
+    helper-js "^3.0.0"
+
 effection@2.0.8, effection@^2.0.6:
   version "2.0.8"
   resolved "https://registry.npmmirror.com/effection/-/effection-2.0.8.tgz"
@@ -1567,6 +1617,13 @@ has-flag@^4.0.0:
   version "4.0.0"
   resolved "https://registry.npmmirror.com/has-flag/-/has-flag-4.0.0.tgz"
   integrity sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==
+
+helper-js@^3.0.0, helper-js@^3.1.2:
+  version "3.1.6"
+  resolved "https://registry.npmmirror.com/helper-js/-/helper-js-3.1.6.tgz#37efaa5ca6fc9ad64d4f2a91e77363b7eac06207"
+  integrity sha512-lhncHDAxS2PTA44aG1AofxT51v0IXEVOmaUCC6HwuGaGqE1yEkjhPH74Vb/Aw4xt8Kt5bMvStCr6FekANp+PGg==
+  dependencies:
+    "@babel/runtime" "^7.7.7"
 
 ieee754@^1.2.1:
   version "1.2.1"
@@ -2332,7 +2389,7 @@ vscode-uri@^3.0.8:
   resolved "https://registry.npmmirror.com/vscode-uri/-/vscode-uri-3.1.0.tgz#dd09ec5a66a38b5c3fffc774015713496d14e09c"
   integrity sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==
 
-vue-demi@^0.14.10:
+vue-demi@^0.14.10, vue-demi@latest:
   version "0.14.10"
   resolved "https://registry.npmmirror.com/vue-demi/-/vue-demi-0.14.10.tgz#afc78de3d6f9e11bf78c55e8510ee12814522f04"
   integrity sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==

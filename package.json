@@ -13,6 +13,7 @@
   "packageManager": "yarn@1.22.22",
   "dependencies": {
     "@fltsci/tauri-plugin-tracing": "^0.3.2",
+    "@he-tree/vue": "^2.10.1",
     "@hookform/resolvers": "^5.2.2",
     "@mdi/font": "^7.4.47",
     "@tauri-apps/api": "^2",

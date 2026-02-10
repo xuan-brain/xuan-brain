@@ -14,19 +14,22 @@ onMounted(async () => {
 async function loadVersionInfo() {
   try {
     const { getVersion } = await import("@tauri-apps/api/app");
-    const { tauri } = await import("@tauri-apps/api");
 
     appVersion.value = await getVersion();
-    tauriVersion.value = tauri.__VERSION || "2.x";
 
-    // Get Vue version from package.json
+    // Get versions from package.json
     const packageRes = await fetch("/package.json");
     if (packageRes.ok) {
       const packageData = await packageRes.json();
       vueVersion.value = packageData.dependencies?.vue || "3.x";
+      tauriVersion.value =
+        packageData.devDependencies?.["@tauri-apps/api"] || "2.x";
     }
   } catch (error) {
     console.error("Failed to load version info:", error);
+    // Fallback values
+    tauriVersion.value = "2.x";
+    vueVersion.value = "3.x";
   }
 }
 </script>

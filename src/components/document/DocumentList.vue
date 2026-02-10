@@ -207,10 +207,12 @@ defineExpose({
             : undefined,
         }"
         :row-config="{ isCurrent: true, isHover: true }"
+        :cell-config="{ height: 32 }"
         height="100%"
         stripe
         border
         resizable
+        size="mini"
         @cell-click="handleCellClick"
         @row-dblclick="handleRowDblclick"
         @sort-change="handleSortChange"
@@ -326,11 +328,25 @@ defineExpose({
 }
 
 :deep(.vxe-table .vxe-body--column) {
-  padding: 8px;
+  padding: 4px 8px;
 }
 
 :deep(.vxe-table .vxe-header--column) {
-  padding: 8px;
+  padding: 6px 8px;
   font-weight: 600;
+  font-size: 13px;
+}
+
+:deep(.vxe-table--render-default .vxe-body--column) {
+  font-size: 13px;
+}
+
+:deep(.vxe-table--render-default.size--mini .vxe-body--column) {
+  padding: 2px 8px;
+}
+
+:deep(.vxe-table--render-default.size--mini .vxe-header--column) {
+  padding: 4px 8px;
+  font-size: 12px;
 }
 </style>

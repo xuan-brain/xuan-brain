@@ -2,8 +2,6 @@
 import { ref, computed, watch, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { invokeCommand } from "@/lib/tauri";
-import { VxeTable, VxeColumn, VxeToolbar } from "vxe-table";
-import "vxe-table/lib/style.css";
 
 const router = useRouter();
 

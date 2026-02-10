@@ -8,11 +8,18 @@ import "vuetify/styles";
 import "@mdi/font/css/materialdesignicons.css";
 import "@/assets/styles/main.css";
 
+// VxeTable
+import VxeTable from "vxe-table";
+import "vxe-table/lib/style.css";
+
 import App from "./App.vue";
 import { i18n } from "./lib/i18n";
 import { useAppStore } from "./stores/useAppStore";
 
 const app = createApp(App);
+
+// Register VxeTable globally
+app.use(VxeTable);
 
 // Pinia with persist plugin
 const pinia = createPinia();

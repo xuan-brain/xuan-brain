@@ -113,7 +113,8 @@ async function testCurrentConnection() {
       alert(`连接失败 (${response.status}): ${response.statusText}`);
     }
   } catch (error) {
-    alert(`连接失败: ${error.message || String(error)}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    alert(`连接失败: ${errorMessage}`);
   } finally {
     testingConnection.value = false;
   }

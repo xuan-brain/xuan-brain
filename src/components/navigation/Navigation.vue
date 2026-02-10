@@ -134,6 +134,7 @@ onMounted(() => {
             :key="label.id"
             :color="label.color"
             size="small"
+            variant="elevated"
             class="tag-chip"
             @click="handleLabelClick(label.id)"
           >

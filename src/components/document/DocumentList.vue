@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { invokeCommand } from "@/lib/tauri";
 import type { VxeTablePropTypes } from "vxe-table";
+import DocumentToolbar from "./DocumentToolbar.vue";
 
 const router = useRouter();
 
@@ -237,6 +238,12 @@ defineExpose({
       <v-icon size="small" color="warning" class="mr-2">mdi-delete</v-icon>
       <span class="text-caption">{{ $t("navigation.trash") }}</span>
     </div>
+
+    <!-- Toolbar -->
+    <DocumentToolbar
+      :on-refresh="loadPapers"
+      :selected-category-id="categoryId"
+    />
 
     <div class="table-container">
       <!-- Loading overlay -->

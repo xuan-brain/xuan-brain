@@ -50,10 +50,11 @@
       let relativeFromAppData =
         markerIdx !== -1 ? normalizedPath.slice(markerIdx + marker.length) : normalizedPath;
 
-      // 2) Keep only the segment starting with "org.xuan-brain/files/"
+      // 2) Keep only the segment starting with "files/" (strip leading org.xuan-brain/)
       const match = relativeFromAppData.match(/org\.xuan-brain\/files\/.*$/);
       if (match) {
-        relativeFromAppData = match[0];
+        // strip the leading "org.xuan-brain/" so we end up with "files/..."
+        relativeFromAppData = match[0].replace(/^org\.xuan-brain\//, '');
       } else {
         console.error('Path not under org.xuan-brain/files:', relativeFromAppData);
         error.value = 'PDF path is outside allowed scope';
@@ -61,15 +62,13 @@
         return;
       }
 
-      // 3) Prevent duplicated prefix like "org.xuan-brain/org.xuan-brain/files/..."
-      relativeFromAppData = relativeFromAppData.replace(
-        /(org\.xuan-brain\/)+files\//,
-        'org.xuan-brain/files/'
-      );
+      // 3) Defensive: if any duplicated prefix like "org.xuan-brain/files/" slipped through, strip it
+      relativeFromAppData = relativeFromAppData.replace(/^org\.xuan-brain\//, '');
 
       console.info('normalized path:', normalizedPath);
-      console.info('relative AppData path:', relativeFromAppData);
+      console.info('relative AppData path (files/...):', relativeFromAppData);
 
+      // Read via BaseDirectory.AppData with a relative path starting at "files/..."
       const data = await readFile(relativeFromAppData, { baseDir: BaseDirectory.AppData });
       const blob = new Blob([data], { type: 'application/pdf' });
       objectUrl = URL.createObjectURL(blob);

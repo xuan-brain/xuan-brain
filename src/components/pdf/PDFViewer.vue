@@ -40,7 +40,8 @@
       console.info('pdf info ', info);
 
       // Frontend: read file directly and build a blob URL
-      const data = await readFile(info.file_path);
+      const normalizedPath = info.file_path.replace(/\\/g, '/');
+      const data = await readFile(normalizedPath);
       const blob = new Blob([data], { type: 'application/pdf' });
       objectUrl = URL.createObjectURL(blob);
 

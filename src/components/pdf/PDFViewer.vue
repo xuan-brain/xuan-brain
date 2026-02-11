@@ -1,54 +1,66 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { invokeCommand } from "@/lib/tauri";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { convertFileSrc } from "@tauri-apps/api/core";
-import { PDFViewer } from "@embedpdf/vue-pdf-viewer";
+  import { invokeCommand } from '@/lib/tauri';
+  import { PDFViewer } from '@embedpdf/vue-pdf-viewer';
+  import { getCurrentWindow } from '@tauri-apps/api/window';
+  import { readBinaryFile } from '@tauri-apps/plugin-fs';
+  import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-const loading = ref(true);
-const error = ref("");
-const pdfUrl = ref("");
-const paperTitle = ref("");
+  const loading = ref(true);
+  const error = ref('');
+  const pdfUrl = ref('');
+  const paperTitle = ref('');
+  let objectUrl: string | null = null;
 
-// Close window function
-async function closeWindow() {
-  const currentWindow = getCurrentWindow();
-  await currentWindow.close();
-}
-
-onMounted(async () => {
-  try {
+  // Close window function
+  async function closeWindow() {
     const currentWindow = getCurrentWindow();
-    const label = currentWindow.label;
-
-    const idMatch = label.match(/pdf-viewer-(\d+)/);
-
-    if (!idMatch) {
-      error.value = "Invalid PDF viewer window";
-      loading.value = false;
-      return;
-    }
-
-    const id = parseInt(idMatch[1], 10);
-    const info = await invokeCommand<{
-      file_path: string;
-      file_name: string;
-      paper_id: number;
-      paper_title: string;
-    }>("get_pdf_attachment_path", { paperId: id });
-    console.info("pdf info ", info);
-
-    // Convert file path to URL format for Tauri webview
-    pdfUrl.value = convertFileSrc(info.file_path);
-    paperTitle.value = info.paper_title;
-    await currentWindow.setTitle(info.paper_title);
-  } catch (err) {
-    console.error("Failed to load PDF:", err);
-    error.value = err instanceof Error ? err.message : String(err);
-  } finally {
-    loading.value = false;
+    await currentWindow.close();
   }
-});
+
+  onMounted(async () => {
+    try {
+      const currentWindow = getCurrentWindow();
+      const label = currentWindow.label;
+
+      const idMatch = label.match(/pdf-viewer-(\d+)/);
+
+      if (!idMatch) {
+        error.value = 'Invalid PDF viewer window';
+        loading.value = false;
+        return;
+      }
+
+      const id = parseInt(idMatch[1], 10);
+      const info = await invokeCommand<{
+        file_path: string;
+        file_name: string;
+        paper_id: number;
+        paper_title: string;
+      }>('get_pdf_attachment_path', { paperId: id });
+      console.info('pdf info ', info);
+
+      // Frontend: read file directly and build a blob URL
+      const data = await readBinaryFile(info.file_path);
+      const blob = new Blob([data], { type: 'application/pdf' });
+      objectUrl = URL.createObjectURL(blob);
+
+      pdfUrl.value = objectUrl;
+      paperTitle.value = info.paper_title;
+      await currentWindow.setTitle(info.paper_title);
+    } catch (err) {
+      console.error('Failed to load PDF:', err);
+      error.value = err instanceof Error ? err.message : String(err);
+    } finally {
+      loading.value = false;
+    }
+  });
+
+  onBeforeUnmount(() => {
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+    }
+  });
 </script>
 
 <template>
@@ -80,25 +92,25 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.pdf-viewer {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background-color: #fff;
-}
+  .pdf-viewer {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #fff;
+  }
 
-.loading-container,
-.error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 20px;
-}
+  .loading-container,
+  .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 20px;
+  }
 
-.pdf-container {
-  width: 100%;
-  height: 100%;
-}
+  .pdf-container {
+    width: 100%;
+    height: 100%;
+  }
 </style>

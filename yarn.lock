@@ -196,6 +196,301 @@
   dependencies:
     "@effection/core" "2.2.3"
 
+"@embedpdf/core@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/core/-/core-2.5.0.tgz#b87e137cee38838d17c5294186fd22bab11cfa3c"
+  integrity sha512-nI7GnA5xCNtJHAdKBLPKJVvi4+yAKjy1sysaDf+qp+z3D81Hy8oAcl///QTaZ9ob0SL2jyqi3x//hKl0Rwmgrw==
+  dependencies:
+    "@embedpdf/engines" "2.5.0"
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/engines@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/engines/-/engines-2.5.0.tgz#88f1c1df2c91d87b0a9cde8e169a6e77d56e1e18"
+  integrity sha512-SEknNmQrYvkAZgJllRKXuvXSrHSndDQsr7b3mrIVa9bzV6TeZua0a/YUlvI3/jf74Sdajru3XKPe22iHEOH4Zg==
+  dependencies:
+    "@embedpdf/fonts-arabic" "1.0.0"
+    "@embedpdf/fonts-hebrew" "1.0.0"
+    "@embedpdf/fonts-jp" "1.0.0"
+    "@embedpdf/fonts-kr" "1.0.0"
+    "@embedpdf/fonts-latin" "1.0.0"
+    "@embedpdf/fonts-sc" "1.0.0"
+    "@embedpdf/fonts-tc" "1.0.0"
+    "@embedpdf/models" "2.5.0"
+    "@embedpdf/pdfium" "2.5.0"
+
+"@embedpdf/fonts-arabic@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/fonts-arabic/-/fonts-arabic-1.0.0.tgz#32cf6e9b13a73827800278db7ae832981f9764df"
+  integrity sha512-SnGvQb+LwPZQO2WjjvlmXrJZolJUfLYbLZQSaYUw1vrQyMyJKT4LewvJGG+hZ+Yz2fz7OMIQ+4Gc98mGODZtOg==
+
+"@embedpdf/fonts-hebrew@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/fonts-hebrew/-/fonts-hebrew-1.0.0.tgz#5ad24258c1606fa95dbb4ba5fa67757502c58edc"
+  integrity sha512-5HVAKGL7VqPeTxxADDrSqAFBxfmAXdP8fIqrPwJIKkqdK2643bOer8CqnnpO3/nPoFhkzxhttWMB9BGiqSW62w==
+
+"@embedpdf/fonts-jp@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/fonts-jp/-/fonts-jp-1.0.0.tgz#03c643bde1e0e556bfa1cf4bbb7eafbe555aa9ac"
+  integrity sha512-BY2tv/mcICUUKf+M/bizf3RU65PMqKClJ/e5o9mgMibxyML0OQvEDwYMRPODQkKgJKXCO3ScHmVvcmXp6kt+fA==
+
+"@embedpdf/fonts-kr@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/fonts-kr/-/fonts-kr-1.0.0.tgz#4652ae3b26a83c3c7e499f0b7b60375fb9bb1d46"
+  integrity sha512-bh88HXSvOBS581kgmihWY7Ijp9hBsvlmXogFG5LSNx9UBAobRcakZiFMGieRBc06hUSkpo7WhjaFM/z/SfQ8dQ==
+
+"@embedpdf/fonts-latin@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/fonts-latin/-/fonts-latin-1.0.0.tgz#b646560c2c147f0ccbf04ae26ef18c7822506240"
+  integrity sha512-LLYysdr8O6sRNzhmW3PbF3AeA8xnqvOi4XLFfIfNlW5uEZ+qsJdcfd78Q78sFJMhlaOAYFMziMMsnOzmx463rA==
+
+"@embedpdf/fonts-sc@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/fonts-sc/-/fonts-sc-1.0.0.tgz#a52a70b3cb36e9e49148f2055f51d0fa387f41bf"
+  integrity sha512-ETXl7XCwaQLSSvMO3EUDwMNqtL64kX2LlFxarTRi/NsIGGOIxUurGfKtrkmtnKHrWy1jAJSt6oxK2uJhvdvQIw==
+
+"@embedpdf/fonts-tc@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/fonts-tc/-/fonts-tc-1.0.0.tgz#21262bb512ede384c3fb84b952a6812b98e793f4"
+  integrity sha512-rGZJbVD6DYS5BbXdpEMnWkpVF0Knar+bsiyb2o3+YRx7O8eyFubEBQUSUInirQk69HA6fc3GhYCg7TyC/oD76Q==
+
+"@embedpdf/models@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/models/-/models-2.5.0.tgz#6162b98bb6b3457ccc29284249db019412fe228a"
+  integrity sha512-wu7XgargYBQEh46hVnfsmkTF6TvuoP9nAkTASR60s5ourjlT12qL9RiFLpwGkOBfs8E58h8V5hkgKsra5t03Lw==
+
+"@embedpdf/pdfium@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/pdfium/-/pdfium-2.5.0.tgz#82d51c108249c1fb07055e4ec92563890e3140cd"
+  integrity sha512-2VEO4cNZsV8ig9upS+C+x3Tb58aqNxiAdaUMlD2ZZT8FgszhsV9xMyEuM2maFRdjeT7EO37FtzYBdXc/K67ivA==
+
+"@embedpdf/plugin-annotation@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-annotation/-/plugin-annotation-2.5.0.tgz#3214576adacdb69c590a7a64ae301fe5e726614a"
+  integrity sha512-S5zCeWU3hM9jrnaGuW5RAXt+AzXXvQbFtAdCtxHW1hFADiZ97FKr8KS9MGCkkj6C9madtZP6iUJikvnhoLCABQ==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+    "@embedpdf/utils" "2.5.0"
+
+"@embedpdf/plugin-attachment@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-attachment/-/plugin-attachment-2.5.0.tgz#66c6510034a9d8cfba0233acf9085a5d5c5f2c6f"
+  integrity sha512-dVVnklI2V1Tsnkf2Ob1PY/R8U6bImhaYwiWm8TwJnNzXXT3aTHQ81lGQOv+pIA9f02L8Y4J5OOKkVrKIpqBHug==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-bookmark@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-bookmark/-/plugin-bookmark-2.5.0.tgz#7be25fbeb5fe0b812ae8ec1b8539dcd5d20885af"
+  integrity sha512-2N5kGoamUrQqWZC5SMWIhdyBHqZN/CdcGf8GVH71FFw3AU6rmZ1AD/AkLzgqoYGIuZFE8ACckdrhtbpsZMmSDQ==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-capture@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-capture/-/plugin-capture-2.5.0.tgz#948bb31482258e966ed7154f4e2379a33ee82646"
+  integrity sha512-QXoHiUHv9ANcOtK/8MVEeL9v4Ap6PaUmCGDLzEzYp31rrG/Q/gBN/f4b3SNevfsCieuAoulZ6AEXv6EDgo+GSw==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-commands@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-commands/-/plugin-commands-2.5.0.tgz#3c6b9de4170f67f7326db242bb06be3907fe2b00"
+  integrity sha512-AAKBz9IQRoxXQB9qqtUibFM5Kbft76U3ipTemFdCckMBFbxH0rGLr4lf6dzrrGabHhDQDfj0c3uVQp3VWgtiNg==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-document-manager@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-document-manager/-/plugin-document-manager-2.5.0.tgz#d90c215b626c3d86a5798b866976c7bd9313a9bf"
+  integrity sha512-I8Z/0B7R/YhtVaJFruwFO+QBLIDmQfHx9WVlrDXWZs68YiGwEbjSyizEIEqtulUJxcXfPs2Tf7oIBbdSuPG2NQ==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-export@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-export/-/plugin-export-2.5.0.tgz#d0401c8b6b7ba212b7026cf2875a5c972c0ab2b5"
+  integrity sha512-KC9jXqwcxe76QqfxLx0tnrSdFoApTFOpT+dwrvox186uxYKSmSt1JHFWe4THB/A63hCNr8uMwyswYdFO8fWNHw==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-fullscreen@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-fullscreen/-/plugin-fullscreen-2.5.0.tgz#b10bb2e533aa6eaf0f6b979b97d1653a9d321365"
+  integrity sha512-GfH0a19hbh2fyn9qQzycatke8gAEMju0lWB9yG7Wa2DHIRdRosqRWkpeUdkbpAgKL2jXKUxXmPY9FWCc6tSYpQ==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-history@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-history/-/plugin-history-2.5.0.tgz#0066391111ddb994c005f2e1de84b8bde9d9e9e3"
+  integrity sha512-Av9NBSE9Or1Y6cXcNWpx0bBZN3yI4vywa6kSNjhaqOrgpQDWMaTO57eApJpyHzBodqEztY+klE9YJ7MH88zm6w==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-i18n@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-i18n/-/plugin-i18n-2.5.0.tgz#20debd7dd871da47f68aff73191bbf001e9fe21a"
+  integrity sha512-jxkYJ0H6dwQDKrWSCvcf+F28bGo9daWv4ASDWHIwHb6YKkDctmB1CoiY6akAOE3Mj/RHYYEkoyBGSO3V+VcstQ==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-interaction-manager@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-interaction-manager/-/plugin-interaction-manager-2.5.0.tgz#33e01259a198bcf72809c75c1efafc44315a2e86"
+  integrity sha512-QrmowLVvC5FNZdvVr2kczSDdnHHOuhf+So0VG5Ythts/OL1bIR/0OOpuyJsScTyo5boYnRkXv8yPf8htL57YKQ==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-pan@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-pan/-/plugin-pan-2.5.0.tgz#eef76f3239294786ed5874363ed71f3fd5dee844"
+  integrity sha512-DfdA+hBm9kGYYy7OuJym6azk2h2U/Geirud+tmVzFSL7+OZ3tZ3K9fqj07w66zx0msyUVlYrXzkYSU9NEmwpLA==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-print@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-print/-/plugin-print-2.5.0.tgz#4034b6ce952bad529b53e1214f209675bbc3523a"
+  integrity sha512-qejq7/0K9hh3hzop+u+Qmn7ijTqGcDhxaiXoPkyl91CZVOyAD8qMBzWnhC7vRNOB7hcYgBP81uegE3se+EIlcA==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-redaction@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-redaction/-/plugin-redaction-2.5.0.tgz#d125c0f7b40e3f731c2a997ca6bb9c680086a5af"
+  integrity sha512-G0cm1hLWi09gU8WV+IShq2XHkmLtEbk+EvD3dIiyJV2kbOjgwGSC2Ezt8br3DzH6R/0bF6RAbDIpFyS2Q0oMfg==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+    "@embedpdf/utils" "2.5.0"
+
+"@embedpdf/plugin-render@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-render/-/plugin-render-2.5.0.tgz#038e2908227fad948e6a8d42d5dd5eba81433a6c"
+  integrity sha512-nrTmg8cVMohcKYiQ/7erErsaWlyaq20OtXbVjmnPNnqz4amJLAjlPyudTJRlWWPyIiri9SF4A0ue5ICDY2sypg==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-rotate@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-rotate/-/plugin-rotate-2.5.0.tgz#56c15b6c02043686ed42bec9cfd2df0fbcf1511e"
+  integrity sha512-crFsXduaxNZJmVRfgklBpO4x4i9cRxPmfFBvdIoyJ1ea6AGOCL0rQKQcfqHTFdgtPzlVUiIg6Hi2v+033jdLUg==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-scroll@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-scroll/-/plugin-scroll-2.5.0.tgz#ae6b2d82be41bed2deae3f4a4f01cd13d3038190"
+  integrity sha512-AdLuSgvAaukLl1uQ0FbswcAIPFaR3Jk2ZbEJpWLd9E6iQ+66Cta0Sz8d5J6ndx7VBlRYAZwoqiXF85utJxpQ5g==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-search@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-search/-/plugin-search-2.5.0.tgz#d9fcb52e9b55bb81ced77ac206e5d9d5a35b54f3"
+  integrity sha512-ycHJh05vBZ1PTSdEMgdx6K1py0oklwbwY2eXO4nD54EN9EVZgWlYC4Q+u8nyGOiNL6VmJYcqJ0HmjSWBdmGWBw==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-selection@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-selection/-/plugin-selection-2.5.0.tgz#1cb7f71d3ddaaa6d922a0b88f85c944d9fdea600"
+  integrity sha512-M3WDjahig/6KE83SZGvTaJWhqEOIzH002k2fpJVuks926UBnfgYCH8uqV7SOUQTneQDmIa0PlyFiuEXDw1Ocrw==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+    "@embedpdf/utils" "2.5.0"
+
+"@embedpdf/plugin-spread@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-spread/-/plugin-spread-2.5.0.tgz#aff3c6318e0f272e75303d5458021762d57c6352"
+  integrity sha512-kG8HZMZmbpUVDxCOEyQzIiMPW+VjjebOl93V+quAH+GAI5Tkg6exPyyQ2+/DOJPCtYX4Kh2z2aeoyK2b7NRgIQ==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-thumbnail@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-thumbnail/-/plugin-thumbnail-2.5.0.tgz#882812a812808e298cefb30407f821e4abd83963"
+  integrity sha512-iWofJSXKbWrgvS2fe8v3U1+e2wjBRXD2i1DUcJKnTrqyfjZ8YzUomc5EzdG2RT7uUjtqrcu7463TZ9JHXUkASQ==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-tiling@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-tiling/-/plugin-tiling-2.5.0.tgz#6dfc9a85a3e8fd36d476f7e5eda919f6a8cadad7"
+  integrity sha512-oih0GyGOJvfaXPLSEY+qfC05UUU1ZkADEbr6uCwRMmdHIXu/0ZTJnAToegfWXtfE+Sw0J5wscVkipXXIX5azlw==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-ui@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-ui/-/plugin-ui-2.5.0.tgz#7f13ab8417d00ea60d2a7cc1f20bd70a54810443"
+  integrity sha512-g1orBEFO408W22MQMD+0mkOZ0J11Xdy+9UfZ+u07bNngEyPJgnk0ybG/PUz62L3gsLJ6TYYHKy73wSmKSFEbZQ==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-viewport@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-viewport/-/plugin-viewport-2.5.0.tgz#2cdaf59bc35ca5805364380ff5342f5fee315f97"
+  integrity sha512-z0AXHA9Z3rZdCLje7P2NsQbxKLJ4b/l8lgzXOVn5Ow/pIPE0D2P3fn9WzImHTNI1RNrZMdkW9OH3lfkEXFTqHw==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/plugin-zoom@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/plugin-zoom/-/plugin-zoom-2.5.0.tgz#1a712564a762e136f837e6e1c2fbc894d6c80452"
+  integrity sha512-HWJlqXOXdv/kttV+XWCCStUZAeLl66AuaO8BsnPlAPwEADLLCH4tR4XqJQoWr7/r5watKP7UeQ00FsWu0oGclw==
+  dependencies:
+    "@embedpdf/models" "2.5.0"
+
+"@embedpdf/snippet@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/snippet/-/snippet-2.5.0.tgz#27141c47fa3bd4d386b3be7b6a34495eb0d55a91"
+  integrity sha512-E0Wrg1X2nul4r/MRUCOE0w8UV8ebWjJrBjwA7S9J9/BGMwb1lDWN+R4vQe8lOcdSd499WsiwrErJXFF/ePcOaQ==
+  dependencies:
+    "@embedpdf/core" "2.5.0"
+    "@embedpdf/engines" "2.5.0"
+    "@embedpdf/models" "2.5.0"
+    "@embedpdf/pdfium" "2.5.0"
+    "@embedpdf/plugin-annotation" "2.5.0"
+    "@embedpdf/plugin-attachment" "2.5.0"
+    "@embedpdf/plugin-bookmark" "2.5.0"
+    "@embedpdf/plugin-capture" "2.5.0"
+    "@embedpdf/plugin-commands" "2.5.0"
+    "@embedpdf/plugin-document-manager" "2.5.0"
+    "@embedpdf/plugin-export" "2.5.0"
+    "@embedpdf/plugin-fullscreen" "2.5.0"
+    "@embedpdf/plugin-history" "2.5.0"
+    "@embedpdf/plugin-i18n" "2.5.0"
+    "@embedpdf/plugin-interaction-manager" "2.5.0"
+    "@embedpdf/plugin-pan" "2.5.0"
+    "@embedpdf/plugin-print" "2.5.0"
+    "@embedpdf/plugin-redaction" "2.5.0"
+    "@embedpdf/plugin-render" "2.5.0"
+    "@embedpdf/plugin-rotate" "2.5.0"
+    "@embedpdf/plugin-scroll" "2.5.0"
+    "@embedpdf/plugin-search" "2.5.0"
+    "@embedpdf/plugin-selection" "2.5.0"
+    "@embedpdf/plugin-spread" "2.5.0"
+    "@embedpdf/plugin-thumbnail" "2.5.0"
+    "@embedpdf/plugin-tiling" "2.5.0"
+    "@embedpdf/plugin-ui" "2.5.0"
+    "@embedpdf/plugin-viewport" "2.5.0"
+    "@embedpdf/plugin-zoom" "2.5.0"
+    preact "^10.17.0"
+    tailwind-merge "^3.4.0"
+
+"@embedpdf/utils@2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/utils/-/utils-2.5.0.tgz#21f3e6d72ebfee6547fc452ee7ae17a3308dff7c"
+  integrity sha512-JjYj6BRzu9oesA1JOqKPFMEWKinjvJIjziWu1j6lDXxLsE59bkShjUKbaEG+lkXRspuZRWNP++rzE2p2Ht4veg==
+
+"@embedpdf/vue-pdf-viewer@^2.5.0":
+  version "2.5.0"
+  resolved "https://registry.npmmirror.com/@embedpdf/vue-pdf-viewer/-/vue-pdf-viewer-2.5.0.tgz#41a1ae609f6a96fd9a2f5e5feca9309fcd7c2a9a"
+  integrity sha512-SNpUyBYkmsftnRxF9ISAfoVUwjZxEoo0PXWyvy6/lyrDZ6I3FhRaClDVZTQRIiXwVO3mn6le7lSdVnUS4+z2YA==
+  dependencies:
+    "@embedpdf/snippet" "2.5.0"
+
 "@emnapi/core@^1.7.1":
   version "1.8.1"
   resolved "https://registry.npmmirror.com/@emnapi/core/-/core-1.8.1.tgz#fd9efe721a616288345ffee17a1f26ac5dd01349"
@@ -2031,6 +2326,11 @@ postcss@^8.4.41, postcss@^8.5.0, postcss@^8.5.3, postcss@^8.5.6:
     picocolors "^1.1.1"
     source-map-js "^1.2.1"
 
+preact@^10.17.0:
+  version "10.28.3"
+  resolved "https://registry.npmmirror.com/preact/-/preact-10.28.3.tgz#3c2171526b3e29628ad1a6c56a9e3ca867bbdee8"
+  integrity sha512-tCmoRkPQLpBeWzpmbhryairGnhW9tKV6c6gr/w+RhoRoKEJwsjzipwp//1oCpGPOchvSLaAPlpcJi9MwMmoPyA==
+
 prettier@3.8.0:
   version "3.8.0"
   resolved "https://registry.npmmirror.com/prettier/-/prettier-3.8.0.tgz"
@@ -2261,6 +2561,11 @@ supports-color@^7.1.0:
   integrity sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==
   dependencies:
     has-flag "^4.0.0"
+
+tailwind-merge@^3.4.0:
+  version "3.4.0"
+  resolved "https://registry.npmmirror.com/tailwind-merge/-/tailwind-merge-3.4.0.tgz#5a264e131a096879965f1175d11f8c36e6b64eca"
+  integrity sha512-uSaO4gnW+b3Y2aWoWfFpX62vn2sR3skfhbjsEnaBI81WD1wBLlHZe5sWf0AqjksNdYTbGBEd0UasQMT3SNV15g==
 
 tailwindcss@4.1.18, tailwindcss@^4.0.0:
   version "4.1.18"

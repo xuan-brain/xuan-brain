@@ -2,6 +2,8 @@
 import { ref, onMounted } from "vue";
 import { invokeCommand } from "@/lib/tauri";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { PDFViewer } from "@embedpdf/vue-pdf-viewer";
 
 const loading = ref(true);
 const error = ref("");
@@ -17,7 +19,7 @@ async function closeWindow() {
 onMounted(async () => {
   try {
     const currentWindow = getCurrentWindow();
-    const label = await currentWindow.label();
+    const label = currentWindow.label;
 
     const idMatch = label.match(/pdf-viewer-(\d+)/);
 
@@ -35,10 +37,8 @@ onMounted(async () => {
       paper_title: string;
     }>("get_pdf_attachment_path", { paperId: id });
 
-    // Convert file path to URL format for Tauri
-    // Convert Windows backslashes to forward slashes and URL encode
-    const normalizedPath = info.file_path.replace(/\\/g, "/");
-    pdfUrl.value = `asset://${normalizedPath}`;
+    // Convert file path to URL format for Tauri webview
+    pdfUrl.value = convertFileSrc(info.file_path);
     paperTitle.value = info.paper_title;
     await currentWindow.setTitle(info.paper_title);
   } catch (err) {
@@ -66,11 +66,13 @@ onMounted(async () => {
 
     <!-- PDF viewer -->
     <div v-else class="pdf-container">
-      <embed
+      <PDFViewer
         v-if="pdfUrl"
-        :src="pdfUrl"
-        type="application/pdf"
-        class="pdf-embed"
+        :config="{
+          src: pdfUrl,
+          theme: { preference: 'light' },
+        }"
+        :style="{ width: '100%', height: '100%' }"
       />
     </div>
   </div>
@@ -97,11 +99,5 @@ onMounted(async () => {
 .pdf-container {
   width: 100%;
   height: 100%;
-}
-
-.pdf-embed {
-  width: 100%;
-  height: 100%;
-  border: none;
 }
 </style>

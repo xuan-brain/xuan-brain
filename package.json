@@ -12,6 +12,7 @@
   "license": "MIT",
   "packageManager": "yarn@1.22.22",
   "dependencies": {
+    "@embedpdf/vue-pdf-viewer": "^2.5.0",
     "@fltsci/tauri-plugin-tracing": "^0.3.2",
     "@he-tree/vue": "^2.10.1",
     "@hookform/resolvers": "^5.2.2",

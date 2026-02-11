@@ -5,6 +5,8 @@
   "windows": ["pdf-viewer-*"],
   "permissions": [
     "core:default",
+    "fs:allow-read-file",
+    "fs:allow-read-dir",
     "core:window:allow-set-title",
     "core:window:allow-close",
     "core:window:allow-show",

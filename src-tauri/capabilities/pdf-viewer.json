@@ -8,11 +8,21 @@
 
     {
       "identifier": "fs:allow-read-file",
-      "allow": [{ "path": "$APPDATA/org.xuan-brain/files/**" }]
+      "allow": [
+        {
+          "baseDir": "AppData",
+          "path": "org.xuan-brain/files/**"
+        }
+      ]
     },
     {
       "identifier": "fs:allow-read-dir",
-      "allow": [{ "path": "$APPDATA/org.xuan-brain/files/**" }]
+      "allow": [
+        {
+          "baseDir": "AppData",
+          "path": "org.xuan-brain/files/**"
+        }
+      ]
     },
 
     "core:window:allow-set-title",

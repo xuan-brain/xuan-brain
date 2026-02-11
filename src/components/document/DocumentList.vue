@@ -123,7 +123,7 @@ const contextMenuConfig = computed(() => {
             {
               code: "add_attachment",
               name: "添加附件",
-              prefixConfig: { icon: "vxe-icon-link" },
+              prefixConfig: { icon: "vxe-icon-file" },
             },
             {
               code: "open_folder",
@@ -135,7 +135,7 @@ const contextMenuConfig = computed(() => {
             {
               code: "delete",
               name: t("dialog.delete"),
-              prefixConfig: { icon: "vxe-icon-delete" },
+              prefixConfig: { icon: "vxe-icon-folder-open" },
             },
           ],
         ],
@@ -414,7 +414,7 @@ defineExpose({
               }
             : undefined,
         }"
-        :row-config="{ isCurrent: true, isHover: true }"
+        :row-config="{ isCurrent: true, isHover: true, keyField: 'id' }"
         :cell-config="{ height: 32 }"
         :style="{
           '--vxe-ui-table-row-current-background-color':

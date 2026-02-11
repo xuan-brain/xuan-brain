@@ -40,7 +40,7 @@ onMounted(() => {
 watch(
   () => appStore.isDark,
   (isDark) => {
-    theme.global.name.value = isDark ? "dark" : "light";
+    theme.change(isDark ? "dark" : "light");
   },
 );
 </script>

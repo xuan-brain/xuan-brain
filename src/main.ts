@@ -119,7 +119,7 @@ watch(
   () => appStore.isDark,
   (isDark) => {
     // Update Vuetify theme
-    vuetify.theme.global.name.value = isDark ? "dark" : "light";
+    vuetify.theme.change(isDark ? "dark" : "light");
     // Update VxeTable theme (v4.6.17+)
     if (VxeTable.setTheme) {
       VxeTable.setTheme(isDark ? "dark" : "light");

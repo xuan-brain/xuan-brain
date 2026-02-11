@@ -104,7 +104,6 @@ function buildCategoryTree(flat: CategoryDto[]): CategoryNode[] {
         parent.children.push(node);
       } else {
         // Parent not found, treat as root
-        console.warn(`Parent not found for id: ${dto.id}`);
         root.push(node);
       }
     }

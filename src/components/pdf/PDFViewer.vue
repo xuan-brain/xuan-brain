@@ -2,7 +2,7 @@
   import { invokeCommand } from '@/lib/tauri';
   import { PDFViewer } from '@embedpdf/vue-pdf-viewer';
   import { getCurrentWindow } from '@tauri-apps/api/window';
-  import { readFile } from '@tauri-apps/plugin-fs';
+  import { BaseDirectory, readFile } from '@tauri-apps/plugin-fs';
   import { onBeforeUnmount, onMounted, ref } from 'vue';
 
   const loading = ref(true);
@@ -38,10 +38,19 @@
         paper_title: string;
       }>('get_pdf_attachment_path', { paperId: id });
       console.info('pdf info ', info);
+      console.info('raw file path:', info.file_path);
 
       // Frontend: read file directly and build a blob URL
       const normalizedPath = info.file_path.replace(/\\/g, '/');
-      const data = await readFile(normalizedPath);
+
+      // Build a path relative to BaseDirectory.AppData to satisfy fs scope
+      // Example: C:/Users/<user>/AppData/Roaming/org.xuan-brain/files/...
+      // We strip everything up to "AppData/Roaming/"
+      const relativeFromAppData = normalizedPath.replace(/^.*AppData\/Roaming\//, '');
+      console.info('normalized path:', normalizedPath);
+      console.info('relative AppData path:', relativeFromAppData);
+
+      const data = await readFile(relativeFromAppData, { baseDir: BaseDirectory.AppData });
       const blob = new Blob([data], { type: 'application/pdf' });
       objectUrl = URL.createObjectURL(blob);
 

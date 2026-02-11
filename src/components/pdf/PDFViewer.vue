@@ -2,7 +2,7 @@
   import { invokeCommand } from '@/lib/tauri';
   import { PDFViewer } from '@embedpdf/vue-pdf-viewer';
   import { getCurrentWindow } from '@tauri-apps/api/window';
-  import { readBinaryFile } from '@tauri-apps/plugin-fs';
+  import { readFile } from '@tauri-apps/plugin-fs';
   import { onBeforeUnmount, onMounted, ref } from 'vue';
 
   const loading = ref(true);
@@ -40,7 +40,7 @@
       console.info('pdf info ', info);
 
       // Frontend: read file directly and build a blob URL
-      const data = await readBinaryFile(info.file_path);
+      const data = await readFile(info.file_path);
       const blob = new Blob([data], { type: 'application/pdf' });
       objectUrl = URL.createObjectURL(blob);
 

@@ -43,10 +43,30 @@
       // Frontend: read file directly and build a blob URL
       const normalizedPath = info.file_path.replace(/\\/g, '/');
 
-      // Build a path relative to BaseDirectory.AppData to satisfy fs scope
-      // Example: C:/Users/<user>/AppData/Roaming/org.xuan-brain/files/...
-      // We strip everything up to "AppData/Roaming/"
-      const relativeFromAppData = normalizedPath.replace(/^.*AppData\/Roaming\//, '');
+      // Robustly derive path relative to AppData/Roaming to satisfy fs scope
+      // 1) Cut after "/AppData/Roaming/"
+      const marker = '/AppData/Roaming/';
+      const markerIdx = normalizedPath.indexOf(marker);
+      let relativeFromAppData =
+        markerIdx !== -1 ? normalizedPath.slice(markerIdx + marker.length) : normalizedPath;
+
+      // 2) Keep only the segment starting with "org.xuan-brain/files/"
+      const match = relativeFromAppData.match(/org\.xuan-brain\/files\/.*$/);
+      if (match) {
+        relativeFromAppData = match[0];
+      } else {
+        console.error('Path not under org.xuan-brain/files:', relativeFromAppData);
+        error.value = 'PDF path is outside allowed scope';
+        loading.value = false;
+        return;
+      }
+
+      // 3) Prevent duplicated prefix like "org.xuan-brain/org.xuan-brain/files/..."
+      relativeFromAppData = relativeFromAppData.replace(
+        /(org\.xuan-brain\/)+files\//,
+        'org.xuan-brain/files/'
+      );
+
       console.info('normalized path:', normalizedPath);
       console.info('relative AppData path:', relativeFromAppData);
 

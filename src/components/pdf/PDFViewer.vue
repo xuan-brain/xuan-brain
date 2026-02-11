@@ -74,8 +74,8 @@ onMounted(async () => {
     <!-- PDF viewer -->
     <div v-else class="pdf-container">
       <embed
-        v-if="pdfUrl"
-        :src="pdfUrl"
+        v-if="pdfDataUrl"
+        :src="pdfDataUrl"
         type="application/pdf"
         class="pdf-embed"
       />

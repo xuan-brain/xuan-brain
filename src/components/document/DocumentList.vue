@@ -145,7 +145,7 @@ const contextMenuConfig = computed(() => {
 });
 
 // Handle context menu click
-async function handleContextMenuClick({ menu, row, column }: any) {
+async function handleContextMenuClick({ menu, row }: any) {
   const paper = row as PaperDto;
   console.info("Context menu clicked:", menu.code, paper);
 
@@ -169,7 +169,7 @@ async function handleContextMenuClick({ menu, row, column }: any) {
 }
 
 // Handle context menu shown (for debugging)
-function handleContextMenuVisible({ type, options, row, column }: any) {
+function handleContextMenuVisible({ type, row, column }: any) {
   console.info("Context menu shown:", { type, row, column });
 }
 

@@ -48,6 +48,7 @@ export default {
     source: "Journal/Conference",
     year: "Year",
     labels: "Labels",
+    select_to_view: "Select a document to view details",
   },
 
   // Theme

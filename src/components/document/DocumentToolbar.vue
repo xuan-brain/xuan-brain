@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import { invokeCommand } from "@/lib/tauri";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useI18n } from "@/lib/i18n";
@@ -158,7 +158,12 @@ async function handlePdfImport() {
       >
         {{ t("toolbar.importPdf") }}
       </v-btn>
-      <v-btn size="small" variant="tonal" prepend-icon="mdi-identifier" @click="handleDoiButtonClick">
+      <v-btn
+        size="small"
+        variant="tonal"
+        prepend-icon="mdi-identifier"
+        @click="handleDoiButtonClick"
+      >
         {{ t("toolbar.doi") }}
       </v-btn>
       <v-btn
@@ -173,7 +178,11 @@ async function handlePdfImport() {
   </div>
 
   <!-- DOI Import Dialog -->
-  <v-dialog v-model="doiDialogOpen" max-width="480" @click:outside="handleDoiDialogClose">
+  <v-dialog
+    v-model="doiDialogOpen"
+    max-width="480"
+    @click:outside="handleDoiDialogClose"
+  >
     <v-card>
       <v-card-title>{{ t("toolbar.importByDoi") }}</v-card-title>
       <v-card-text>
@@ -209,11 +218,17 @@ async function handlePdfImport() {
   </v-dialog>
 
   <!-- arXiv Import Dialog -->
-  <v-dialog v-model="arxivDialogOpen" max-width="480" @click:outside="handleArxivDialogClose">
+  <v-dialog
+    v-model="arxivDialogOpen"
+    max-width="480"
+    @click:outside="handleArxivDialogClose"
+  >
     <v-card>
       <v-card-title>{{ t("toolbar.importByArxiv") }}</v-card-title>
       <v-card-text>
-        <div class="dialog-description">{{ t("toolbar.arxivDescription") }}</div>
+        <div class="dialog-description">
+          {{ t("toolbar.arxivDescription") }}
+        </div>
         <v-text-field
           v-model="arxivInput"
           :label="t('toolbar.arxivPlaceholder')"

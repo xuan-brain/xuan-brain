@@ -48,6 +48,7 @@ export default {
     source: "期刊/会议",
     year: "年份",
     labels: "标签",
+    select_to_view: "选择一个文档以查看详情",
   },
 
   // Theme

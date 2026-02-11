@@ -39,7 +39,7 @@ export default defineConfig(
       rollupOptions: {
         input: {
           main: "./index.html",
-          "pdf-viewer": "./src/pdf-viewer.html",
+          "pdf-viewer": "./pdf-viewer.html",
         },
       },
     },

@@ -7,11 +7,20 @@ const loading = ref(true);
 const error = ref("");
 const pdfUrl = ref("");
 const paperTitle = ref("");
+const windowLabel = ref("");
+
+// Close window function
+async function closeWindow() {
+  const currentWindow = getCurrentWindow();
+  await currentWindow.close();
+}
 
 onMounted(async () => {
   try {
     const currentWindow = getCurrentWindow();
     const label = await currentWindow.label();
+    windowLabel.value = label;
+
     const idMatch = label.match(/pdf-viewer-(\d+)/);
 
     if (!idMatch) {
@@ -52,7 +61,7 @@ onMounted(async () => {
     <!-- Error state -->
     <div v-else-if="error" class="error-container">
       <v-alert type="error" :text="error" />
-      <v-btn class="mt-4" @click="window.close()">Close</v-btn>
+      <v-btn class="mt-4" @click="closeWindow">Close</v-btn>
     </div>
 
     <!-- PDF viewer -->

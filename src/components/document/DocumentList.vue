@@ -6,6 +6,8 @@ import type { VxeTablePropTypes } from "vxe-table";
 import DocumentToolbar from "./DocumentToolbar.vue";
 import { useI18n } from "@/lib/i18n";
 import { open } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -47,6 +49,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   paperSelect: [paperId: number];
+  paperUpdated: [paperId: number, detail: PaperDetail];
 }>();
 
 // State
@@ -265,15 +268,15 @@ async function loadPapers() {
   }
 }
 
-// Handle row click - emit paper selection
-function handleCellClick({ row }: { row: PaperDto }) {
-  emit("paperSelect", row.id);
-}
+// // Handle row click - emit paper selection
+// function handleCellClick({ row }: { row: PaperDto }) {
+//   emit("paperSelect", row.id);
+// }
 
-// Handle row double click - navigate to paper detail
-function handleRowDblclick({ row }: { row: PaperDto }) {
-  router.push(`/papers/${row.id}`);
-}
+// // Handle row double click - navigate to paper detail
+// function handleRowDblclick({ row }: { row: PaperDto }) {
+//   router.push(`/papers/${row.id}`);
+// }
 
 // Handle sort change
 function handleSortChange(params: any) {
@@ -300,11 +303,62 @@ function handleSortChange(params: any) {
 // Handle cell click event
 function cellClickEvent({ row, column }: { row: any; column: any }) {
   console.log(`Single clicked row: ${row.id}, column: ${column.field}`);
+  emit("paperSelect", row.id);
 }
 
 // Handle cell double click event
-function cellDblclickEvent({ row, column }: { row: any; column: any }) {
+async function cellDblclickEvent({ row, column }: { row: any; column: any }) {
   console.log(`Double clicked row: ${row.id}, column: ${column.field}`);
+
+  const paper = row as PaperDto;
+
+  // Check if paper has attachments
+  if ((paper.attachment_count ?? 0) === 0) {
+    console.info(`Paper ${paper.id} has no attachments`);
+    return;
+  }
+
+  try {
+    // Create PDF viewer window with unique label
+    const windowLabel = `pdf-viewer-${paper.id}`;
+
+    // Check if PDF viewer window already exists
+    const existingPdfWindow = await WebviewWindow.getByLabel(windowLabel);
+
+    if (existingPdfWindow) {
+      // Focus existing window instead of creating a new one
+      await existingPdfWindow.setFocus();
+      await existingPdfWindow.unminimize();
+      console.info(`Focused existing PDF viewer window for paper ${paper.id}`);
+      return;
+    }
+
+    // Create new PDF viewer window
+    const webview = new WebviewWindow(windowLabel, {
+      title: paper.title,
+      url: "/pdf-viewer.html",
+      width: 1200,
+      height: 800,
+      center: true,
+      resizable: true,
+      decorations: true,
+      transparent: false,
+      alwaysOnTop: false,
+    });
+
+    // Wait for window to be created
+    webview.once("tauri://created", async () => {
+      console.info(`PDF viewer window created for paper ${paper.id}`);
+      await webview.show();
+      await webview.setFocus();
+    });
+
+    webview.once("tauri://error", (error) => {
+      console.error("Failed to create PDF viewer window:", error);
+    });
+  } catch (error) {
+    console.error("Failed to open PDF viewer:", error);
+  }
 }
 
 // Handle expand row toggle

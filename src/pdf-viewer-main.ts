@@ -1,7 +1,9 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import vuetify from "@/plugins/vuetify";
-import App from "./App.vue";
+import { createVuetify } from "vuetify";
+import * as components from "vuetify/components";
+import * as directives from "vuetify/directives";
+import "vuetify/styles";
 
 // PDF Viewer App
 const PDFViewerApp = {
@@ -14,6 +16,11 @@ const PDFViewerApp = {
     </v-app>
   `,
 };
+
+const vuetify = createVuetify({
+  components,
+  directives,
+});
 
 const pinia = createPinia();
 const app = createApp(PDFViewerApp);

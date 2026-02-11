@@ -4,7 +4,10 @@ import { useRouter } from "vue-router";
 import { invokeCommand } from "@/lib/tauri";
 import type { VxeTablePropTypes } from "vxe-table";
 import DocumentToolbar from "./DocumentToolbar.vue";
+import { useI18n } from "@/lib/i18n";
+import { open } from "@tauri-apps/plugin-dialog";
 
+const { t } = useI18n();
 const router = useRouter();
 
 interface Label {
@@ -87,6 +90,151 @@ const sortConfig = reactive({
     order: "" as "asc" | "desc",
   },
 });
+
+// Context menu configuration
+const contextMenuConfig = computed(() => {
+  // Build menu items based on current view (must be 2D array)
+  if (props.currentView === "trash") {
+    // Trash view menu
+    return {
+      body: {
+        options: [
+          [
+            {
+              code: "restore",
+              name: t("dialog.restore"),
+              prefixConfig: { icon: "vxe-icon-undo" },
+            },
+            {
+              code: "permanently_delete",
+              name: t("dialog.permanentlyDelete"),
+              prefixConfig: { icon: "vxe-icon-delete" },
+            },
+          ],
+        ],
+      },
+    };
+  } else {
+    // Normal view menu
+    return {
+      body: {
+        options: [
+          [
+            {
+              code: "add_attachment",
+              name: "添加附件",
+              prefixConfig: { icon: "vxe-icon-link" },
+            },
+            {
+              code: "open_folder",
+              name: "打开附件文件夹",
+              prefixConfig: { icon: "vxe-icon-folder-open" },
+            },
+          ],
+          [
+            {
+              code: "delete",
+              name: t("dialog.delete"),
+              prefixConfig: { icon: "vxe-icon-delete" },
+            },
+          ],
+        ],
+      },
+    };
+  }
+});
+
+// Handle context menu click
+async function handleContextMenuClick({ menu, row, column }: any) {
+  const paper = row as PaperDto;
+  console.info("Context menu clicked:", menu.code, paper);
+
+  switch (menu.code) {
+    case "add_attachment":
+      await handleAddAttachment(paper);
+      break;
+    case "open_folder":
+      await handleOpenFolder(paper);
+      break;
+    case "delete":
+      await handleDeletePaper(paper);
+      break;
+    case "restore":
+      await handleRestorePaper(paper);
+      break;
+    case "permanently_delete":
+      await handlePermanentlyDeletePaper(paper);
+      break;
+  }
+}
+
+// Handle context menu shown (for debugging)
+function handleContextMenuVisible({ type, options, row, column }: any) {
+  console.info("Context menu shown:", { type, row, column });
+}
+
+// Add attachment to paper
+async function handleAddAttachment(paper: PaperDto) {
+  try {
+    const selected = await open({
+      multiple: false,
+      directory: false,
+    });
+    if (selected) {
+      const filePath = Array.isArray(selected) ? selected[0] : selected;
+      if (filePath) {
+        await invokeCommand("add_attachment", {
+          paperId: paper.id,
+          filePath: filePath,
+        });
+        // Reload papers to show updated attachment count
+        await loadPapers();
+        console.info("Attachment added successfully");
+      }
+    }
+  } catch (error) {
+    console.error("Failed to add attachment:", error);
+  }
+}
+
+// Open paper folder
+async function handleOpenFolder(paper: PaperDto) {
+  try {
+    await invokeCommand("open_paper_folder", { paperId: paper.id });
+  } catch (error) {
+    console.error("Failed to open folder:", error);
+  }
+}
+
+// Delete paper (move to trash)
+async function handleDeletePaper(paper: PaperDto) {
+  try {
+    await invokeCommand("delete_paper", { id: paper.id });
+    await loadPapers();
+  } catch (error) {
+    console.error("Failed to delete paper:", error);
+  }
+}
+
+// Restore paper from trash
+async function handleRestorePaper(paper: PaperDto) {
+  try {
+    await invokeCommand("restore_paper", { id: paper.id });
+    await loadPapers();
+  } catch (error) {
+    console.error("Failed to restore paper:", error);
+  }
+}
+
+// Permanently delete paper
+async function handlePermanentlyDeletePaper(paper: PaperDto) {
+  try {
+    await invokeCommand("permanently_delete_paper", { id: paper.id });
+    await loadPapers();
+  } catch (error) {
+    console.error("Failed to permanently delete paper:", error);
+  }
+}
 
 // Table columns definition
 
@@ -256,6 +404,7 @@ defineExpose({
         :data="papers"
         :expand-config="expandConfig"
         :column-config="{ resizable: true }"
+        :menu-config="contextMenuConfig"
         :sort-config="{
           trigger: 'cell',
           defaultSort: sortConfig.defaultSort.field
@@ -281,6 +430,8 @@ defineExpose({
         @row-dblclick="handleRowDblclick"
         @sort-change="handleSortChange"
         @toggle-expand-change="handleToggleExpandChange"
+        @menu-click="handleContextMenuClick"
+        @menu-visible="handleContextMenuVisible"
       >
         <!-- Expand column (only for papers with attachments) -->
         <vxe-column type="expand" width="40" fixed="left">

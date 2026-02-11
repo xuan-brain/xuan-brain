@@ -62,7 +62,7 @@ const expandConfig = computed<VxeTablePropTypes.ExpandConfig>(() => ({
   showIcon: true,
   trigger: "row",
   expandRowKeys: expandRowIds.value,
-  accordion: false,
+  accordion: true, // 手风琴模式：展开一行时其他行自动折叠
   visibleMethod: ({ row }) => {
     // 只对有附件的行显示展开图标
     return ((row as PaperDto).attachment_count ?? 0) > 0;

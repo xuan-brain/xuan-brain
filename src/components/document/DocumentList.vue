@@ -37,6 +37,28 @@ interface PaperDto {
   attachments?: Attachment[];
 }
 
+interface PaperDetail {
+  id: number;
+  title: string;
+  authors: string[];
+  publication_year?: number;
+  publication_date?: string;
+  journal_name?: string;
+  conference_name?: string;
+  volume?: string;
+  issue?: string;
+  pages?: string;
+  doi?: string;
+  url?: string;
+  citation_count?: number;
+  abstract_text?: string;
+  notes?: string;
+  read_status?: string;
+  labels: Label[];
+  category_id?: number;
+  category_name?: string;
+}
+
 interface Props {
   categoryId?: number | null;
   currentView?: "library" | "favorites" | "trash";
@@ -49,7 +71,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   paperSelect: [paperId: number];
-  paperUpdated: [paperId: number, detail: PaperDetailDto];
+  paperUpdated: [paperId: number, detail: PaperDetail];
 }>();
 
 // State

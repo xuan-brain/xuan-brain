@@ -297,6 +297,16 @@ function handleSortChange(params: any) {
   }
 }
 
+// Handle cell click event
+function cellClickEvent({ row, column }: { row: any; column: any }) {
+  console.log(`Single clicked row: ${row.id}, column: ${column.field}`);
+}
+
+// Handle cell double click event
+function cellDblclickEvent({ row, column }: { row: any; column: any }) {
+  console.log(`Double clicked row: ${row.id}, column: ${column.field}`);
+}
+
 // Handle expand row toggle
 function handleToggleExpandChange({ row }: { row: any }) {
   const index = expandRowIds.value.indexOf(row.id);
@@ -426,8 +436,8 @@ defineExpose({
         stripe
         border
         size="mini"
-        @cell-click="handleCellClick"
-        @row-dblclick="handleRowDblclick"
+        @cell-click="cellClickEvent"
+        @cell-dblclick="cellDblclickEvent"
         @sort-change="handleSortChange"
         @toggle-expand-change="handleToggleExpandChange"
         @menu-click="handleContextMenuClick"
@@ -679,5 +689,16 @@ defineExpose({
 
 :deep(.vxe-body--row.row--expanded .vxe-body--expand-row) {
   background-color: var(--vxe-table-body-background-color);
+}
+
+/* Disable text selection on double click */
+:deep(.vxe-table) {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+:deep(.vxe-table .vxe-body--column) {
+  user-select: text;
+  -webkit-user-select: text;
 }
 </style>

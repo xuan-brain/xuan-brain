@@ -23,7 +23,7 @@ The Theme Switcher is a comprehensive UI component located in the status bar (bo
 - **Supported Languages**:
   - 🇺🇸 English
   - 🇨🇳 中文 (Chinese)
-- **Functionality**: 
+- **Functionality**:
   - Dropdown menu with language options
   - Shows current language with checkmark
   - Displays native language names
@@ -71,6 +71,7 @@ src/
 #### ThemeSwitcher.tsx
 
 Main component that handles:
+
 - Dark mode toggle logic
 - Language switching with i18n context
 - Accent color selection and application
@@ -85,11 +86,11 @@ Main component that handles:
 
 ### LocalStorage Keys
 
-| Key | Value | Description |
-|-----|-------|-------------|
-| `dark-mode` | `"true"` or `"false"` | Dark mode preference |
-| `xuan-brain-locale` | `"en"` or `"zh"` | Language preference |
-| `accent-color` | Hex color (e.g., `"#3b82f6"`) | Accent color preference |
+| Key                 | Value                         | Description             |
+| ------------------- | ----------------------------- | ----------------------- |
+| `dark-mode`         | `"true"` or `"false"`         | Dark mode preference    |
+| `xuan-brain-locale` | `"en"` or `"zh"`              | Language preference     |
+| `accent-color`      | Hex color (e.g., `"#3b82f6"`) | Accent color preference |
 
 ### CSS Integration
 
@@ -133,43 +134,48 @@ These variables can be used throughout the application for consistent theming.
 #### Using Translations
 
 ```tsx
-import { useI18n } from '../lib/i18n'
+import { useI18n } from '../lib/i18n';
 
 function MyComponent() {
-  const { t, locale } = useI18n()
-  
+  const { t, locale } = useI18n();
+
   return (
     <div>
       <h1>{t('navigation.library')}</h1>
       <p>Current locale: {locale}</p>
     </div>
-  )
+  );
 }
 ```
 
 #### Adding New Translation Keys
 
 1. Add to `src/lib/i18n/en.ts`:
+
 ```typescript
 export default {
   mySection: {
-    myKey: 'My English Text'
-  }
-}
+    myKey: 'My English Text',
+  },
+};
 ```
 
 2. Add to `src/lib/i18n/zh.ts`:
+
 ```typescript
 export default {
   mySection: {
-    myKey: '我的中文文本'
-  }
-}
+    myKey: '我的中文文本',
+  },
+};
 ```
 
 3. Use in component:
+
 ```tsx
-{t('mySection.myKey')}
+{
+  t('mySection.myKey');
+}
 ```
 
 #### Using Accent Color
@@ -177,12 +183,14 @@ export default {
 The accent color is available as a CSS custom property:
 
 ```tsx
-<Box sx={{
-  backgroundColor: 'var(--accent-color)',
-  '&:hover': {
-    backgroundColor: 'var(--accent-color-hover)'
-  }
-}}>
+<Box
+  sx={{
+    backgroundColor: 'var(--accent-color)',
+    '&:hover': {
+      backgroundColor: 'var(--accent-color-hover)',
+    },
+  }}
+>
   Styled with accent color
 </Box>
 ```
@@ -242,10 +250,11 @@ This ensures the correct theme is visible before JavaScript loads.
 ### Theme Not Persisting
 
 Check browser's `localStorage`:
+
 ```javascript
-localStorage.getItem('dark-mode')
-localStorage.getItem('xuan-brain-locale')
-localStorage.getItem('accent-color')
+localStorage.getItem('dark-mode');
+localStorage.getItem('xuan-brain-locale');
+localStorage.getItem('accent-color');
 ```
 
 ### Translations Not Working
@@ -258,7 +267,7 @@ localStorage.getItem('accent-color')
 
 1. Check CSS custom property is set:
    ```javascript
-   getComputedStyle(document.documentElement).getPropertyValue('--accent-color')
+   getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
    ```
 2. Ensure components use `var(--accent-color)` in styles
 

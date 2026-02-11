@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **璇玑 (xuan-brain)** 是一个基于 **Tauri 2.x + React 18 + TypeScript** 构建的 AI 驱动科研文献管理桌面应用。本设计借鉴 Zotero 的核心理念，通过插件机制提供功能强大且易于使用的文献管理平台。
 
 ### 核心功能
+
 - **文献导入与管理**: 支持 PDF、DOCX、HTML、EPUB 等多格式文献导入，自动提取元数据
 - **AI 智能分析**:
   - 智能推荐相关论文(基于内容相似度和引用关系)
@@ -25,6 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **本地优先**: 所有数据存储在本地，保护隐私
 
 ### 技术选型理由
+
 - **Tauri 2.x**: 相比 Electron 更轻量(体积小 80%)、更安全(Rust 内存安全)、性能更好
 - **React 19**: 最新的 React 版本，提供更好的性能和开发体验
   - **组件模型**: 函数组件 + Hooks，声明式编程
@@ -49,6 +51,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **SQLite**: 嵌入式数据库、零配置、单文件备份
 
 ### 设计理念
+
 - **模块化组织**: 每个功能模块独立开发和测试
 - **性能保障**: Rust 的出色性能和并发能力
 - **内存安全**: 降低内存相关漏洞风险
@@ -57,6 +60,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 核心架构
 
 ### 前端 (React)
+
 - **框架**: React 19.x 使用函数组件和 Hooks
 - **构建工具**: Vite 6.x (快速的开发服务器和构建工具)
 - **渲染模式**: SPA (单页应用)，无需 SSR
@@ -78,6 +82,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - 通过 Tauri IPC 调用后端功能
 
 ### 后端 (Rust/Tauri)
+
 - **入口点**: `src-tauri/src/main.rs` → 调用 `xuan_brain_lib::run()`
 - **核心逻辑**: `src-tauri/src/lib.rs` - 包含 Tauri commands 和应用初始化
 - **Commands**: 使用 `#[tauri::command]` 宏定义可从前端调用的函数
@@ -105,7 +110,8 @@ src-tauri/src/papers/
 ```
 
 **核心功能**:
-- **文献导入**: 
+
+- **文献导入**:
   - 通过 DOI 从 Crossref 获取元数据
   - 通过 arXiv ID 从 arXiv API 获取元数据
 - **元数据提取**: 自动提取标题、作者、摘要、出版信息等
@@ -113,12 +119,14 @@ src-tauri/src/papers/
 - **文献更新**: 支持更新文献详情、笔记、阅读状态等
 
 **DOI 导入器** (`doi.rs`):
+
 - 使用 Crossref REST API 获取文献元数据
 - 解析响应并提取: 标题、作者、摘要、出版年份、期刊名称、URL
 - 错误处理: 无效 DOI 格式、未找到文献、网络请求失败
 - 验证: 检查文献是否已存在(通过 DOI)
 
 **arXiv 导入器** (`arxiv.rs`):
+
 - 使用 arXiv API 获取论文元数据
 - 解析响应并提取: 标题、作者、摘要、发布日期、PDF URL、期刊引用
 - 错误处理: 无效 arXiv ID 格式、未找到论文、网络请求失败
@@ -145,15 +153,17 @@ src-tauri/migration/
 └── src/
     └── lib.rs              # 数据库迁移脚本
 ```
-├── entities/        # SeaORM 实体定义
-│   ├── mod.rs
-│   ├── paper.rs
-│   ├── category.rs
-│   └── label.rs
+
+├── entities/ # SeaORM 实体定义
+│ ├── mod.rs
+│ ├── paper.rs
+│ ├── category.rs
+│ └── label.rs
 src-tauri/migration/
-├── Cargo.toml       # 迁移项目配置
+├── Cargo.toml # 迁移项目配置
 └── src/
-    └── lib.rs       # 数据库迁移脚本
+└── lib.rs # 数据库迁移脚本
+
 ```
 
 **数据存储**:
@@ -178,27 +188,29 @@ src-tauri/migration/
 ### 3. 命令层 (Command Layer)
 
 ```
+
 src-tauri/src/command/
-├── mod.rs                    # 命令入口
-├── paper_command.rs          # 文献相关命令
-│   ├── get_all_papers        # 获取所有文献
-│   ├── get_paper             # 获取单个文献
-│   ├── import_paper_by_doi   # 通过 DOI 导入
-│   ├── import_paper_by_arxiv_id  # 通过 arXiv ID 导入
-│   ├── add_paper_label       # 添加文献标签
-│   ├── remove_paper_label    # 移除文献标签
-│   └── update_paper_details  # 更新文献详情
-├── category_command.rs       # 分类相关命令
-│   ├── load_categories       # 加载分类树
-│   ├── create_category       # 创建分类
-│   ├── delete_category       # 删除分类
-│   ├── update_category       # 更新分类
-│   └── move_category         # 移动分类
-└── label_command.rs          # 标签相关命令
-    ├── get_all_labels        # 获取所有标签
-    ├── create_label          # 创建标签
-    ├── delete_label          # 删除标签
-    └── update_label          # 更新标签
+├── mod.rs # 命令入口
+├── paper_command.rs # 文献相关命令
+│ ├── get_all_papers # 获取所有文献
+│ ├── get_paper # 获取单个文献
+│ ├── import_paper_by_doi # 通过 DOI 导入
+│ ├── import_paper_by_arxiv_id # 通过 arXiv ID 导入
+│ ├── add_paper_label # 添加文献标签
+│ ├── remove_paper_label # 移除文献标签
+│ └── update_paper_details # 更新文献详情
+├── category_command.rs # 分类相关命令
+│ ├── load_categories # 加载分类树
+│ ├── create_category # 创建分类
+│ ├── delete_category # 删除分类
+│ ├── update_category # 更新分类
+│ └── move_category # 移动分类
+└── label_command.rs # 标签相关命令
+├── get_all_labels # 获取所有标签
+├── create_label # 创建标签
+├── delete_label # 删除标签
+└── update_label # 更新标签
+
 ```
 
 **核心命令**:
@@ -209,8 +221,10 @@ src-tauri/src/command/
 ### 4. 服务层 (Service Layer)
 
 ```
+
 src-tauri/src/service/
-└── category_service.rs       # 分类服务
+└── category_service.rs # 分类服务
+
 ```
 
 **职责**:
@@ -222,14 +236,16 @@ src-tauri/src/service/
 ### 5. 系统模块
 
 ```
+
 src-tauri/src/sys/
-├── mod.rs                    # 系统模块入口
-├── config.rs                 # 配置管理
-├── consts.rs                 # 常量定义
-├── dirs.rs                   # 目录管理
-├── error.rs                  # 错误处理
-└── log.rs                    # 日志配置
-```
+├── mod.rs # 系统模块入口
+├── config.rs # 配置管理
+├── consts.rs # 常量定义
+├── dirs.rs # 目录管理
+├── error.rs # 错误处理
+└── log.rs # 日志配置
+
+````
 
 **功能**:
 - 应用数据目录初始化(使用 `dirs` crate)
@@ -270,13 +286,16 @@ src-tauri/src/sys/
 ### 开发模式
 ```bash
 yarn dev
-```
+````
+
 启动 Vite 开发服务器(端口 1420)。配合 Tauri 使用:
+
 ```bash
 yarn tauri dev
 ```
 
 ### 构建
+
 ```bash
 # 构建前端
 yarn build
@@ -286,11 +305,13 @@ yarn tauri build
 ```
 
 **跨平台构建产物**:
+
 - Windows: `.msi` / `.exe` (Inno Setup)
 - macOS: `.dmg` / `.app` bundle
 - Linux: `.AppImage` / `.deb` / `.rpm`
 
 ### Rust 后端命令
+
 ```bash
 # 运行测试
 cd src-tauri && cargo test
@@ -308,6 +329,7 @@ cd src-tauri && cargo audit
 ## Tauri Commands 开发
 
 ### 定义新 Command
+
 在 `src-tauri/src/command/` 中对应的命令文件中定义:
 
 ```rust
@@ -322,16 +344,18 @@ pub async fn my_command(
 ) -> Result<String> {
     // 使用 tracing 记录日志
     tracing::info!("Executing my_command with param: {}", param);
-    
+
     // 业务逻辑处理...
-    
+
     Ok(format!("Received: {}", param))
 }
 ```
 
 ### 注册 Command
+
 1. 在 `src-tauri/src/command/mod.rs` 中导出命令模块
 2. 在 `src-tauri/src/lib.rs` 中导入并注册:
+
 ```rust
 use crate::command::my_module::my_command;
 
@@ -343,23 +367,22 @@ use crate::command::my_module::my_command;
 ```
 
 ### 前端调用
+
 ```typescript
 // Helper function for lazy loading Tauri API
-async function invokeCommand<T = unknown>(
-  cmd: string, 
-  args?: Record<string, unknown>
-): Promise<T> {
-  const { invoke } = await import("@tauri-apps/api/core");
+async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  const { invoke } = await import('@tauri-apps/api/core');
   return invoke<T>(cmd, args);
 }
 
 // 使用示例
-const result = await invokeCommand("my_command", { param: "value" });
+const result = await invokeCommand('my_command', { param: 'value' });
 ```
 
 ### 现有命令列表
 
 **文献相关命令** (`paper_command.rs`):
+
 - `get_all_papers` - 获取所有文献列表
 - `get_paper(id: i64)` - 获取单个文献详情
 - `import_paper_by_doi(doi: String)` - 通过 DOI 导入文献
@@ -369,6 +392,7 @@ const result = await invokeCommand("my_command", { param: "value" });
 - `update_paper_details(payload: UpdatePaperDto)` - 更新文献详情
 
 **分类相关命令** (`category_command.rs`):
+
 - `load_categories` - 加载分类树
 - `create_category(name: String, parent_id: Option<i32>)` - 创建分类
 - `delete_category(id: i32)` - 删除分类
@@ -376,6 +400,7 @@ const result = await invokeCommand("my_command", { param: "value" });
 - `move_category(id: i32, new_parent_id: Option<i32>)` - 移动分类
 
 **标签相关命令** (`label_command.rs`):
+
 - `get_all_labels` - 获取所有标签
 - `create_label(name: String, color: String)` - 创建标签
 - `delete_label(id: i64)` - 删除标签
@@ -384,6 +409,7 @@ const result = await invokeCommand("my_command", { param: "value" });
 ## 重要注意事项
 
 ### 代码提交规则 ⚠️⚠️⚠️
+
 - **严禁主动提交代码**: 永远不要自动执行 `git add` 和 `git commit` 命令
 - **仅在用户明确要求时提交**: 只有当用户明确说"提交代码"、"commit"等指令时才能提交
 - **让用户完全控制**: 代码提交的时机和内容完全由用户决定
@@ -392,6 +418,7 @@ const result = await invokeCommand("my_command", { param: "value" });
 - **这是最高优先级规则**: 违反此规则比代码错误更严重
 
 ### 正确的工作流程
+
 1. 完成用户要求的功能开发/修复
 2. 运行必要的测试验证（如 `yarn tsc --noEmit`, `yarn build`）
 3. 告知用户："✅ 功能已完成并测试通过，修改的文件包括：xxx"
@@ -399,21 +426,25 @@ const result = await invokeCommand("my_command", { param: "value" });
 5. 只有在用户明确说"提交"后，才执行 git 命令
 
 ### TypeScript 类型检查
+
 ```bash
 yarn tsc --noEmit
 ```
 
 ### ESLint 检查
+
 ```bash
 yarn lint
 ```
 
 ### Prettier 格式化
+
 ```bash
 yarn format
 ```
 
 ### React Hooks 最佳实践
+
 - **使用函数组件**: 避免类组件，使用函数组件 + Hooks
 - **自定义 Hooks**: 提取可复用的逻辑到自定义 Hooks
 - **依赖数组**: 正确使用 `useEffect`, `useMemo`, `useCallback` 的依赖数组
@@ -436,11 +467,13 @@ yarn format
   - 所有日志消息使用英文
 
 ### 端口配置
+
 - Vite 开发服务器必须运行在端口 **1420**
 - `tauri.conf.json` 中的 `devUrl` 必须匹配
 - 端口被占用会导致启动失败
 
 ### Ant Design 配置
+
 - **组件系统**: Ant Design 提供完整的预构建 React 组件库
 - **安装方式**: 使用 `yarn add antd` 安装核心库
 - **组件位置**: 直接从 `antd` 导入使用
@@ -459,17 +492,18 @@ yarn format
 - **数据表格**: `Table` 提供强大的数据表格功能
 
 **主题切换示例**:
+
 ```typescript
 // src/theme.ts
-import type { ThemeConfig } from "antd";
-import { theme } from "antd";
+import type { ThemeConfig } from 'antd';
+import { theme } from 'antd';
 
 const lightTheme: ThemeConfig = {
   token: {
-    colorPrimary: "#1976d2",
-    colorSuccess: "#52c41a",
-    colorWarning: "#faad14",
-    colorError: "#ff4d4f",
+    colorPrimary: '#1976d2',
+    colorSuccess: '#52c41a',
+    colorWarning: '#faad14',
+    colorError: '#ff4d4f',
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     fontSize: 15,
     borderRadius: 4,
@@ -486,9 +520,9 @@ const lightTheme: ThemeConfig = {
 
 const darkTheme: ThemeConfig = {
   token: {
-    colorPrimary: "#90caf9",
-    colorBgContainer: "#1f1f1f",
-    colorText: "rgba(255, 255, 255, 0.85)",
+    colorPrimary: '#90caf9',
+    colorBgContainer: '#1f1f1f',
+    colorText: 'rgba(255, 255, 255, 0.85)',
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     fontSize: 15,
     borderRadius: 4,
@@ -509,81 +543,72 @@ export { lightTheme, darkTheme };
 
 ```tsx
 // src/App.tsx
-import { ConfigProvider, theme } from 'antd'
-import { useState } from 'react'
-import { lightTheme, darkTheme } from './theme'
+import { ConfigProvider, theme } from 'antd';
+import { useState } from 'react';
+import { lightTheme, darkTheme } from './theme';
 
 export default function App() {
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState(true);
 
-  const currentTheme = isDark ? darkTheme : lightTheme
+  const currentTheme = isDark ? darkTheme : lightTheme;
 
-  return (
-    <ConfigProvider theme={currentTheme}>
-      {/* 应用内容 */}
-    </ConfigProvider>
-  )
+  return <ConfigProvider theme={currentTheme}>{/* 应用内容 */}</ConfigProvider>;
 }
 ```
 
 **Headless Tree 组件示例**:
+
 ```tsx
-import { createTree, type TreeOptions } from '@headless-tree/core'
-import { UncontrolledTreeEnvironment } from '@headless-tree/react'
-import type { TreeItemIndex } from '@headless-tree/core'
+import { createTree, type TreeOptions } from '@headless-tree/core';
+import { UncontrolledTreeEnvironment } from '@headless-tree/react';
+import type { TreeItemIndex } from '@headless-tree/core';
 
 interface CategoryNode {
-  id: string
-  name: string
-  children?: CategoryNode[]
+  id: string;
+  name: string;
+  children?: CategoryNode[];
 }
 
 export function CategoryTree({ categories }: { categories: CategoryNode[] }) {
   const treeOptions: TreeOptions<CategoryNode> = {
     dataProvider: {
       getTreeItem: (item: TreeItemIndex) => {
-        const node = categories.find(c => c.id === item)
-        return node ? { data: node } : undefined
+        const node = categories.find((c) => c.id === item);
+        return node ? { data: node } : undefined;
       },
-      getTreeItems: () => categories.map(c => c.id),
+      getTreeItems: () => categories.map((c) => c.id),
       getChildren: (item: TreeItemIndex) => {
-        const node = categories.find(c => c.id === item)
-        return node?.children?.map(c => c.id) ?? []
+        const node = categories.find((c) => c.id === item);
+        return node?.children?.map((c) => c.id) ?? [];
       },
     },
-    renderItem: ({ item }) => (
-      <div>{item.data.name}</div>
-    ),
-  }
+    renderItem: ({ item }) => <div>{item.data.name}</div>,
+  };
 
-  const tree = createTree(treeOptions)
+  const tree = createTree(treeOptions);
 
-  return (
-    <UncontrolledTreeEnvironment>
-      {tree.render()}
-    </UncontrolledTreeEnvironment>
-  )
+  return <UncontrolledTreeEnvironment>{tree.render()}</UncontrolledTreeEnvironment>;
 }
 ```
 
 ### Tailwind CSS 4 配置
+
 - **PostCSS**: 使用 `@tailwindcss/postcss` 进行处理
 - **配置文件**: `tailwind.config.js` 使用标准格式
 - **样式文件**: 在 `src/index.css` 中定义全局样式和 CSS 变量
 - **暗色模式**: 结合 Ant Design 的主题系统使用
 
 **配置示例**:
+
 ```javascript
 // tailwind.config.js
 export default {
-  content: [
-    "./src/**/*.{html,js,jsx,ts,tsx}",
-  ],
+  content: ['./src/**/*.{html,js,jsx,ts,tsx}'],
   theme: {
     extend: {},
   },
-  plugins: []
-}
+  plugins: [],
+};
 ```
 
 ```css
@@ -604,7 +629,7 @@ export default {
 }
 
 /* CSS Variables for Dark Mode */
-[data-mode="dark"] {
+[data-mode='dark'] {
   --ant-color-border: #424242;
   --ant-color-border-secondary: #303030;
   --ant-color-bg-layout: #141414;
@@ -627,29 +652,33 @@ export default {
   background-color: var(--ant-color-fill-alter);
 }
 
-.tree-item[aria-selected="true"] {
+.tree-item[aria-selected='true'] {
   background-color: var(--ant-color-primary-bg);
 }
 ```
 
 ### 文件监听
+
 - Vite 配置忽略监听 `src-tauri/**` 目录
 - Rust 代码更改会自动触发 Tauri 重新编译
 
 ### 安全性考虑
 
 #### 数据加密
+
 - 所有网络通信必须使用 HTTPS + TLS 1.2/1.3
 - 敏感数据必须加密存储(AES)
 - 云同步数据使用端到端加密
 - 使用 `rust-crypto-utils` (AES、RSA)
 
 #### 访问控制
+
 - 插件需要权限声明和沙箱隔离
 - API 使用 OAuth2 或令牌认证
 - 实施 CORS 策略限制访问
 
 #### 代码安全
+
 - 避免使用 `unsafe` 代码除非绝对必要
 - 对所有用户输入进行验证和清理
 - 防止注入攻击(SQL 注入、命令注入)
@@ -660,12 +689,14 @@ export default {
 ### 跨平台适配
 
 #### Windows 平台
+
 - 提供文件关联功能(双击 PDF 导入)
 - 处理特殊路径和权限问题
 - 使用 WebView2 控件
 - 安装程序: .msi 或 Inno Setup .exe
 
 #### macOS 平台
+
 - 代码签名(避免 Gatekeeper 警告)
 - 沙箱权限声明
 - 支持 Retina 显示
@@ -673,6 +704,7 @@ export default {
 - 安装包: .dmg 磁盘映像或 .app bundle
 
 #### Linux 平台
+
 - 支持 AppImage/Snap/.deb/.rpm 格式
 - 与 GNOME/KDE 桌面环境集成
 - 文件关联注册
@@ -766,6 +798,7 @@ docs/                       # 项目文档
 ## 测试策略
 
 ### 单元测试
+
 ```bash
 # Rust 后端单元测试
 cd src-tauri && cargo test
@@ -778,23 +811,27 @@ cd src-tauri && cargo test --package xuan-brain --lib sys
 ```
 
 **覆盖范围**:
+
 - 系统模块（日志、错误处理、目录管理）
 - 数据库操作和迁移
 - 文献导入器（DOI、arXiv）
 - 使用 `tempfile` 进行临时文件测试
 
 ### 集成测试
+
 ```bash
 # Tauri 集成测试(模拟前端调用)
 cd src-tauri && cargo test --test integration
 ```
 
 **测试场景**:
+
 - 完整文献导入流程（DOI/arXiv）
 - 数据库事务和关系操作
 - 命令层与数据库层交互
 
 ### 端到端测试 (E2E)
+
 - 使用 Playwright 进行 E2E 测试（待实现）
 - 模拟真实用户操作
 - 跨平台测试(Windows/macOS/Linux)
@@ -819,6 +856,7 @@ cd src-tauri && cargo audit
 ### CI/CD 流程
 
 **GitHub Actions 工作流**:
+
 1. **编译检查**: Linux、Windows、macOS 三平台编译
 2. **运行测试**: 单元测试 + 集成测试
 3. **代码质量**: `clippy` + `rustfmt` + ESLint
@@ -826,6 +864,7 @@ cd src-tauri && cargo audit
 5. **构建发布**: 生成各平台安装包并上传到 GitHub Releases
 
 **构建产物**:
+
 - Linux: .deb / .rpm / AppImage
 - Windows: .msi
 - macOS: .dmg
@@ -835,6 +874,7 @@ cd src-tauri && cargo audit
 ### 项目初始化和数据结构
 
 **数据库实体** (SeaORM):
+
 - `papers` - 文献主表
 - `authors` - 作者表
 - `keywords` - 关键词表
@@ -846,21 +886,26 @@ cd src-tauri && cargo audit
 - `paper_labels` - 文献-标签关联表
 
 **前端状态管理** (Zustand):
+
 - `useAppStore` - 应用全局状态（主题、accentColor、选中的文档）
 
 **前端页面结构**:
+
 - 三栏布局：左侧导航（分类树）、中间文档列表、右侧文档详情
 - 可拖拽调整各栏宽度
 - 底部状态栏显示统计信息
 
 **国际化**:
+
 - 自定义 i18n 实现，支持中文和英文
 - 翻译文件位于 `src/lib/i18n/`
 - 使用 `useI18n()` hook 获取翻译函数 `t()`
 - 支持动态切换语言，自动持久化到 localStorage
 
 ### 添加新的文献格式支持
+
 ### 添加新的文献导入源
+
 1. 在 `src-tauri/src/papers/importer/` 中创建新模块
 2. 实现元数据获取逻辑（参考 `doi.rs` 和 `arxiv.rs`）
 3. 定义错误类型并实现 `From` 转换到 `AppError`
@@ -868,6 +913,7 @@ cd src-tauri && cargo audit
 5. 在前端添加导入 UI 组件
 
 ### 添加新的数据库实体
+
 1. 在 `src-tauri/src/database/entities/` 中创建新实体文件
 2. 使用 `#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]` 定义实体
 3. 在 `src-tauri/migration/src/lib.rs` 中添加迁移脚本
@@ -876,6 +922,7 @@ cd src-tauri && cargo audit
 ### 文献库分类管理
 
 **前端组件**:
+
 - `components/navigation/Navigation.tsx` - 导航组件（包含分类树）
   - 使用 `@headless-tree/core` + `@headless-tree/react` 实现树形结构
   - 支持拖拽功能
@@ -886,6 +933,7 @@ cd src-tauri && cargo audit
 **后端接口** (Tauri Commands):
 
 **分类管理**:
+
 ```typescript
 // 加载分类树
 loadCategories(): Promise<CategoryNode[]>
@@ -904,6 +952,7 @@ moveCategory(id: number, newParentId?: number): Promise<void>
 ```
 
 **标签管理**:
+
 ```typescript
 // 获取所有标签
 getAllLabels(): Promise<Label[]>
@@ -919,6 +968,7 @@ updateLabel(id: number, name: string, color: string): Promise<void>
 ```
 
 **文献管理**:
+
 ```typescript
 // 获取所有文献
 getAllPapers(): Promise<Paper[]>
@@ -943,6 +993,7 @@ updatePaperDetails(payload: UpdatePaperDto): Promise<void>
 ```
 
 **数据结构**:
+
 - 使用 `id` 和 `parent_id` 存储分类层级
 - 支持无限层级嵌套
 
@@ -954,6 +1005,7 @@ updatePaperDetails(payload: UpdatePaperDto): Promise<void>
 - 使用 `#[instrument(skip(db))]` 宏为命令添加追踪日志
 
 ### React 组件开发
+
 - 使用函数组件 + Hooks
 - 使用 TypeScript 进行类型检查
 - 使用 Ant Design 组件库
@@ -962,93 +1014,86 @@ updatePaperDetails(payload: UpdatePaperDto): Promise<void>
 - 使用 Ant Design 组件处理复杂 UI 场景
 
 **示例组件 - 状态管理 (使用 Zustand)**:
+
 ```tsx
-import { useAppStore } from '@/stores/useAppStore'
+import { useAppStore } from '@/stores/useAppStore';
 
 export function ThemeSwitcher() {
-  const { isDark, accentColor, toggleTheme } = useAppStore()
+  const { isDark, accentColor, toggleTheme } = useAppStore();
 
-  return (
-    <Button onClick={toggleTheme}>
-      切换到{isDark ? '亮色' : '暗色'}主题
-    </Button>
-  )
+  return <Button onClick={toggleTheme}>切换到{isDark ? '亮色' : '暗色'}主题</Button>;
 }
 ```
 
 **示例组件 - 调用 Tauri Commands**:
+
 ```tsx
-import { useState, useEffect } from 'react'
-import { Spin } from 'antd'
-import { invoke } from '@tauri-apps/api/core'
+import { useState, useEffect } from 'react';
+import { Spin } from 'antd';
+import { invoke } from '@tauri-apps/api/core';
 
 interface CategoryNode {
-  id: number
-  name: string
-  children?: CategoryNode[]
+  id: number;
+  name: string;
+  children?: CategoryNode[];
 }
 
 // Helper function for lazy loading Tauri API
-async function invokeCommand<T = unknown>(
-  cmd: string, 
-  args?: Record<string, unknown>
-): Promise<T> {
-  const { invoke } = await import("@tauri-apps/api/core");
+async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  const { invoke } = await import('@tauri-apps/api/core');
   return invoke<T>(cmd, args);
 }
 
 export function CategoryTree() {
-  const [categories, setCategories] = useState<CategoryNode[]>([])
-  const [loading, setLoading] = useState(false)
+  const [categories, setCategories] = useState<CategoryNode[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const loadCategories = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const data = await invokeCommand<CategoryNode[]>('load_categories')
-      setCategories(data)
-      console.info("Categories loaded successfully:", data.length)
+      const data = await invokeCommand<CategoryNode[]>('load_categories');
+      setCategories(data);
+      console.info('Categories loaded successfully:', data.length);
     } catch (error) {
-      console.error('Failed to load categories:', error)
+      console.error('Failed to load categories:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    loadCategories()
-  }, [])
+    loadCategories();
+  }, []);
 
   return (
     <div>
       {loading && <Spin size="small" />}
       {/* 渲染分类树 */}
     </div>
-  )
+  );
 }
 ```
 
 **表单处理 (使用 useState + Ant Design)**:
+
 ```tsx
-import { useState, useEffect } from 'react'
-import { Modal, Input, Button, Typography, Alert } from 'antd'
-import { CloseOutlined } from '@ant-design/icons'
-import { useI18n } from '../../lib/i18n'
+import { useState, useEffect } from 'react';
+import { Modal, Input, Button, Typography, Alert } from 'antd';
+import { CloseOutlined } from '@ant-design/icons';
+import { useI18n } from '../../lib/i18n';
 
 // Helper function for lazy loading Tauri API
-async function invokeCommand<T = unknown>(
-  cmd: string, 
-  args?: Record<string, unknown>
-): Promise<T> {
-  const { invoke } = await import("@tauri-apps/api/core");
+async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  const { invoke } = await import('@tauri-apps/api/core');
   return invoke<T>(cmd, args);
 }
 
 interface AddCategoryDialogProps {
-  open: boolean
-  onClose: () => void
-  onCategoryCreated: () => void
-  parentPath?: string
-  parentName?: string
+  open: boolean;
+  onClose: () => void;
+  onCategoryCreated: () => void;
+  parentPath?: string;
+  parentName?: string;
 }
 
 export default function AddCategoryDialog({
@@ -1058,59 +1103,59 @@ export default function AddCategoryDialog({
   parentPath,
   parentName,
 }: AddCategoryDialogProps) {
-  const { t } = useI18n()
-  const [name, setName] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { t } = useI18n();
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      setName('')
-      setError('')
+      setName('');
+      setError('');
     }
-  }, [open])
+  }, [open]);
 
   const handleClose = () => {
-    setName('')
-    setError('')
-    onClose()
-  }
+    setName('');
+    setError('');
+    onClose();
+  };
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setError(t('dialog.categoryNameRequired'))
-      return
+      setError(t('dialog.categoryNameRequired'));
+      return;
     }
 
     if (name.length > 50) {
-      setError(t('dialog.categoryNameMaxLength'))
-      return
+      setError(t('dialog.categoryNameMaxLength'));
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      await invokeCommand('create_category', { 
-        name: name.trim(), 
-        parentPath: parentPath || null 
-      })
-      console.info('Category created successfully:', name.trim())
-      setName('')
-      setError('')
-      onCategoryCreated()
-      handleClose()
+      await invokeCommand('create_category', {
+        name: name.trim(),
+        parentPath: parentPath || null,
+      });
+      console.info('Category created successfully:', name.trim());
+      setName('');
+      setError('');
+      onCategoryCreated();
+      handleClose();
     } catch (err) {
-      setError(err as string)
+      setError(err as string);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !loading && name.trim() && name.length <= 50) {
-      handleSubmit()
+      handleSubmit();
     }
-  }
+  };
 
   return (
     <Modal
@@ -1148,8 +1193,8 @@ export default function AddCategoryDialog({
           placeholder={t('dialog.enterCategoryName')}
           value={name}
           onChange={(e) => {
-            setName(e.target.value)
-            setError('')
+            setName(e.target.value);
+            setError('');
           }}
           onPressEnter={handleKeyPress}
           status={error ? 'error' : ''}
@@ -1164,9 +1209,7 @@ export default function AddCategoryDialog({
       {parentName && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 4 }}>
-            <Typography.Text type="secondary">
-              {t('dialog.parentCategory')}
-            </Typography.Text>
+            <Typography.Text type="secondary">{t('dialog.parentCategory')}</Typography.Text>
           </div>
           <Input value={parentName} disabled />
         </div>
@@ -1175,11 +1218,12 @@ export default function AddCategoryDialog({
         {t('dialog.categoryNameRules')}
       </Typography.Text>
     </Modal>
-  )
+  );
 }
 ```
 
 ### 开发插件
+
 - **Rust 插件**: 实现定义的 trait，编译为动态库(.so/.dll)
   - 使用 `libloading` 加载
   - 实现稳定的 ABI 接口
@@ -1191,12 +1235,14 @@ export default function AddCategoryDialog({
 - 详见 `src-tauri/src/plugins/` 和开发者文档
 
 ### API 集成
+
 - 所有 API 端点在 `src-tauri/src/api/routes.rs` 中定义
 - 遵循 RESTful 规范
 - 使用 OAuth2 或令牌认证
 - 参考 API 文档: `docs/api.md`(待创建)
 
 **应用场景**:
+
 - 批量导入文献
 - 定期查询 ArXiv 最新论文
 - 文献引用工具集成
@@ -1222,6 +1268,7 @@ export default function AddCategoryDialog({
 ## 参考资源
 
 ### 官方文档
+
 - [Tauri 官方文档](https://tauri.app/)
 - [React 官方文档](https://react.dev/)
 - [React Router 文档](https://reactrouter.com/)
@@ -1231,12 +1278,14 @@ export default function AddCategoryDialog({
 - [SeaORM 文档](https://www.sea-ql.org/SeaORM/)
 
 ### 项目文档
+
 - [项目详细介绍](docs/introduction.md) - 完整的架构设计文档
 - [用户手册](docs/user-guide.md) - 安装、配置和使用教程(待创建)
 - [开发者文档](docs/developer-guide.md) - API 文档、架构说明(待创建)
 - [插件开发指南](docs/plugin-development.md) - 插件开发教程(待创建)
 
 ### 技术参考
+
 - [SeaORM 文档](https://www.sea-ql.org/SeaORM/)
 - [SeaORM Migration 文档](https://www.sea-ql.org/SeaORM/docs/migration)
 - [Tailwind CSS 文档](https://tailwindcss.com/)
@@ -1251,17 +1300,21 @@ export default function AddCategoryDialog({
 ## 社区与贡献
 
 ### 交流渠道
+
 - **GitHub**: 项目仓库、Issues、Discussions
 - **社区平台**: Reddit、Stack Overflow、Discord
 - **中文社区**: Gitee、知乎
 
 ### 问题跟踪
+
 - **GitHub Issues**: Bug 报告和功能请求
 - **标签分类**: bug、enhancement、documentation
 - **优先级**: 严重 bug 优先处理
 
 ### 贡献指南
+
 欢迎社区贡献！请参考:
+
 1. Fork 项目仓库
 2. 创建特性分支
 3. 编写测试用例
@@ -1269,6 +1322,7 @@ export default function AddCategoryDialog({
 5. 提交 Pull Request
 
 **代码规范**:
+
 - Rust: 遵循 `rustfmt` 格式化，通过 `clippy` 检查
 - TypeScript: 遵循 ESLint 规则
 - 提交前运行 `yarn lint` 和 `cargo test`
@@ -1277,6 +1331,7 @@ export default function AddCategoryDialog({
 **开源许可**: MIT / Apache 2.0(待定)
 
 ### 发布节奏
+
 - 规律发布: 新功能或重要修复时发布
 - 发布公告: 说明更新内容
 - 社区感谢: 认可突出贡献者
@@ -1284,6 +1339,7 @@ export default function AddCategoryDialog({
 ## 开发路线图
 
 ### v0.1.0 (当前版本)
+
 - [x] 基础文献导入和管理
 - [x] 分类树管理
 - [x] 标签管理
@@ -1293,6 +1349,7 @@ export default function AddCategoryDialog({
 - [x] React 19 + Ant Design + Tailwind CSS 4
 
 ### v0.2.0 (计划中)
+
 - [ ] 文献导入（PDF、DOCX 等本地文件）
 - [ ] 搜索和过滤功能
 - [ ] 作者管理
@@ -1302,6 +1359,7 @@ export default function AddCategoryDialog({
 - [ ] 设置页面
 
 ### v0.3.0 (未来版本)
+
 - [ ] AI 智能推荐和分类
 - [ ] 关键词自动提取
 - [ ] 笔记和标注功能

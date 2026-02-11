@@ -114,7 +114,6 @@ pub fn run() -> Result<()> {
             get_attachments,
             open_paper_folder,
             get_pdf_attachment_path,
-            get_pdf_attachment_base64,
             read_pdf_file,
             save_pdf_file,
             export_pdf_with_annotations,

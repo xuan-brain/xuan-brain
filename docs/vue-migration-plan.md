@@ -5,6 +5,7 @@
 当前 xuan-brain 项目使用 React 19 + Ant Design + Mantine 作为前端技术栈。由于用户只熟悉 Vue 框架，需要将整个前端迁移到 Vue 3 + Vuetify 3 技术栈，并采用 Vuetify 的 Discord 风格预置布局。
 
 ### 当前技术栈
+
 - **框架**: React 19 with TypeScript
 - **路由**: React Router v7
 - **UI组件库**: Ant Design + Mantine (混合使用)
@@ -14,6 +15,7 @@
 - **主题**: CSS 变量 + Ant Design 主题系统
 
 ### 目标技术栈
+
 - **框架**: Vue 3 with Composition API + TypeScript
 - **路由**: Vue Router 4
 - **UI组件库**: Vuetify 3 (Material Design 3)
@@ -26,6 +28,7 @@
 - **数据表格**: Vuetify v-data-table (支持虚拟滚动)
 
 ### 用户确认的技术选择
+
 - **迁移策略**: A (完全替换) - 一次性将所有 React 代码替换为 Vue
 - **分类树组件**: A (Vuetify v-treeview) - 原生 Vuetify 集成
 - **PDF 查看器**: A (vue-pdf-embed) - Vue 原生 PDF 查看器
@@ -38,6 +41,7 @@
 ### 1.1 依赖更新
 
 **安装依赖**:
+
 ```bash
 # Vue 核心
 yarn add vue@^3.4.0 vue-router@^4.3.0 pinia@^2.2.0
@@ -66,6 +70,7 @@ yarn add -D @vitejs/plugin-vue typescript vue-tsc @vue/tsconfig
 ```
 
 **删除 React 依赖**:
+
 ```bash
 yarn remove react react-dom react-router-dom antd @ant-design/icons \
   @mantine/core @mantine/hooks @tabler/icons-react \
@@ -79,11 +84,11 @@ yarn remove react react-dom react-router-dom antd @ant-design/icons \
 **文件**: `vite.config.ts`
 
 ```typescript
-import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
-import vuetify from "vite-plugin-vuetify";
-import type { UserConfig, ConfigEnv } from "vite";
-import path from "node:path";
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import vuetify from 'vite-plugin-vuetify';
+import type { UserConfig, ConfigEnv } from 'vite';
+import path from 'node:path';
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -95,36 +100,36 @@ export default defineConfig(
     ],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        '@': path.resolve(__dirname, './src'),
       },
     },
     clearScreen: false,
     server: {
       port: 1420,
       strictPort: true,
-      host: host || "127.0.0.1",
+      host: host || '127.0.0.1',
       hmr: host
         ? {
-            protocol: "ws",
+            protocol: 'ws',
             host,
             port: 1421,
           }
         : undefined,
       watch: {
-        ignored: ["**/src-tauri/**"],
+        ignored: ['**/src-tauri/**'],
       },
     },
     build: {
-      outDir: "dist",
+      outDir: 'dist',
       emptyOutDir: true,
       rollupOptions: {
         input: {
-          main: "./index.html",
-          "pdf-viewer": "./src/pdf-viewer.html",
+          main: './index.html',
+          'pdf-viewer': './src/pdf-viewer.html',
         },
       },
     },
-  }),
+  })
 );
 ```
 
@@ -168,17 +173,17 @@ export default defineConfig(
 **文件**: `src/main.ts` (新建，替代 `src/main.tsx`)
 
 ```typescript
-import { createApp } from "vue";
-import { createPinia } from "pinia";
-import { createVuetify } from "vuetify";
-import * as components from "vuetify/components";
-import * as directives from "vuetify/directives";
-import "vuetify/styles";
-import "@mdi/font/css/materialdesignicons.css";
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import { createVuetify } from 'vuetify';
+import * as components from 'vuetify/components';
+import * as directives from 'vuetify/directives';
+import 'vuetify/styles';
+import '@mdi/font/css/materialdesignicons.css';
 
-import App from "./App.vue";
-import { i18n } from "./lib/i18n";
-import { vuetifyKey } from "./lib/vuetify";
+import App from './App.vue';
+import { i18n } from './lib/i18n';
+import { vuetifyKey } from './lib/vuetify';
 
 const app = createApp(App);
 
@@ -191,20 +196,20 @@ const vuetify = createVuetify({
   components,
   directives,
   theme: {
-    defaultTheme: "dark",
+    defaultTheme: 'dark',
     themes: {
       dark: {
         colors: {
-          primary: "#90caf9",
-          surface: "#1f1f1f",
-          background: "#141414",
+          primary: '#90caf9',
+          surface: '#1f1f1f',
+          background: '#141414',
         },
       },
       light: {
         colors: {
-          primary: "#1976d2",
-          surface: "#ffffff",
-          background: "#f5f5f5",
+          primary: '#1976d2',
+          surface: '#ffffff',
+          background: '#f5f5f5',
         },
       },
     },
@@ -213,13 +218,13 @@ const vuetify = createVuetify({
 app.use(vuetify);
 
 // Vue Router
-import router from "./router";
+import router from './router';
 app.use(router);
 
 // i18n
 app.use(i18n);
 
-app.mount("#app");
+app.mount('#app');
 ```
 
 ### 2.2 主应用组件
@@ -228,22 +233,25 @@ app.mount("#app");
 
 ```vue
 <script setup lang="ts">
-import { useTheme } from "vuetify";
-import { useAppStore } from "@/stores/useAppStore";
-import { onMounted, watch } from "vue";
+  import { useTheme } from 'vuetify';
+  import { useAppStore } from '@/stores/useAppStore';
+  import { onMounted, watch } from 'vue';
 
-const appStore = useAppStore();
-const theme = useTheme();
+  const appStore = useAppStore();
+  const theme = useTheme();
 
-// 初始化主题
-onMounted(() => {
-  theme.global.name.value = appStore.isDark ? "dark" : "light";
-});
+  // 初始化主题
+  onMounted(() => {
+    theme.global.name.value = appStore.isDark ? 'dark' : 'light';
+  });
 
-// 监听主题变化
-watch(() => appStore.isDark, (isDark) => {
-  theme.global.name.value = isDark ? "dark" : "light";
-});
+  // 监听主题变化
+  watch(
+    () => appStore.isDark,
+    (isDark) => {
+      theme.global.name.value = isDark ? 'dark' : 'light';
+    }
+  );
 </script>
 
 <template>
@@ -253,7 +261,7 @@ watch(() => appStore.isDark, (isDark) => {
 </template>
 
 <style>
-/* 全局样式 */
+  /* 全局样式 */
 </style>
 ```
 
@@ -301,18 +309,18 @@ Vuetify 的 Discord 风格布局使用以下组件：
 
 ```vue
 <script setup lang="ts">
-import { computed } from "vue";
-import { useRoute } from "vue-router";
-import { useDisplay } from "vuetify";
-import GlobalSidebar from "@/components/layout/GlobalSidebar.vue";
-import Navigation from "@/components/navigation/Navigation.vue";
-import StatusBar from "@/components/layout/StatusBar.vue";
+  import { computed } from 'vue';
+  import { useRoute } from 'vue-router';
+  import { useDisplay } from 'vuetify';
+  import GlobalSidebar from '@/components/layout/GlobalSidebar.vue';
+  import Navigation from '@/components/navigation/Navigation.vue';
+  import StatusBar from '@/components/layout/StatusBar.vue';
 
-const route = useRoute();
-const { mdAndDown } = useDisplay();
+  const route = useRoute();
+  const { mdAndDown } = useDisplay();
 
-// 根据路由判断是否显示三栏布局
-const isPapersPage = computed(() => route.path.startsWith("/papers"));
+  // 根据路由判断是否显示三栏布局
+  const isPapersPage = computed(() => route.path.startsWith('/papers'));
 </script>
 
 <template>
@@ -344,16 +352,16 @@ const isPapersPage = computed(() => route.path.startsWith("/papers"));
 </template>
 
 <style scoped>
-.main-layout {
-  height: 100vh;
-}
+  .main-layout {
+    height: 100vh;
+  }
 
-.status-bar {
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-}
+  .status-bar {
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+  }
 </style>
 ```
 
@@ -363,34 +371,26 @@ const isPapersPage = computed(() => route.path.startsWith("/papers"));
 
 ```vue
 <script setup lang="ts">
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { useI18n } from "@/lib/i18n";
+  import { ref } from 'vue';
+  import { useRouter } from 'vue-router';
+  import { useI18n } from '@/lib/i18n';
 
-const router = useRouter();
-const { t } = useI18n();
+  const router = useRouter();
+  const { t } = useI18n();
 
-const menuItems = [
-  { icon: "mdi-file-document", value: "papers", title: "navigation.papers" },
-  { icon: "mdi-content-cut", value: "clips", title: "navigation.clips" },
-  { icon: "mdi-pencil", value: "writing", title: "navigation.writing" },
-  { icon: "mdi-rss", value: "subscriptions", title: "navigation.subscriptions" },
-];
+  const menuItems = [
+    { icon: 'mdi-file-document', value: 'papers', title: 'navigation.papers' },
+    { icon: 'mdi-content-cut', value: 'clips', title: 'navigation.clips' },
+    { icon: 'mdi-pencil', value: 'writing', title: 'navigation.writing' },
+    { icon: 'mdi-rss', value: 'subscriptions', title: 'navigation.subscriptions' },
+  ];
 </script>
 
 <template>
-  <v-navigation-drawer
-    permanent
-    rail
-    width="72"
-    class="global-sidebar"
-  >
+  <v-navigation-drawer permanent rail width="72" class="global-sidebar">
     <v-list density="compact">
       <!-- 用户头像 -->
-      <v-list-item
-        class="user-avatar"
-        rounded="lg"
-      >
+      <v-list-item class="user-avatar" rounded="lg">
         <template #prepend>
           <v-avatar color="primary">
             <span class="text-h6">U</span>
@@ -427,13 +427,13 @@ const menuItems = [
 </template>
 
 <style scoped>
-.global-sidebar {
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-}
+  .global-sidebar {
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+  }
 
-.user-avatar {
-  margin: 8px 0;
-}
+  .user-avatar {
+    margin: 8px 0;
+  }
 </style>
 ```
 
@@ -446,9 +446,9 @@ const menuItems = [
 **文件**: `src/stores/useAppStore.ts`
 
 ```typescript
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import { useTheme } from "vuetify";
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import { useTheme } from 'vuetify';
 
 export interface Document {
   id: number;
@@ -470,15 +470,15 @@ export interface Tag {
 }
 
 export const useAppStore = defineStore(
-  "app",
+  'app',
   () => {
     // State
     const isDark = ref(true);
-    const accentColor = ref("#3b82f6");
+    const accentColor = ref('#3b82f6');
     const selectedDocument = ref<Document | null>(null);
 
     // Getters
-    const currentTheme = computed(() => (isDark.value ? "dark" : "light"));
+    const currentTheme = computed(() => (isDark.value ? 'dark' : 'light'));
 
     // Actions
     function toggleTheme() {
@@ -514,11 +514,11 @@ export const useAppStore = defineStore(
   },
   {
     persist: {
-      key: "xuan-brain-app-storage",
+      key: 'xuan-brain-app-storage',
       storage: localStorage,
-      pick: ["isDark", "accentColor"],
+      pick: ['isDark', 'accentColor'],
     },
-  },
+  }
 );
 ```
 
@@ -527,8 +527,8 @@ export const useAppStore = defineStore(
 **文件**: `src/stores/useTabsStore.ts`
 
 ```typescript
-import { defineStore } from "pinia";
-import { ref } from "vue";
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
 export interface Tab {
   id: string;
@@ -539,7 +539,7 @@ export interface Tab {
 }
 
 export const useTabsStore = defineStore(
-  "tabs",
+  'tabs',
   () => {
     const tabs = ref<Tab[]>([]);
     const activeTabId = ref<string | null>(null);
@@ -607,10 +607,10 @@ export const useTabsStore = defineStore(
   },
   {
     persist: {
-      key: "xuan-brain-tabs-storage",
+      key: 'xuan-brain-tabs-storage',
       storage: localStorage,
     },
-  },
+  }
 );
 ```
 
@@ -623,46 +623,46 @@ export const useTabsStore = defineStore(
 **文件**: `src/router/index.ts` (新建)
 
 ```typescript
-import { createRouter, createWebHistory } from "vue-router";
-import MainLayout from "@/layouts/MainLayout.vue";
+import { createRouter, createWebHistory } from 'vue-router';
+import MainLayout from '@/layouts/MainLayout.vue';
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: "/",
+      path: '/',
       component: MainLayout,
-      redirect: "/papers",
+      redirect: '/papers',
       children: [
         {
-          path: "papers",
-          name: "papers",
-          component: () => import("@/pages/PapersPage.vue"),
+          path: 'papers',
+          name: 'papers',
+          component: () => import('@/pages/PapersPage.vue'),
         },
         {
-          path: "papers/:paperId",
-          name: "paper-reader",
-          component: () => import("@/pages/PaperReaderPage.vue"),
+          path: 'papers/:paperId',
+          name: 'paper-reader',
+          component: () => import('@/pages/PaperReaderPage.vue'),
         },
         {
-          path: "clips",
-          name: "clips",
-          component: () => import("@/pages/ClipsPage.vue"),
+          path: 'clips',
+          name: 'clips',
+          component: () => import('@/pages/ClipsPage.vue'),
         },
         {
-          path: "writing",
-          name: "writing",
-          component: () => import("@/pages/WritingPage.vue"),
+          path: 'writing',
+          name: 'writing',
+          component: () => import('@/pages/WritingPage.vue'),
         },
         {
-          path: "subscriptions",
-          name: "subscriptions",
-          component: () => import("@/pages/SubscriptionPage.vue"),
+          path: 'subscriptions',
+          name: 'subscriptions',
+          component: () => import('@/pages/SubscriptionPage.vue'),
         },
         {
-          path: "settings",
-          name: "settings",
-          component: () => import("@/pages/SettingsPage.vue"),
+          path: 'settings',
+          name: 'settings',
+          component: () => import('@/pages/SettingsPage.vue'),
         },
       ],
     },
@@ -681,32 +681,35 @@ export default router;
 **文件**: `src/lib/i18n/index.ts` (重构)
 
 ```typescript
-import { createI18n } from "vue-i18n";
-import en from "./locales/en.json";
-import zh from "./locales/zh.json";
+import { createI18n } from 'vue-i18n';
+import en from './locales/en.json';
+import zh from './locales/zh.json';
 
-export type LocaleCode = "en" | "zh";
+export type LocaleCode = 'en' | 'zh';
 
-export const availableLocales: Record<LocaleCode, { name: string; nativeName: string; flag: string }> = {
-  en: { name: "English", nativeName: "English", flag: "🇺🇸" },
-  zh: { name: "Chinese", nativeName: "中文", flag: "🇨🇳" },
+export const availableLocales: Record<
+  LocaleCode,
+  { name: string; nativeName: string; flag: string }
+> = {
+  en: { name: 'English', nativeName: 'English', flag: '🇺🇸' },
+  zh: { name: 'Chinese', nativeName: '中文', flag: '🇨🇳' },
 };
 
-const STORAGE_KEY = "xuan-brain-locale";
+const STORAGE_KEY = 'xuan-brain-locale';
 
 function getInitialLocale(): LocaleCode {
-  if (typeof window === "undefined") return "en";
+  if (typeof window === 'undefined') return 'en';
   const saved = localStorage.getItem(STORAGE_KEY) as LocaleCode | null;
   if (saved && availableLocales[saved]) return saved;
-  const browserLang = navigator.language.split("-")[0] as LocaleCode;
+  const browserLang = navigator.language.split('-')[0] as LocaleCode;
   if (browserLang && availableLocales[browserLang]) return browserLang;
-  return "en";
+  return 'en';
 }
 
 export const i18n = createI18n({
   legacy: false,
   locale: getInitialLocale(),
-  fallbackLocale: "en",
+  fallbackLocale: 'en',
   messages: { en, zh },
 });
 
@@ -723,6 +726,7 @@ export function setLocale(locale: LocaleCode) {
 ### 6.2 翻译文件迁移
 
 **源文件**:
+
 - `src/lib/i18n/en.ts` → `src/lib/i18n/locales/en.json`
 - `src/lib/i18n/zh.ts` → `src/lib/i18n/locales/zh.json`
 
@@ -732,48 +736,37 @@ export function setLocale(locale: LocaleCode) {
 
 ### 7.1 Ant Design → Vuetify 组件对照
 
-| Ant Design | Vuetify 3 | 说明 |
-|-----------|-----------|------|
-| Layout | v-layout, v-navigation-drawer, v-main | 布局系统 |
-| Button | v-btn | 按钮 |
-| Input | v-text-field | 文本输入 |
-| InputNumber | v-text-field type="number" | 数字输入 |
-| Select | v-select | 下拉选择 |
-| TreeSelect | v-select (自定义) | 树形选择 |
-| Table | v-data-table | 数据表格 |
-| Modal | v-dialog | 对话框 |
-| Dropdown | v-menu | 下拉菜单 |
-| Tag | v-chip | 标签 |
-| Tabs | v-tabs | 标签页 |
-| Tooltip | v-tooltip | 提示 |
-| Form | v-form | 表单 |
+| Ant Design  | Vuetify 3                             | 说明     |
+| ----------- | ------------------------------------- | -------- |
+| Layout      | v-layout, v-navigation-drawer, v-main | 布局系统 |
+| Button      | v-btn                                 | 按钮     |
+| Input       | v-text-field                          | 文本输入 |
+| InputNumber | v-text-field type="number"            | 数字输入 |
+| Select      | v-select                              | 下拉选择 |
+| TreeSelect  | v-select (自定义)                     | 树形选择 |
+| Table       | v-data-table                          | 数据表格 |
+| Modal       | v-dialog                              | 对话框   |
+| Dropdown    | v-menu                                | 下拉菜单 |
+| Tag         | v-chip                                | 标签     |
+| Tabs        | v-tabs                                | 标签页   |
+| Tooltip     | v-tooltip                             | 提示     |
+| Form        | v-form                                | 表单     |
 
 ### 7.2 组件迁移优先级
 
 **第一批** (核心布局):
+
 1. `MainLayout.tsx` → `MainLayout.vue`
 2. `GlobalSidebar.tsx` → `GlobalSidebar.vue`
 3. `StatusBar.tsx` → `StatusBar.vue`
 
-**第二批** (导航系统):
-4. `Navigation.tsx` → `Navigation.vue`
-5. `CategoryTree.tsx` → `CategoryTree.vue` (使用 v-treeview)
-6. `TagsSection.tsx` → `TagsSection.vue`
+**第二批** (导航系统): 4. `Navigation.tsx` → `Navigation.vue` 5. `CategoryTree.tsx` → `CategoryTree.vue` (使用 v-treeview) 6. `TagsSection.tsx` → `TagsSection.vue`
 
-**第三批** (文档功能):
-7. `DocumentListMantine.tsx` → `DocumentList.vue` (使用 v-data-table-server)
-8. `DocumentDetails.tsx` → `DocumentDetails.vue`
-9. `DocumentToolbar.tsx` → `DocumentToolbar.vue`
+**第三批** (文档功能): 7. `DocumentListMantine.tsx` → `DocumentList.vue` (使用 v-data-table-server) 8. `DocumentDetails.tsx` → `DocumentDetails.vue` 9. `DocumentToolbar.tsx` → `DocumentToolbar.vue`
 
-**第四批** (对话框):
-10. `AddCategoryDialog.tsx` → `AddCategoryDialog.vue`
-11. `EditCategoryDialog.tsx` → `EditCategoryDialog.vue`
-12. `AddTagDialog.tsx` → `AddTagDialog.vue`
+**第四批** (对话框): 10. `AddCategoryDialog.tsx` → `AddCategoryDialog.vue` 11. `EditCategoryDialog.tsx` → `EditCategoryDialog.vue` 12. `AddTagDialog.tsx` → `AddTagDialog.vue`
 
-**第五批** (页面):
-13. `PapersPage.tsx` → `PapersPage.vue`
-14. `PaperReaderPage.tsx` → `PaperReaderPage.vue` (使用 vue-pdf-embed)
-15. 其他页面组件 (ClipsPage, WritingPage, SubscriptionPage, SettingsPage)
+**第五批** (页面): 13. `PapersPage.tsx` → `PapersPage.vue` 14. `PaperReaderPage.tsx` → `PaperReaderPage.vue` (使用 vue-pdf-embed) 15. 其他页面组件 (ClipsPage, WritingPage, SubscriptionPage, SettingsPage)
 
 ---
 
@@ -790,9 +783,9 @@ export function setLocale(locale: LocaleCode) {
  */
 export async function invokeCommand<T = unknown>(
   cmd: string,
-  args?: Record<string, unknown>,
+  args?: Record<string, unknown>
 ): Promise<T> {
-  const { invoke } = await import("@tauri-apps/api/core");
+  const { invoke } = await import('@tauri-apps/api/core');
   return invoke<T>(cmd, args);
 }
 ```
@@ -801,34 +794,34 @@ export async function invokeCommand<T = unknown>(
 
 ```vue
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { invokeCommand } from "@/lib/tauri";
+  import { ref, onMounted } from 'vue';
+  import { invokeCommand } from '@/lib/tauri';
 
-interface PaperDto {
-  id: number;
-  title: string;
-  authors: string[];
-  // ...
-}
-
-const papers = ref<PaperDto[]>([]);
-const loading = ref(false);
-
-async function loadPapers() {
-  loading.value = true;
-  try {
-    papers.value = await invokeCommand<PaperDto[]>("get_all_papers");
-    console.info("Papers loaded successfully:", papers.value.length);
-  } catch (error) {
-    console.error("Failed to load papers:", error);
-  } finally {
-    loading.value = false;
+  interface PaperDto {
+    id: number;
+    title: string;
+    authors: string[];
+    // ...
   }
-}
 
-onMounted(() => {
-  loadPapers();
-});
+  const papers = ref<PaperDto[]>([]);
+  const loading = ref(false);
+
+  async function loadPapers() {
+    loading.value = true;
+    try {
+      papers.value = await invokeCommand<PaperDto[]>('get_all_papers');
+      console.info('Papers loaded successfully:', papers.value.length);
+    } catch (error) {
+      console.error('Failed to load papers:', error);
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  onMounted(() => {
+    loadPapers();
+  });
 </script>
 ```
 
@@ -912,43 +905,51 @@ yarn tauri build
 ### 10.3 功能验证清单
 
 **基础功能**:
+
 - [ ] 路由导航正常工作（页面跳转）
 - [ ] 主题切换正常（亮色/暗色模式）
 - [ ] 状态持久化（主题设置、标签页）
 
 **文献管理**:
+
 - [ ] 文档列表加载（虚拟滚动）
 - [ ] 列排序功能
 - [ ] 行选择功能
 - [ ] 分页功能
 
 **分类树**:
+
 - [ ] 分类树渲染
 - [ ] 节点展开/折叠
 - [ ] 右键菜单操作
 - [ ] 添加/编辑/删除分类
 
 **文档详情**:
+
 - [ ] 文档详情显示
 - [ ] 编辑模式切换
 - [ ] 标签添加/移除
 - [ ] 表单验证
 
 **PDF 查看**:
+
 - [ ] PDF 文件加载
 - [ ] 页面导航
 - [ ] 缩放功能
 
 **对话框**:
+
 - [ ] 添加分类对话框
 - [ ] 编辑分类对话框
 - [ ] 添加标签对话框
 
 **国际化**:
+
 - [ ] 中英文切换
 - [ ] 翻译正确显示
 
 **Tauri 集成**:
+
 - [ ] 所有命令正常调用
 - [ ] 错误处理正确
 
@@ -957,11 +958,13 @@ yarn tauri build
 ## 阶段 11：迁移执行步骤
 
 ### 步骤 1：准备工作（1天）
+
 1. 备份当前代码分支
 2. 创建新的迁移分支 `feature/vue-migration`
 3. 阅读本文档，熟悉所有步骤
 
 ### 步骤 2：基础设施搭建（2-3天）
+
 1. 更新 `package.json` 依赖
 2. 更新 `vite.config.ts` 配置
 3. 更新 `tsconfig.json` 配置
@@ -970,6 +973,7 @@ yarn tauri build
 6. 运行 `yarn tauri dev` 确保基础设施正常
 
 ### 步骤 3：核心系统迁移（3-4天）
+
 1. 创建 `src/router/index.ts`
 2. 创建 Pinia stores
 3. 配置 Vue I18n
@@ -979,11 +983,13 @@ yarn tauri build
 ### 步骤 4-8：组件迁移（按优先级逐步进行）
 
 ### 步骤 9：后端扩展（1天）
+
 1. 创建 `pdf_command.rs`
 2. 添加 `read_pdf_file` 命令
 3. 测试 PDF 文件读取
 
 ### 步骤 10：清理和优化（2-3天）
+
 1. 删除所有 React 相关文件
 2. 清理未使用的依赖
 3. 代码格式化
@@ -991,6 +997,7 @@ yarn tauri build
 5. 性能优化
 
 ### 步骤 11：测试和修复（3-5天）
+
 1. 完整功能测试
 2. 修复发现的 bug
 3. 跨平台测试（Windows/macOS/Linux）
@@ -1002,13 +1009,13 @@ yarn tauri build
 
 ### 风险评估
 
-| 风险 | 影响 | 概率 | 缓解措施 |
-|------|------|------|----------|
-| Vuetify 组件功能不足 | 高 | 中 | 提前验证关键组件，准备自定义方案 |
-| PDF 查看器迁移问题 | 高 | 低 | 使用成熟库 `vue-pdf-embed` |
-| 状态管理迁移复杂度 | 中 | 中 | Pinia 与 Zustand 模式相似 |
-| 虚拟滚动性能问题 | 高 | 低 | 使用 `v-data-table-server` 服务端分页 |
-| 国际化迁移 | 低 | 低 | Vue I18n 成熟稳定 |
+| 风险                 | 影响 | 概率 | 缓解措施                              |
+| -------------------- | ---- | ---- | ------------------------------------- |
+| Vuetify 组件功能不足 | 高   | 中   | 提前验证关键组件，准备自定义方案      |
+| PDF 查看器迁移问题   | 高   | 低   | 使用成熟库 `vue-pdf-embed`            |
+| 状态管理迁移复杂度   | 中   | 中   | Pinia 与 Zustand 模式相似             |
+| 虚拟滚动性能问题     | 高   | 低   | 使用 `v-data-table-server` 服务端分页 |
+| 国际化迁移           | 低   | 低   | Vue I18n 成熟稳定                     |
 
 ### 回滚计划
 
@@ -1049,6 +1056,7 @@ yarn tauri build
 ## 关键文件变更清单
 
 ### 需要创建的文件
+
 - `src/main.ts` - Vue 应用入口
 - `src/App.vue` - 根组件
 - `src/router/index.ts` - 路由配置
@@ -1060,12 +1068,14 @@ yarn tauri build
 - `src/assets/styles/main.css` - 全局样式
 
 ### 需要修改的文件
+
 - `vite.config.ts` - 更新插件配置
 - `tsconfig.json` - 添加 Vue 支持
 - `package.json` - 更新依赖
 - `index.html` - 更新入口文件引用
 
 ### 需要迁移的组件 (按优先级)
+
 1. 布局组件 (3个)
 2. 导航组件 (3个)
 3. 文档组件 (3个)

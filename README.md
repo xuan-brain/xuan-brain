@@ -16,29 +16,34 @@
 ## ✨ 特性
 
 ### 📚 智能文献管理
+
 - **元数据导入**: 通过 DOI 和 arXiv ID 自动导入文献
 - **自动解析**: 提取标题、作者、摘要、出版信息等元数据
 - **文献管理**: 高效管理文献库，支持添加、编辑、删除
 - **作者关联**: 自动关联作者信息，支持多作者论文
 
 ### 🗂️ 高效组织与检索
+
 - **分类管理**: 树形分类结构，支持无限层级嵌套
 - **标签系统**: 多维度标签分类，支持自定义颜色
 - **拖拽操作**: 直观的拖拽操作，方便组织文献和分类
 - **三栏布局**: 左侧导航、中间列表、右侧详情，高效浏览
 
 ### 🎨 现代化界面
+
 - **暗色/亮色主题**: 自由切换主题，支持动态强调色
 - **响应式布局**: 自适应窗口大小，可拖拽调整各栏宽度
 - **国际化支持**: 内置中英文界面，一键切换
 - **流畅体验**: 基于 React 19 和 Tauri 2，性能卓越
 
 ### 🔒 安全与隐私
+
 - **本地优先**: 所有数据存储在本地 SQLite 数据库
 - **开源透明**: 代码开源，可自行审计
 - **跨平台**: 支持 Windows、macOS、Linux
 
 ### 🔧 开发中功能
+
 - **PDF 阅读器**: 即将支持内置 PDF 阅读和标注
 - **全文搜索**: 基于关键词的快速文献检索
 - **本地文件导入**: 支持导入 PDF、DOCX 等本地文件
@@ -47,6 +52,7 @@
 ## 🏗️ 技术架构
 
 ### 技术栈
+
 - **前端**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
   - UI 框架: [Ant Design 6](https://ant.design/)
   - 状态管理: [Zustand](https://zustand-demo.pmnd.rs/)
@@ -61,6 +67,7 @@
   - 迁移: SeaORM Migration
 
 ### 为什么选择 Rust + Tauri?
+
 - **轻量高效**: 相比 Electron 体积小 80%,内存占用更低
 - **性能卓越**: Rust 的零成本抽象和内存安全
 - **跨平台**: 一套代码,支持 Windows、macOS、Linux
@@ -69,12 +76,14 @@
 ## 🚀 快速开始
 
 ### 环境要求
+
 - Node.js 18+
 - yarn 1.22+
 - Rust 1.70+
 - 系统 WebView2 (Windows) / WebKit (macOS/Linux)
 
 ### 安装
+
 ```bash
 # 克隆仓库
 git clone https://github.com/your-org/xuan-brain.git
@@ -88,12 +97,14 @@ yarn install
 ```
 
 ### 开发
+
 ```bash
 # 启动开发模式
 yarn tauri dev
 ```
 
 ### 构建
+
 ```bash
 # 构建生产版本
 yarn tauri build
@@ -102,6 +113,7 @@ yarn tauri build
 构建产物位于 `src-tauri/target/release/bundle/`
 
 **跨平台支持**:
+
 - Windows: `.msi` 安装包
 - macOS: `.dmg` 磁盘映像
 - Linux: `.AppImage` / `.deb` / `.rpm`
@@ -120,6 +132,7 @@ yarn tauri build
 欢迎社区贡献!请查看 [贡献指南](CONTRIBUTING.md)。
 
 ### 开发流程
+
 1. Fork 本仓库
 2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
@@ -127,6 +140,7 @@ yarn tauri build
 5. 开启 Pull Request
 
 ### 代码规范
+
 - **Rust**:
   ```bash
   cd src-tauri
@@ -146,6 +160,7 @@ yarn tauri build
 ## 🛣️ 路线图
 
 ### v0.1.0 (当前版本)
+
 - [x] 基础文献管理（通过 DOI 和 arXiv ID 导入）
 - [x] 分类树管理（树形结构、拖拽操作）
 - [x] 标签系统（自定义颜色、多维度分类）
@@ -155,6 +170,7 @@ yarn tauri build
 - [x] 本地数据存储（SeaORM + SQLite）
 
 ### v0.2.0 (计划中)
+
 - [ ] PDF 阅读器实现
 - [ ] 本地文件导入（PDF、DOCX 等）
 - [ ] 全文搜索功能
@@ -164,6 +180,7 @@ yarn tauri build
 - [ ] 设置页面
 
 ### v0.3.0 (未来版本)
+
 - [ ] AI 智能推荐和分类
 - [ ] 关键词自动提取
 - [ ] 笔记和标注功能

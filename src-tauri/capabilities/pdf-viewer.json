@@ -5,34 +5,9 @@
   "windows": ["pdf-viewer-*"],
   "permissions": [
     "core:default",
-
     {
-      "identifier": "fs:allow-read-file",
-      "allow": [
-        {
-          "baseDir": "AppData",
-          "path": "org.xuan-brain/files/**"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-read-dir",
-      "allow": [
-        {
-          "baseDir": "AppData",
-          "path": "org.xuan-brain/files/**"
-        }
-      ]
-    },
-
-    "core:window:allow-set-title",
-    "core:window:allow-close",
-    "core:window:allow-show",
-    "core:window:allow-set-focus",
-    "core:window:allow-unminimize",
-    "core:webview:allow-create-webview-window",
-    "dialog:allow-message",
-    "tracing:allow-log",
-    "notification:default"
+      "identifier": "fs:scope",
+      "allow": [{ "path": "$APPDATA" }, { "path": "$APPDATA/**/*" }]
+    }
   ]
 }

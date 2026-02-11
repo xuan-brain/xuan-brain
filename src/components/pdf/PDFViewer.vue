@@ -1,174 +1,98 @@
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from "vue";
-import VuePdfEmbed from "vue-pdf-embed";
+import { ref, onMounted } from "vue";
 import { invokeCommand } from "@/lib/tauri";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
-interface Props {
-  src: string; // PDF file path
-}
-
-const props = defineProps<Props>();
-
-const currentPage = ref(1);
-const totalPages = ref(0);
 const loading = ref(true);
-const error = ref<string | null>(null);
-const scale = ref(1);
+const error = ref("");
+const pdfUrl = ref("");
+const paperTitle = ref("");
 
-// PDF source as blob URL
-const pdfSource = ref<string>("");
-
-// Load PDF file
-async function loadPdf() {
-  loading.value = true;
-  error.value = null;
-
+onMounted(async () => {
   try {
-    // Read PDF file from Tauri backend
-    const arrayBuffer = await invokeCommand<number[]>("read_pdf_file", {
-      filePath: props.src,
-    });
+    const currentWindow = getCurrentWindow();
+    const label = await currentWindow.label();
+    const idMatch = label.match(/pdf-viewer-(\d+)/);
 
-    // Create blob URL
-    const blob = new Blob([Uint8Array.from(arrayBuffer)], {
-      type: "application/pdf",
-    });
-
-    // Revoke previous URL if exists
-    if (pdfSource.value) {
-      URL.revokeObjectURL(pdfSource.value);
+    if (!idMatch) {
+      error.value = "Invalid PDF viewer window";
+      loading.value = false;
+      return;
     }
 
-    pdfSource.value = URL.createObjectURL(blob);
+    const id = parseInt(idMatch[1], 10);
+    const info = await invokeCommand<{
+      file_path: string;
+      file_name: string;
+      paper_id: number;
+      paper_title: string;
+    }>("get_pdf_attachment_path", { paperId: id });
+
+    // Convert file path to URL format for Tauri
+    pdfUrl.value = `asset://${encodeURIComponent(info.file_path)}`;
+    paperTitle.value = info.paper_title;
+    await currentWindow.setTitle(info.paper_title);
   } catch (err) {
-    error.value = err as string;
     console.error("Failed to load PDF:", err);
+    error.value = err instanceof Error ? err.message : String(err);
   } finally {
     loading.value = false;
-  }
-}
-
-// Handle PDF loaded
-function handleLoaded(pdf: any) {
-  totalPages.value = pdf.numPages;
-  loading.value = false;
-}
-
-// Page navigation
-function nextPage() {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-  }
-}
-
-function prevPage() {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-  }
-}
-
-// Zoom functions
-function zoomIn() {
-  if (scale.value < 3) {
-    scale.value += 0.25;
-  }
-}
-
-function zoomOut() {
-  if (scale.value > 0.5) {
-    scale.value -= 0.25;
-  }
-}
-
-function fitToWidth() {
-  scale.value = 1;
-}
-
-// Watch src changes
-watch(() => props.src, loadPdf, { immediate: true });
-
-// Cleanup blob URL on unmount
-onUnmounted(() => {
-  if (pdfSource.value) {
-    URL.revokeObjectURL(pdfSource.value);
   }
 });
 </script>
 
 <template>
   <div class="pdf-viewer">
-    <!-- Toolbar -->
-    <v-toolbar density="compact" class="pdf-toolbar">
-      <v-btn
-        icon="mdi-chevron-left"
-        @click="prevPage"
-        :disabled="currentPage <= 1 || loading"
+    <!-- Loading state -->
+    <div v-if="loading" class="loading-container">
+      <v-progress-circular indeterminate size="64" />
+      <p class="mt-4">Loading PDF...</p>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="error-container">
+      <v-alert type="error" :text="error" />
+      <v-btn class="mt-4" @click="window.close()">Close</v-btn>
+    </div>
+
+    <!-- PDF viewer -->
+    <div v-else class="pdf-container">
+      <embed
+        v-if="pdfUrl"
+        :src="pdfUrl"
+        type="application/pdf"
+        class="pdf-embed"
       />
-      <span class="ml-2 text-caption"
-        >{{ currentPage }} / {{ totalPages }}</span
-      >
-      <v-btn
-        icon="mdi-chevron-right"
-        @click="nextPage"
-        :disabled="currentPage >= totalPages || loading"
-      />
-
-      <v-spacer />
-
-      <v-btn icon="mdi-magnify-minus" @click="zoomOut" :disabled="loading" />
-      <span class="ml-2 mr-2 text-caption">{{ Math.round(scale * 100) }}%</span>
-      <v-btn icon="mdi-magnify-plus" @click="zoomIn" :disabled="loading" />
-      <v-btn icon="mdi-fit-to-page" @click="fitToWidth" :disabled="loading" />
-    </v-toolbar>
-
-    <!-- PDF rendering area -->
-    <div class="pdf-container">
-      <!-- Loading state -->
-      <div v-if="loading" class="d-flex justify-center align-center h-100">
-        <v-progress-circular indeterminate size="64" />
-      </div>
-
-      <!-- Error state -->
-      <v-alert v-else-if="error" type="error" :text="error" class="ma-4" />
-
-      <!-- PDF content -->
-      <div v-else class="pdf-content">
-        <vue-pdf-embed
-          :source="pdfSource"
-          :page="currentPage"
-          :scale="scale"
-          @loaded="handleLoaded"
-        />
-      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .pdf-viewer {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: #525659;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #fff;
 }
 
-.pdf-toolbar {
-  flex-shrink: 0;
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
 }
 
 .pdf-container {
-  flex: 1;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
-  padding: 16px;
+  width: 100%;
+  height: 100%;
 }
 
-.pdf-content {
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.vue-pdf-embed {
-  display: block;
+.pdf-embed {
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 </style>

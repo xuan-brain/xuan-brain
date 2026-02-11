@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, inject } from "vue";
 import { useI18n } from "@/lib/i18n";
 import AppearanceSettings from "@/components/settings/AppearanceSettings.vue";
 import AISettings from "@/components/settings/AISettings.vue";
@@ -11,6 +11,9 @@ import WritingSettings from "@/components/settings/WritingSettings.vue";
 import SubscriptionsSettings from "@/components/settings/SubscriptionsSettings.vue";
 
 const { t } = useI18n();
+
+// Inject reloadConfig function from App.vue
+const reloadConfig = inject<(() => Promise<void>) | null>("reloadConfig", null);
 
 // Active tab
 const activeTab = ref("system");
@@ -28,9 +31,12 @@ const tabItems = [
 ];
 
 // Handle config updated event from child components
-function handleConfigUpdated() {
-  // Config has been updated, could trigger a refresh if needed
-  console.info("Settings configuration updated");
+async function handleConfigUpdated() {
+  console.info("Settings configuration updated, reloading...");
+  // Reload config from backend and update store
+  if (reloadConfig) {
+    await reloadConfig();
+  }
 }
 </script>
 

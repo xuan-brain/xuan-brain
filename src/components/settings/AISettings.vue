@@ -19,6 +19,7 @@ const llmForm = ref({
   model_name: "",
 });
 const testingConnection = ref(false);
+const testingServerId = ref<string | null>(null);
 
 // Emit event for parent to refresh config
 const emit = defineEmits<{
@@ -62,6 +63,7 @@ async function saveConfig(newConfig: any) {
 // Test LLM connection from list
 async function testLlmConnection(provider: any) {
   testingConnection.value = true;
+  testingServerId.value = provider.id;
   try {
     const response = await fetch(`${provider.base_url}/chat/completions`, {
       method: "POST",
@@ -98,7 +100,13 @@ async function testLlmConnection(provider: any) {
     }
   } finally {
     testingConnection.value = false;
+    testingServerId.value = null;
   }
+}
+
+// Check if a specific provider is being tested
+function isProviderTesting(providerId: string): boolean {
+  return testingConnection.value && testingServerId.value === providerId;
 }
 
 // Test LLM connection from dialog
@@ -276,7 +284,8 @@ async function saveLlmProvider() {
               size="small"
               variant="tonal"
               color="primary"
-              :loading="testingConnection"
+              :loading="isProviderTesting(provider.id)"
+              :disabled="testingConnection && testingServerId !== provider.id"
               @click="testLlmConnection(provider)"
             />
             <v-btn

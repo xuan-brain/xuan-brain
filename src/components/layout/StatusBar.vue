@@ -33,6 +33,11 @@ const showGrobidMenu = ref(false);
 
 // Load config on mount
 onMounted(async () => {
+  await loadConfig();
+});
+
+// Load config from backend
+async function loadConfig() {
   try {
     const data = await invokeCommand<any>("get_app_config");
     if (data?.system?.llm_providers) {
@@ -44,7 +49,7 @@ onMounted(async () => {
   } catch (error) {
     console.error("Failed to load config for status bar:", error);
   }
-});
+}
 
 // Handle LLM Provider selection
 async function handleLLMProviderSelect(providerId: string) {

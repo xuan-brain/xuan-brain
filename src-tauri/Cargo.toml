@@ -17,6 +17,7 @@ crate-type = ["cdylib", "rlib", "staticlib"]
 name = "xuan_brain_lib"
 
 [dependencies]
+base64 = "0.22"
 chrono = "0.4.43"
 dirs = "5"
 futures = "0.3.31"

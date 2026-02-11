@@ -5,7 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const loading = ref(true);
 const error = ref("");
-const pdfUrl = ref("");
+const pdfDataUrl = ref("");
 const paperTitle = ref("");
 const windowLabel = ref("");
 
@@ -30,15 +30,22 @@ onMounted(async () => {
     }
 
     const id = parseInt(idMatch[1], 10);
-    const info = await invokeCommand<{
-      file_path: string;
-      file_name: string;
-      paper_id: number;
-      paper_title: string;
-    }>("get_pdf_attachment_path", { paperId: id });
 
-    // Convert file path to URL format for Tauri
-    pdfUrl.value = `asset://${encodeURIComponent(info.file_path)}`;
+    // Get PDF base64 content from backend
+    const info = await invokeCommand<{
+      file_name: string;
+      base64_content: string;
+      paper_title: string;
+    }>("get_pdf_attachment_base64", { paperId: id });
+
+    // Convert base64 to blob URL
+    const byteCharacters = atob(info.base64_content);
+    const byteArray = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArray[i] = byteCharacters.charCodeAt(i);
+    }
+    const blob = new Blob([byteArray], { type: "application/pdf" });
+    pdfDataUrl.value = URL.createObjectURL(blob);
     paperTitle.value = info.paper_title;
     await currentWindow.setTitle(info.paper_title);
   } catch (err) {

@@ -5,9 +5,8 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const loading = ref(true);
 const error = ref("");
-const pdfDataUrl = ref("");
+const pdfUrl = ref("");
 const paperTitle = ref("");
-const windowLabel = ref("");
 
 // Close window function
 async function closeWindow() {
@@ -19,7 +18,6 @@ onMounted(async () => {
   try {
     const currentWindow = getCurrentWindow();
     const label = await currentWindow.label();
-    windowLabel.value = label;
 
     const idMatch = label.match(/pdf-viewer-(\d+)/);
 
@@ -30,22 +28,17 @@ onMounted(async () => {
     }
 
     const id = parseInt(idMatch[1], 10);
-
-    // Get PDF base64 content from backend
     const info = await invokeCommand<{
+      file_path: string;
       file_name: string;
-      base64_content: string;
+      paper_id: number;
       paper_title: string;
-    }>("get_pdf_attachment_base64", { paperId: id });
+    }>("get_pdf_attachment_path", { paperId: id });
 
-    // Convert base64 to blob URL
-    const byteCharacters = atob(info.base64_content);
-    const byteArray = new Uint8Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteArray[i] = byteCharacters.charCodeAt(i);
-    }
-    const blob = new Blob([byteArray], { type: "application/pdf" });
-    pdfDataUrl.value = URL.createObjectURL(blob);
+    // Convert file path to URL format for Tauri
+    // Convert Windows backslashes to forward slashes and URL encode
+    const normalizedPath = info.file_path.replace(/\\/g, "/");
+    pdfUrl.value = `asset://${normalizedPath}`;
     paperTitle.value = info.paper_title;
     await currentWindow.setTitle(info.paper_title);
   } catch (err) {
@@ -74,8 +67,8 @@ onMounted(async () => {
     <!-- PDF viewer -->
     <div v-else class="pdf-container">
       <embed
-        v-if="pdfDataUrl"
-        :src="pdfDataUrl"
+        v-if="pdfUrl"
+        :src="pdfUrl"
         type="application/pdf"
         class="pdf-embed"
       />

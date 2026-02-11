@@ -10,27 +10,18 @@
       (function () {
         // Initialize dark mode
         const darkMode =
-          localStorage.getItem("xuan-brain-app-storage") &&
-          JSON.parse(localStorage.getItem("xuan-brain-app-storage") || {})
-            .isDark;
-        document.documentElement.setAttribute(
-          "data-mode",
-          darkMode ? "dark" : "light",
-        );
+          localStorage.getItem('xuan-brain-app-storage') &&
+          JSON.parse(localStorage.getItem('xuan-brain-app-storage') || {}).isDark;
+        document.documentElement.setAttribute('data-mode', darkMode ? 'dark' : 'light');
 
         // Initialize accent color
-        const appStorage = JSON.parse(
-          localStorage.getItem("xuan-brain-app-storage") || "{}",
-        );
-        const accentColor = appStorage.accentColor || "#3b82f6";
-        document.documentElement.style.setProperty(
-          "--accent-color",
-          accentColor,
-        );
+        const appStorage = JSON.parse(localStorage.getItem('xuan-brain-app-storage') || '{}');
+        const accentColor = appStorage.accentColor || '#3b82f6';
+        document.documentElement.style.setProperty('--accent-color', accentColor);
 
         // Initialize language
-        const savedLanguage = localStorage.getItem("xuan-brain-locale") || "zh";
-        document.documentElement.setAttribute("lang", savedLanguage);
+        const savedLanguage = localStorage.getItem('xuan-brain-locale') || 'zh';
+        document.documentElement.setAttribute('lang', savedLanguage);
       })();
     </script>
   </head>

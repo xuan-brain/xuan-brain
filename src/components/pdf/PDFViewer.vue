@@ -36,6 +36,7 @@ onMounted(async () => {
       paper_id: number;
       paper_title: string;
     }>("get_pdf_attachment_path", { paperId: id });
+    console.info("pdf info ", info);
 
     // Convert file path to URL format for Tauri webview
     pdfUrl.value = convertFileSrc(info.file_path);

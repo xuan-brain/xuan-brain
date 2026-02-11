@@ -466,7 +466,7 @@ defineExpose({
 /* Expand row styles */
 .expand-row-content {
   padding: 12px 16px;
-  background-color: rgba(var(--v-theme-surface-variant), 0.3);
+  background-color: var(--vxe-table-body-background-color);
 }
 
 .attachments-list {
@@ -520,6 +520,6 @@ defineExpose({
 }
 
 :deep(.vxe-body--row.row--expanded .vxe-body--expand-row) {
-  background-color: rgba(var(--v-theme-surface-variant), 0.3);
+  background-color: var(--vxe-table-body-background-color);
 }
 </style>

@@ -114,6 +114,74 @@ watch(
   { immediate: false },
 );
 
+// Watch theme changes and update Vuetify and VxeTable themes
+watch(
+  () => appStore.isDark,
+  (isDark) => {
+    // Update Vuetify theme
+    vuetify.theme.global.name.value = isDark ? "dark" : "light";
+    // Update VxeTable theme (v4.6.17+)
+    if (VxeTable.setTheme) {
+      VxeTable.setTheme(isDark ? "dark" : "light");
+    }
+    // Update VxeTable CSS variables for better integration
+    updateVxeTableTheme(isDark);
+  },
+  { immediate: true },
+);
+
+// Helper function to update VxeTable CSS variables
+function updateVxeTableTheme(isDark: boolean) {
+  const root = document.documentElement;
+  if (isDark) {
+    // Dark theme
+    root.style.setProperty("--vxe-font-color", "rgba(255, 255, 255, 0.87)");
+    root.style.setProperty("--vxe-table-body-background-color", "#1f1f1f");
+    root.style.setProperty(
+      "--vxe-table-header-font-color",
+      "rgba(255, 255, 255, 0.7)",
+    );
+    root.style.setProperty("--vxe-table-header-background-color", "#141414");
+    root.style.setProperty("--vxe-toolbar-background-color", "#141414");
+    root.style.setProperty("--vxe-button-default-background-color", "#2a2a2a");
+    root.style.setProperty("--vxe-input-border-color", "#424242");
+    root.style.setProperty("--vxe-table-border-color", "#424242");
+    root.style.setProperty(
+      "--vxe-table-row-hover-background-color",
+      "rgba(255, 255, 255, 0.04)",
+    );
+    root.style.setProperty(
+      "--vxe-table-row-striped-background-color",
+      "rgba(255, 255, 255, 0.02)",
+    );
+    root.style.setProperty("--vxe-table-popup-border-color", "#424242");
+    root.style.setProperty(
+      "--vxe-loading-background-color",
+      "rgba(0, 0, 0, 0.5)",
+    );
+  } else {
+    // Light theme
+    root.style.setProperty("--vxe-font-color", "#606266");
+    root.style.setProperty("--vxe-table-body-background-color", "#ffffff");
+    root.style.setProperty("--vxe-table-header-font-color", "#606266");
+    root.style.setProperty("--vxe-table-header-background-color", "#f8f8f9");
+    root.style.setProperty("--vxe-toolbar-background-color", "#fff");
+    root.style.setProperty("--vxe-button-default-background-color", "#fff");
+    root.style.setProperty("--vxe-input-border-color", "#dcdfe6");
+    root.style.setProperty("--vxe-table-border-color", "#e8eaec");
+    root.style.setProperty("--vxe-table-row-hover-background-color", "#f5f7fa");
+    root.style.setProperty(
+      "--vxe-table-row-striped-background-color",
+      "#fafafa",
+    );
+    root.style.setProperty("--vxe-table-popup-border-color", "#DADCE0");
+    root.style.setProperty(
+      "--vxe-loading-background-color",
+      "rgba(255, 255, 255, 0.5)",
+    );
+  }
+}
+
 // Vue Router
 import router from "./router";
 app.use(router);

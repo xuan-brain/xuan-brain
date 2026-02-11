@@ -1,4 +1,6 @@
-# Mantine Table vs Ant Design Table 分析报告
+# Mantine Table vs Ant Design Table 分析报告（历史参考，当前前端已迁移至 Vue）
+
+> 说明：本报告针对 React 生态中的 Ant Design 与 Mantine 对比。项目已迁移至 Vue 3 技术栈，推荐在 Vue 中使用 **Vuetify v-data-table**（支持排序、选择、分页、虚拟滚动）或结合第三方虚拟滚动方案。以下内容保留作为历史参考。
 
 ## 需求对比
 
@@ -109,25 +111,23 @@ onRow={(record) => ({
 2. **无冲突**：两个事件完全独立，互不干扰
 3. **类型安全**：完整的 TypeScript 支持
 
-## 推荐结论
+## 推荐结论（Vue 迁移后建议）
 
-**✅ 强烈推荐使用 Mantine Table**
+**✅ 当前推荐使用 Vuetify v-data-table**
 
 ### 原因：
 
-1. ✅ **解决双击问题**：无需计时器等 hack，原生支持
-2. ✅ **更好的性能**：更轻量，加载更快
-3. ✅ **更好的开发体验**：更简单的 API，更好的类型
-4. ✅ **更灵活的样式**：直接通过 props 和 style 控制
-5. ✅ **原生支持所有需求**：单击、双击、右键菜单、展开行
-6. ✅ **更小的 Bundle**：减少 75% 体积
+1. ✅ **Vue 原生生态**：与 Vuetify 主题、布局深度集成
+2. ✅ **组件能力完善**：排序、选择、分页、可定制单元格
+3. ✅ **可扩展性能优化**：支持虚拟滚动或自定义渲染优化
+4. ✅ **更一致的设计语言**：Material Design 3
 
-### 迁移路径：
+### 迁移路径（React → Vue）：
 
-1. 安装依赖：`yarn add @mantine/core @mantine/hooks @tabler/icons-react`
-2. 替换 Table 组件（已完成：DocumentListMantine.tsx）
-3. 更新样式（Mantine 使用不同的样式系统）
-4. 测试所有功能
+1. 安装依赖：`yarn add vuetify @mdi/font`
+2. 替换列表视图组件为 `v-data-table`
+3. 针对双击/右键等交互，使用原生 Vue 事件 + Vuetify 菜单组件
+4. 测试所有功能并优化滚动性能
 
 ## 实现状态
 

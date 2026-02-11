@@ -1,5 +1,7 @@
 # 前端迁移计划：React → Vue 3 + Vuetify 3
 
+> 迁移状态：已完成（2026-02-11）。本文件保留作为历史记录与参考，实际项目已采用 Vue 3 + Vuetify 3 + Pinia + Vue Router 4 技术栈。
+
 ## Context
 
 当前 xuan-brain 项目使用 React 19 + Ant Design + Mantine 作为前端技术栈。由于用户只熟悉 Vue 框架，需要将整个前端迁移到 Vue 3 + Vuetify 3 技术栈，并采用 Vuetify 的 Discord 风格预置布局。

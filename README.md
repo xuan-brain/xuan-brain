@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/your-org/xuan-brain)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-orange.svg)](https://tauri.app/)
-[![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
+[![Vue](https://img.shields.io/badge/Vue-3-42b883.svg)](https://vuejs.org/)
 
 </div>
 
@@ -34,7 +34,7 @@
 - **暗色/亮色主题**: 自由切换主题，支持动态强调色
 - **响应式布局**: 自适应窗口大小，可拖拽调整各栏宽度
 - **国际化支持**: 内置中英文界面，一键切换
-- **流畅体验**: 基于 React 19 和 Tauri 2，性能卓越
+- **流畅体验**: 基于 Vue 3 与 Tauri 2，性能卓越
 
 ### 🔒 安全与隐私
 
@@ -42,7 +42,7 @@
 - **开源透明**: 代码开源，可自行审计
 - **跨平台**: 支持 Windows、macOS、Linux
 
-### 🔧 开发中功能
+### 🛠 开发中功能
 
 - **PDF 阅读器**: 即将支持内置 PDF 阅读和标注
 - **全文搜索**: 基于关键词的快速文献检索
@@ -53,12 +53,12 @@
 
 ### 技术栈
 
-- **前端**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-  - UI 框架: [Ant Design 6](https://ant.design/)
-  - 状态管理: [Zustand](https://zustand-demo.pmnd.rs/)
-  - 路由: [React Router v7](https://reactrouter.com/)
-  - 树形组件: [Headless Tree](https://headless-tree.com/)
-  - 样式: [Tailwind CSS 4](https://tailwindcss.com/)
+- **前端**: [Vue 3](https://vuejs.org/) + [TypeScript](https://www.typescriptlang.org/)
+  - UI 框架: [Vuetify 3](https://vuetifyjs.com/)
+  - 状态管理: [Pinia](https://pinia.vuejs.org/)
+  - 路由: [Vue Router 4](https://router.vuejs.org/)
+  - 树形组件: Vuetify v-treeview
+  - 样式: [Tailwind CSS](https://tailwindcss.com/)（如需）
 - **后端**: [Rust](https://www.rust-lang.org/) + [Tauri 2](https://tauri.app/)
   - ORM: [SeaORM 2.0](https://www.sea-ql.org/SeaORM/)
   - 日志: [tracing](https://docs.rs/tracing/)
@@ -197,16 +197,26 @@ yarn tauri build
 ## 🙏 致谢
 
 - [Tauri](https://tauri.app/) - 跨平台桌面应用框架
-- [React](https://react.dev/) - React 框架
-- [Ant Design](https://ant.design/) - 企业级 UI 组件库
-- [SeaORM](https://www.sea-ql.org/SeaORM/) - 异步 Rust ORM
-- [Zotero](https://www.zotero.org/) - 灵感来源
+- [Vue](https://vuejs.org/) - Vue 框架
+- [Vuetify](https://vuetifyjs.com/) - Material Design 3 UI 框架
+- [Pinia](https://pinia.vuejs.org/) - 轻量状态管理
+- [Vue Router](https://router.vuejs.org/) - 官方路由器
+- [Tailwind CSS](https://tailwindcss.com/) - 实用类样式库
+- [Rust](https://www.rust-lang.org/) - 系统级语言
+- [SeaORM](https://www.sea-ql.org/SeaORM/) - Rust ORM
+- [SQLite](https://www.sqlite.org/) - 嵌入式数据库
 
-## 📮 联系方式
+## 📚 参考
 
-- 问题反馈: [GitHub Issues](https://github.com/your-org/xuan-brain/issues)
-- 功能建议: [GitHub Discussions](https://github.com/your-org/xuan-brain/discussions)
-- 邮件: support@xuan-brain.org
+- [Vue](https://vuejs.org/) - Vue 框架
+- [Vuetify](https://vuetifyjs.com/) - Material Design 3 UI 框架
+- [Pinia](https://pinia.vuejs.org/) - 轻量状态管理
+- [Vue Router](https://router.vuejs.org/) - 官方路由器
+- [Tailwind CSS](https://tailwindcss.com/) - 实用类样式库
+- [Tauri](https://tauri.app/) - 轻量桌面应用框架
+- [Rust](https://www.rust-lang.org/) - 系统级语言
+- [SeaORM](https://www.sea-ql.org/SeaORM/) - Rust ORM
+- [SQLite](https://www.sqlite.org/) - 嵌入式数据库
 
 ---
 

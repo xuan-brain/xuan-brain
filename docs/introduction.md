@@ -35,11 +35,13 @@
 
 ### 前端界面
 
-采用 Tauri 构建用户界面，使用现代 Web 技术 (HTML/CSS/JavaScript) 来呈现界面：
+采用 Tauri 构建用户界面，使用现代 Web 技术 (HTML/CSS/JavaScript) 来呈现界面，并以 **Vue 3 + Vuetify 3 + Pinia + Vue Router 4** 为核心前端栈：
 
-- **文献列表展示**: 提供清晰的文献列表视图
+- **文献列表展示**: 提供清晰的文献列表视图（使用 Vuetify v-data-table / 自定义虚拟滚动）
 - **搜索和筛选功能**: 快速定位所需文献
 - **笔记和标签管理**: 便捷的笔记组织和标签系统
+- **分类树**: 使用 Vuetify v-treeview 构建
+- **国际化**: 采用 Vue I18n 提供多语言界面
 - **IPC 通信**: 通过 Tauri 提供的 IPC 机制安全调用后端接口
 
 ### 后端服务

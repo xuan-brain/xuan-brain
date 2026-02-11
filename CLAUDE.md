@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-**璇玑 (xuan-brain)** 是一个基于 **Tauri 2.x + React 18 + TypeScript** 构建的 AI 驱动科研文献管理桌面应用。本设计借鉴 Zotero 的核心理念，通过插件机制提供功能强大且易于使用的文献管理平台。
+**璇玑 (xuan-brain)** 是一个基于 **Tauri 2.x + Vue 3 + TypeScript** 构建的 AI 驱动科研文献管理桌面应用。本设计借鉴 Zotero 的核心理念，通过插件机制提供功能强大且易于使用的文献管理平台。
 
 ### 核心功能
 
@@ -28,24 +28,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 技术选型理由
 
 - **Tauri 2.x**: 相比 Electron 更轻量(体积小 80%)、更安全(Rust 内存安全)、性能更好
-- **React 19**: 最新的 React 版本，提供更好的性能和开发体验
-  - **组件模型**: 函数组件 + Hooks，声明式编程
-  - **并发特性**: 改进的并发渲染和自动批处理
-  - **Actions**: 简化表单处理和数据变更
-- **Ant Design**: 企业级 React UI 组件库
-  - **丰富的组件**: 60+ 高质量组件，涵盖所有常见 UI 需求
-  - **设计语言**: 遵循 Ant Design 设计规范，界面美观一致
-  - **高质量**: 优秀的代码质量、可访问性和国际化支持
-  - **主题系统**: 强大的主题定制能力，支持暗色模式和动态主题
-  - **生态系统**: 丰富的图标库、动画组件等
-  - **适合桌面应用**: 紧凑型设计，适合文献管理等桌面应用场景
-- **Headless Tree**: 无头树形组件库
-  - **高性能**: 基于虚拟滚动，支持大规模数据
-  - **可定制**: 完全自定义渲染逻辑
-  - **拖拽支持**: 内置拖拽功能，支持节点移动
-- **React Router v7**: 事实标准的 React 路由库
-- **Zustand**: 轻量级状态管理库
-- **Tailwind CSS 4**: 实用优先 CSS 框架，用于样式定制和组件样式增强
+- **Vue 3**: 现代化的组合式 API，良好的性能和开发体验
+  - **组件模型**: 组合式 API (Composition API) + 单文件组件(SFC)
+  - **状态管理**: Pinia（轻量且类型友好）
+  - **路由**: Vue Router 4（官方路由解决方案）
+- **Vuetify 3**: Material Design 3 的 Vue UI 组件库
+  - **丰富的组件**: 覆盖桌面应用常见 UI 需求
+  - **主题系统**: 内置暗色模式与主题定制能力
+  - **生态系统**: 图标、数据表格、树形组件等
+- **Tailwind CSS**: 实用优先 CSS 框架，用于样式增强
 - **Rust 后端**: 高性能 PDF 处理、文件 I/O、AI 模型推理
 - **SeaORM**: 异步 Rust ORM，提供类型安全的数据库操作
 - **SQLite**: 嵌入式数据库、零配置、单文件备份
@@ -59,21 +50,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 核心架构
 
-### 前端 (React)
+### 前端 (Vue)
 
-- **框架**: React 19.x 使用函数组件和 Hooks
+- **框架**: Vue 3 (Composition API + TypeScript)
 - **构建工具**: Vite 6.x (快速的开发服务器和构建工具)
 - **渲染模式**: SPA (单页应用)，无需 SSR
-- **路由**: React Router v7，位于 `src/pages/`
+- **路由**: Vue Router 4，位于 `src/router/`
 - **开发服务器**: 运行在 `http://localhost:1420`
 - **状态管理**:
-  - **客户端状态**: Zustand (轻量级全局状态)
-  - **表单状态**: React useState + Ant Design Form (简化表单管理)
-- **UI 组件库**: Ant Design
-  - 核心组件: `antd`
-  - 树形组件: `@headless-tree/core` + `@headless-tree/react`
-  - 图标: `@ant-design/icons`
-- **样式**: Tailwind CSS 4 + Ant Design 主题系统
+  - **客户端状态**: Pinia (轻量级全局状态)
+  - **持久化**: pinia-plugin-persistedstate
+- **UI 组件库**: Vuetify 3
+  - 树形组件: `v-treeview`
+  - 数据表格: `v-data-table`
+  - 图标: `@mdi/font`
+- **样式**: Tailwind CSS + Vuetify 主题系统
 - **职责**:
   - 文献列表展示和 UI 交互
   - 搜索和筛选界面
@@ -443,24 +434,16 @@ yarn lint
 yarn format
 ```
 
-### React Hooks 最佳实践
+### Vue 3 + Vuetify 最佳实践
 
-- **使用函数组件**: 避免类组件，使用函数组件 + Hooks
-- **自定义 Hooks**: 提取可复用的逻辑到自定义 Hooks
-- **依赖数组**: 正确使用 `useEffect`, `useMemo`, `useCallback` 的依赖数组
-- **状态管理**:
-  - 局部状态: `useState`, `useReducer`
-  - 全局状态: Zustand
-  - 表单状态: `useState` + Ant Design 组件
-- **性能优化**:
-  - 使用 `React.memo` 避免不必要的重渲染
-  - 使用 `useMemo` 缓存昂贵的计算
-  - 使用 `useCallback` 缓存回调函数
-  - 使用 `React.lazy` 和 `Suspense` 进行代码分割
+- **使用组合式 API**: 在 Vue 3 中使用组合式 API 组织逻辑
+- **单文件组件**: 每个组件使用 `.vue` 文件定义
+- **状态管理**: 使用 Pinia 管理全局状态
+- **路由管理**: 使用 Vue Router 进行页面导航
 - **表单处理**:
-  - 简单表单: 使用 `useState` 管理输入值
-  - 复杂表单: 使用 Ant Design Form 组件
-  - 表单验证: 手动验证 + Ant Design 的 `status` 和 `help` 属性
+  - 简单表单: 使用 `v-model` 双向绑定
+  - 复杂表单: 使用组合式 API 和计算属性
+  - 表单验证: 使用 Vuelidate 或自定义验证逻辑
 - **日志记录**:
   - 重要操作: 使用 `console.info()` (如数据加载成功)
   - 错误信息: 使用 `console.error()` (如 API 调用失败)
@@ -472,88 +455,77 @@ yarn format
 - `tauri.conf.json` 中的 `devUrl` 必须匹配
 - 端口被占用会导致启动失败
 
-### Ant Design 配置
+### Vuetify 配置
 
-- **组件系统**: Ant Design 提供完整的预构建 React 组件库
-- **安装方式**: 使用 `yarn add antd` 安装核心库
-- **组件位置**: 直接从 `antd` 导入使用
+- **组件系统**: Vuetify 提供完整的预构建 Vue 组件库
+- **安装方式**: 使用 `yarn add vuetify` 安装核心库
+- **组件位置**: 直接从 `vuetify/lib` 导入使用
 - **可定制性**: 通过主题系统深度定制组件样式
 - **主题系统**:
-  - 使用 `ConfigProvider` 包裹应用
-  - 支持暗色模式切换 (使用 `theme.darkAlgorithm`)
+  - 使用 `vuetify.options.js` 配置全局主题
+  - 支持暗色模式切换 (使用 `theme.dark`)
   - 支持自定义颜色、字体、间距等
-  - 使用全局 CSS 变量控制样式
 - **常用组件**:
-  - `Button`, `Input`, `Select`, `Checkbox`, `Radio`
-  - `Modal`, `Dropdown`, `Menu`, `Popover`
-  - `message`, `notification`, `Card`
-  - `Table`, `Tabs`, `Tooltip`
-- **Tree View**: `@headless-tree/core` + `@headless-tree/react` 提供高性能无头树形组件
-- **数据表格**: `Table` 提供强大的数据表格功能
+  - `v-btn`, `v-input`, `v-select`, `v-checkbox`, `v-radio`
+  - `v-dialog`, `v-dropdown`, `v-menu`, `v-popover`
+  - `v-snackbar`, `v-alert`, `v-card`
+  - `v-data-table`, `v-tabs`, `v-tooltip`
+- **Tree View**: `v-treeview` 提供高性能树形组件
+- **数据表格**: `v-data-table` 提供强大的数据表格功能
 
 **主题切换示例**:
 
 ```typescript
 // src/theme.ts
-import type { ThemeConfig } from 'antd';
-import { theme } from 'antd';
+import { createVuetify } from 'vuetify';
+import 'vuetify/styles';
 
-const lightTheme: ThemeConfig = {
-  token: {
-    colorPrimary: '#1976d2',
-    colorSuccess: '#52c41a',
-    colorWarning: '#faad14',
-    colorError: '#ff4d4f',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    fontSize: 15,
-    borderRadius: 4,
-  },
-  components: {
-    Button: {
-      controlHeight: 32,
-    },
-    Input: {
-      controlHeight: 32,
-    },
-  },
-};
-
-const darkTheme: ThemeConfig = {
-  token: {
-    colorPrimary: '#90caf9',
-    colorBgContainer: '#1f1f1f',
-    colorText: 'rgba(255, 255, 255, 0.85)',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    fontSize: 15,
-    borderRadius: 4,
-  },
-  components: {
-    Button: {
-      controlHeight: 32,
-    },
-    Input: {
-      controlHeight: 32,
+export default createVuetify({
+  theme: {
+    defaultTheme: 'light',
+    themes: {
+      light: {
+        colors: {
+          primary: '#1976d2',
+          secondary: '#424242',
+          accent: '#82B1FF',
+          error: '#FF5252',
+          info: '#2196F3',
+          success: '#4CAF50',
+          warning: '#FFC107',
+        },
+      },
+      dark: {
+        colors: {
+          primary: '#90caf9',
+          secondary: '#212121',
+          accent: '#039be5',
+          error: '#e57373',
+          info: '#64b5f6',
+          success: '#81c784',
+          warning: '#ffd54f',
+        },
+      },
     },
   },
-  algorithm: theme.darkAlgorithm,
-};
-
-export { lightTheme, darkTheme };
+});
 ```
 
 ```tsx
-// src/App.tsx
-import { ConfigProvider, theme } from 'antd';
-import { useState } from 'react';
-import { lightTheme, darkTheme } from './theme';
+// src/main.ts
+import { createApp } from 'vue';
+import App from './App.vue';
+import vuetify from './plugins/vuetify';
+import { createPinia } from 'pinia';
+import router from './router';
 
-export default function App() {
-  const [isDark, setIsDark] = useState(true);
+const app = createApp(App);
 
-  const currentTheme = isDark ? darkTheme : lightTheme;
+app.use(vuetify);
+app.use(createPinia());
+app.use(router);
 
-  return <ConfigProvider theme={currentTheme}>{/* 应用内容 */}</ConfigProvider>;
-}
+app.mount('#app');
 ```
 
 **Headless Tree 组件示例**:
@@ -596,7 +568,7 @@ export function CategoryTree({ categories }: { categories: CategoryNode[] }) {
 - **PostCSS**: 使用 `@tailwindcss/postcss` 进行处理
 - **配置文件**: `tailwind.config.js` 使用标准格式
 - **样式文件**: 在 `src/index.css` 中定义全局样式和 CSS 变量
-- **暗色模式**: 结合 Ant Design 的主题系统使用
+- **暗色模式**: 结合 Vuetify 的主题系统使用
 
 **配置示例**:
 

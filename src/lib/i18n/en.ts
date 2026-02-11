@@ -136,6 +136,7 @@ export default {
   toolbar: {
     doi: "DOI",
     arxiv: "arXiv",
+    importPdf: "Import PDF",
     importByDoi: "Import Paper by DOI",
     doiDescription:
       "Enter the DOI (Digital Object Identifier) to import the paper.",
@@ -145,6 +146,8 @@ export default {
       "Enter the arXiv ID (e.g., 2301.12345) or URL to import the paper.",
     arxivPlaceholder: "e.g., 2301.12345 or https://arxiv.org/abs/2301.12345",
     import: "Import",
+    doiRequired: "DOI is required",
+    arxivRequired: "arXiv ID is required",
   },
 
   // Settings

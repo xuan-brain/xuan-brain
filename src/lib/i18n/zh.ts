@@ -135,6 +135,7 @@ export default {
   toolbar: {
     doi: "DOI",
     arxiv: "arXiv",
+    importPdf: "导入 PDF",
     importByDoi: "通过 DOI 导入文献",
     doiDescription: "输入 DOI（数字对象标识符）来导入文献。",
     doiPlaceholder: "例如：10.1038/nature12373",
@@ -142,6 +143,8 @@ export default {
     arxivDescription: "输入 arXiv ID（例如：2301.12345）或 URL 来导入文献。",
     arxivPlaceholder: "例如：2301.12345 或 https://arxiv.org/abs/2301.12345",
     import: "导入",
+    doiRequired: "DOI 不能为空",
+    arxivRequired: "arXiv ID 不能为空",
   },
 
   // Settings

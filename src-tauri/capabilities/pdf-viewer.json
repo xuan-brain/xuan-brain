@@ -5,9 +5,21 @@
   "windows": ["pdf-viewer-*"],
   "permissions": [
     "core:default",
+
+    "fs:default",
     {
       "identifier": "fs:scope",
       "allow": [{ "path": "$APPDATA" }, { "path": "$APPDATA/**/*" }]
-    }
+    },
+
+    "core:window:allow-set-title",
+    "core:window:allow-close",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-unminimize",
+    "core:webview:allow-create-webview-window",
+    "dialog:allow-message",
+    "tracing:allow-log",
+    "notification:default"
   ]
 }

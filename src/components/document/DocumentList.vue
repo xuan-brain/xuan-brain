@@ -49,7 +49,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   paperSelect: [paperId: number];
-  paperUpdated: [paperId: number, detail: PaperDetail];
+  paperUpdated: [paperId: number, detail: PaperDetailDto];
 }>();
 
 // State

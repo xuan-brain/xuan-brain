@@ -64,8 +64,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # Use github.ref_name which contains the tag name (e.g., 'v0.1.0')
           tagName: ${{ github.ref_name }}
-          releaseName: 'xuan-brain v${{ github.ref_name }}'
+          releaseName: 'xuan-brain ${{ github.ref_name }}'
           releaseBody: 'See the CHANGELOG for details.'
           releaseDraft: false
           prerelease: false

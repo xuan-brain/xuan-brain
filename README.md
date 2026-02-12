@@ -118,9 +118,15 @@ yarn tauri build
 - macOS: `.dmg` 磁盘映像 (支持 Intel 和 Apple Silicon)
 - Linux: `.AppImage` / `.deb` / `.rpm`
 
-### 自动化发布
+### 自动化构建
 
-项目集成了 GitHub Actions 自动化发布流程。当创建新的 Release 时，会自动构建并上传所有平台的安装包。
+项目集成了 GitHub Actions 自动化构建流程：
+
+#### Release Build（正式版本）
+当创建新的 Release 时，会自动构建并上传所有平台的安装包。
+
+#### Nightly Build（每日构建）
+每天自动构建最新开发版本，可在 [Actions 页面](https://github.com/xuan-brain/xuan-brain/actions/workflows/nightly.yml) 下载。
 
 详细信息请参阅 [发布工作流文档](docs/release-workflow.md)。
 

@@ -115,8 +115,14 @@ yarn tauri build
 **跨平台支持**:
 
 - Windows: `.msi` 安装包
-- macOS: `.dmg` 磁盘映像
+- macOS: `.dmg` 磁盘映像 (支持 Intel 和 Apple Silicon)
 - Linux: `.AppImage` / `.deb` / `.rpm`
+
+### 自动化发布
+
+项目集成了 GitHub Actions 自动化发布流程。当创建新的 Release 时，会自动构建并上传所有平台的安装包。
+
+详细信息请参阅 [发布工作流文档](docs/release-workflow.md)。
 
 ## 📖 使用文档
 

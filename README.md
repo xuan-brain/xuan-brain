@@ -77,7 +77,7 @@
 
 ### 环境要求
 
-- Node.js 18+
+- Node.js 24+
 - yarn 1.22+
 - Rust 1.70+
 - 系统 WebView2 (Windows) / WebKit (macOS/Linux)

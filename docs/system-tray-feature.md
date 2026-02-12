@@ -19,7 +19,6 @@
   - 如果窗口隐藏，点击后显示窗口并获得焦点
   
 - **右键菜单**（Windows）/ **左键菜单**（macOS）:
-  - **显示窗口**: 显示主窗口并获得焦点
   - **退出**: 完全退出应用程序
 
 ## 技术实现
@@ -33,17 +32,9 @@ tauri = { version = "2", features = ["tray-icon"] }
 注意：在 Tauri 2.x 中，托盘功能是内置的，不需要单独的插件包。
 
 ### 配置文件
-在 `src-tauri/tauri.conf.json` 中添加托盘配置：
-```json
-"trayIcon": {
-  "id": "main",
-  "iconPath": "icons/icon.png",
-  "iconAsTemplate": false,
-  "menuOnLeftClick": false,
-  "title": "xuan-brain",
-  "tooltip": "xuan-brain"
-}
-```
+托盘图标完全在代码中创建，不需要在 `tauri.conf.json` 中配置。
+
+> **注意**：不要在 `tauri.conf.json` 中添加 `trayIcon` 配置，否则会创建重复的托盘图标。
 
 ### 代码实现
 
@@ -58,9 +49,8 @@ use tauri::{
 #### 2. 创建托盘菜单
 在 `setup` 闭包中创建托盘菜单项：
 ```rust
-let show_i = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
 let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+let menu = Menu::with_items(app, &[&quit_i])?;
 ```
 
 #### 3. 构建托盘图标
@@ -71,12 +61,6 @@ let _tray = TrayIconBuilder::new()
     .menu(&menu)
     .menu_on_left_click(false)
     .on_menu_event(|app, event| match event.id.as_ref() {
-        "show" => {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
-        }
         "quit" => {
             app.exit(0);
         }
@@ -120,12 +104,12 @@ let _tray = TrayIconBuilder::new()
 ### Windows
 - 托盘图标显示在任务栏右下角的系统托盘区域
 - 左键单击图标可快速切换窗口显示状态
-- 右键单击显示菜单，可选择"显示窗口"或"退出"
+- 右键单击显示菜单，可选择"退出"
 
 ### macOS
 - 托盘图标显示在菜单栏右侧
-- 点击图标显示菜单，可选择"显示窗口"或"退出"
-- 单击行为与 macOS 系统习惯一致
+- 点击图标显示菜单，可选择"退出"
+- 左键单击图标可切换窗口显示状态（需要右键才能看到菜单）
 
 ### Linux
 - 托盘图标显示在系统托盘区域（具体位置取决于桌面环境）

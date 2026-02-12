@@ -26,15 +26,19 @@ use tauri::{
 };
 
 // 在 setup 中创建托盘
-let show_i = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
 let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+let menu = Menu::with_items(app, &[&quit_i])?;
 
 let _tray = TrayIconBuilder::new()
     .icon(app.default_window_icon().unwrap().clone())
     .menu(&menu)
     .menu_on_left_click(false)
-    .on_menu_event(/* ... */)
+    .on_menu_event(|app, event| match event.id.as_ref() {
+        "quit" => {
+            app.exit(0);
+        }
+        _ => {}
+    })
     .on_tray_icon_event(/* ... */)
     .build(app)?;
 
@@ -48,27 +52,16 @@ let _tray = TrayIconBuilder::new()
 ```
 
 ### 3️⃣ 配置文件 (tauri.conf.json)
-```json
-{
-  "app": {
-    "trayIcon": {
-      "id": "main",
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": false,
-      "menuOnLeftClick": false,
-      "title": "xuan-brain",
-      "tooltip": "xuan-brain"
-    }
-  }
-}
-```
+托盘图标完全在代码中创建，**不需要**在配置文件中添加 `trayIcon` 配置。
+
+> ⚠️ **重要**：如果在配置文件中添加 `trayIcon`，会导致出现两个托盘图标！
 
 ## 功能列表 ✨
 
 - ✅ 应用启动时显示系统托盘图标
 - ✅ 点击窗口关闭按钮隐藏到托盘（不退出）
 - ✅ 左键单击托盘图标切换窗口显示/隐藏
-- ✅ 右键菜单提供"显示窗口"和"退出"选项
+- ✅ 右键菜单提供"退出"选项
 - ✅ 只有通过菜单"退出"才真正关闭应用
 - ✅ 支持中文菜单
 
@@ -91,9 +84,8 @@ yarn tauri dev
 1. ✅ 应用启动后托盘显示图标
 2. ✅ 点击窗口 X 按钮，窗口隐藏但托盘图标仍在
 3. ✅ 左键单击托盘图标，窗口重新显示
-4. ✅ 右键单击托盘图标，显示菜单
-5. ✅ 点击"显示窗口"，窗口显示
-6. ✅ 点击"退出"，应用完全关闭
+4. ✅ 右键单击托盘图标，显示菜单（只有"退出"选项）
+5. ✅ 点击"退出"，应用完全关闭
 
 ## 文档索引 📚
 

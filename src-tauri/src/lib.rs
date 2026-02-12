@@ -1,20 +1,29 @@
 #![allow(dead_code)]
 mod command;
 mod database;
+mod papers;
 mod service;
 mod sys;
 
 use std::path::PathBuf;
 
 use crate::command::category_command::{
-    create_category, delete_category, load_categories, move_category, update_category,
+    create_category, delete_category, load_categories, move_category, reorder_tree, update_category,
 };
+use crate::command::config_command::{get_app_config, save_app_config};
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
-use crate::command::paper_command::get_all_papers;
+use crate::command::paper_command::{
+    add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
+    get_deleted_papers, get_paper, get_papers_by_category, get_pdf_attachment_path,
+    import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf, open_paper_folder,
+    permanently_delete_paper, read_pdf_as_blob, read_pdf_file, remove_paper_label, restore_paper,
+    save_pdf_blob, save_pdf_with_annotations, update_paper_category, update_paper_details,
+};
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
+use futures::executor::block_on;
 use tauri::Manager;
-use tracing::{error, info};
+use tracing::info;
 
 use crate::sys::dirs::init_app_dirs;
 use crate::sys::log::init_logger;
@@ -22,12 +31,25 @@ use crate::sys::log::init_logger;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
     println!("Application starting...");
+    println!("Initializing application data directories...");
+
+    let app_dirs =
+        block_on(init_app_dirs()).expect("Failed to initialize application data directories");
+    println!("Application data directories initialized");
+    println!("Initializing logger...");
+    let (log_guard, layer) =
+        block_on(init_logger(&PathBuf::from(&app_dirs.logs))).expect("Failed to initialize logger");
+    info!("Logger initialized");
+    tracing::subscriber::set_global_default(layer)
+        .expect("failed to set global default subscriber");
+
     // Initialize logger with console and file output
     // The WorkerGuard must be kept alive for the lifetime of the application
 
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwdwd| {}))
+        .plugin(tauri_plugin_tracing::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_http::init())
@@ -35,31 +57,30 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .setup(move |app| {
             // Initialize data directories on app startup
             let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                info!("Initializing application data directories...");
-                let app_dirs = init_app_dirs().await;
-                if let Err(err) = app_dirs {
-                    error!("Failed to initialize application data directories: {}", err);
-                    return;
-                }
-                let app_dirs = app_dirs.unwrap();
-                let log_guard = init_logger(&PathBuf::from(&app_dirs.logs))
-                    .await
-                    .expect("Failed to initialize logger");
-                info!("Logger initialized");
-                app_handle.manage(log_guard);
+            app_handle.manage(log_guard);
+            app_handle.manage(app_dirs.clone());
 
-                let db = init_database_connection(PathBuf::from(&app_dirs.data))
-                    .await
-                    .expect("Failed to initialize database connection");
-                app_handle.manage(db);
-                info!("Database connection initialized");
+            // Initialize database connection synchronously in setup
+            let app_handle = app.handle().clone();
+            let app_dirs_clone = app_dirs.clone();
+            let db_result = tauri::async_runtime::block_on(async move {
+                init_database_connection(PathBuf::from(&app_dirs_clone.data)).await
             });
 
-            Ok(())
+            match db_result {
+                Ok(db) => {
+                    info!("Database connection initialized");
+                    app_handle.manage(db);
+                    Ok(())
+                }
+                Err(e) => {
+                    tracing::error!("Failed to initialize database connection: {}", e);
+                    Err(Box::new(e))
+                }
+            }
         })
         // TODO: Uncomment after fixing Tauri 2.x error type compatibility
         // .invoke_handler(tauri::generate_handler![get_all_labels])
@@ -73,7 +94,36 @@ pub fn run() -> Result<()> {
             delete_category,
             update_category,
             move_category,
-            get_all_papers
+            reorder_tree,
+            get_all_papers,
+            get_deleted_papers,
+            get_papers_by_category,
+            get_paper,
+            import_paper_by_doi,
+            import_paper_by_arxiv_id,
+            import_paper_by_pdf,
+            add_paper_label,
+            remove_paper_label,
+            update_paper_details,
+            update_paper_category,
+            delete_paper,
+            restore_paper,
+            permanently_delete_paper,
+            add_attachment,
+            get_attachments,
+            open_paper_folder,
+            get_pdf_attachment_path,
+            read_pdf_file,
+            read_pdf_as_blob,
+            save_pdf_blob,
+            save_pdf_with_annotations,
+            // save_pdf_file,
+            // export_pdf_with_annotations,
+            // save_annotations_data,
+            // load_annotations_data,
+            // save_pdf_with_annotations_data,
+            get_app_config,
+            save_app_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

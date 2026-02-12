@@ -1,0 +1,142 @@
+<script setup lang="ts">
+import { ref, watch } from "vue";
+import { invokeCommand } from "@/lib/tauri";
+import { useI18n } from "@/lib/i18n";
+
+const { t } = useI18n();
+
+interface Props {
+  modelValue: boolean;
+  parentId?: number | null;
+  parentName?: string;
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  "update:modelValue": [value: boolean];
+  categoryCreated: [];
+}>();
+
+// State
+const name = ref("");
+const error = ref("");
+const loading = ref(false);
+
+// Reset form when dialog opens
+watch(
+  () => props.modelValue,
+  (isOpen) => {
+    if (isOpen) {
+      name.value = "";
+      error.value = "";
+    }
+  },
+);
+
+// Close dialog
+function handleClose() {
+  name.value = "";
+  error.value = "";
+  emit("update:modelValue", false);
+}
+
+// Submit form
+async function handleSubmit() {
+  if (!name.value.trim()) {
+    error.value = t("dialog.categoryNameRequired");
+    return;
+  }
+
+  if (name.value.length > 50) {
+    error.value = t("dialog.categoryNameMaxLength");
+    return;
+  }
+
+  loading.value = true;
+  try {
+    await invokeCommand("create_category", {
+      name: name.value.trim(),
+      parentId: props.parentId || null,
+    });
+    console.info("Category created successfully:", name.value.trim());
+    name.value = "";
+    error.value = "";
+    emit("categoryCreated");
+    emit("update:modelValue", false);
+  } catch (err) {
+    error.value = err as string;
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Handle Enter key
+function handleKeyPress(event: KeyboardEvent) {
+  if (
+    event.key === "Enter" &&
+    !loading.value &&
+    name.value.trim() &&
+    name.value.length <= 50
+  ) {
+    handleSubmit();
+  }
+}
+</script>
+
+<template>
+  <v-dialog
+    :model-value="modelValue"
+    @update:model-value="emit('update:modelValue', $event)"
+    max-width="480"
+  >
+    <v-card>
+      <v-card-title>
+        <v-icon start>mdi-folder-plus</v-icon>
+        {{ parentId ? t("dialog.addSubcategory") : t("dialog.addCategory") }}
+      </v-card-title>
+
+      <v-card-text>
+        <v-alert v-if="error" type="error" :text="error" class="mb-4" />
+
+        <v-text-field
+          v-model="name"
+          autofocus
+          :label="t('dialog.enterCategoryName')"
+          variant="outlined"
+          :error-messages="error ? [error] : []"
+          :disabled="loading"
+          @keyup="handleKeyPress"
+        />
+
+        <v-text-field
+          v-if="parentName"
+          :model-value="parentName"
+          :label="t('dialog.parentCategory')"
+          disabled
+          variant="outlined"
+          class="mt-4"
+        />
+
+        <v-alert type="info" density="compact" class="mt-4">
+          {{ t("dialog.categoryNameRules") }}
+        </v-alert>
+      </v-card-text>
+
+      <v-card-actions>
+        <v-spacer />
+        <v-btn @click="handleClose" :disabled="loading">
+          {{ t("dialog.cancel") }}
+        </v-btn>
+        <v-btn
+          color="primary"
+          @click="handleSubmit"
+          :loading="loading"
+          :disabled="!name.trim() || name.length > 50"
+        >
+          {{ t("dialog.add") }}
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+</template>

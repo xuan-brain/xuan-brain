@@ -4,6 +4,30 @@
   box-sizing: border-box;
 }
 
+/* CSS Variables for Light Mode (Fallback values) */
+:root {
+  --ant-color-border: #d9d9d9;
+  --ant-color-border-secondary: #f0f0f0;
+  --ant-color-bg-layout: #f5f5f5;
+  --ant-color-bg-container: #ffffff;
+  --ant-color-fill-alter: rgba(0, 0, 0, 0.04);
+  --ant-color-primary-bg: rgba(24, 144, 255, 0.1);
+  --ant-color-text: rgba(0, 0, 0, 0.88);
+  --ant-color-text-secondary: rgba(0, 0, 0, 0.65);
+}
+
+/* CSS Variables for Dark Mode (Fallback values) */
+[data-mode="dark"] {
+  --ant-color-border: #424242;
+  --ant-color-border-secondary: #303030;
+  --ant-color-bg-layout: #141414;
+  --ant-color-bg-container: #1f1f1f;
+  --ant-color-fill-alter: rgba(255, 255, 255, 0.04);
+  --ant-color-primary-bg: rgba(24, 144, 255, 0.15);
+  --ant-color-text: rgba(255, 255, 255, 0.85);
+  --ant-color-text-secondary: rgba(255, 255, 255, 0.65);
+}
+
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
@@ -52,9 +76,21 @@ code {
 }
 
 .tree-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: var(--ant-color-fill-alter, rgba(0, 0, 0, 0.04));
 }
 
 .tree-item[aria-selected="true"] {
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: var(--ant-color-primary-bg, rgba(24, 144, 255, 0.1));
+}
+
+/* Table Striped Rows */
+.mantine-Table-tr[data-striped="true"] {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.mantine-Table-tr[data-selected="true"] {
+  background-color: var(
+    --table-accent-color-transparent,
+    rgba(59, 130, 246, 0.5)
+  ) !important;
 }

@@ -7,6 +7,15 @@ export default {
     tags: "Tags",
     favorites: "Favorites",
     trash: "Trash",
+    settings: "Settings",
+    user: "User",
+    system: "System",
+    ai: "AI",
+    papers: "Papers",
+    clips: "Clips",
+    writing: "Writing",
+    subscriptions: "Subscriptions",
+    about: "About",
   },
 
   // Main content
@@ -38,6 +47,8 @@ export default {
     authors: "Authors",
     source: "Journal/Conference",
     year: "Year",
+    labels: "Labels",
+    select_to_view: "Select a document to view details",
   },
 
   // Theme
@@ -106,6 +117,7 @@ export default {
     categoryNameRequired: "Category name is required",
     categoryNameMaxLength: "Category name cannot exceed 50 characters",
     categoryNameRules: "Category name is required, maximum 50 characters",
+    selectCategory: "Select Category",
     tagNameRequired: "Tag name is required",
     tagNameMaxLength: "Tag name cannot exceed 30 characters",
     tagNameRules: "Tag name is required, maximum 30 characters",
@@ -113,5 +125,55 @@ export default {
     saving: "Saving...",
     deleting: "Deleting...",
     rename: "Rename",
+    restore: "Restore",
+    permanentlyDelete: "Permanently Delete",
+    confirmPermanentlyDelete:
+      "Are you sure you want to permanently delete this document? This action cannot be undone.",
+    restoreFailed: "Restore Failed",
+    deleteFailed: "Delete Failed",
+  },
+
+  // Toolbar
+  toolbar: {
+    doi: "DOI",
+    arxiv: "arXiv",
+    importPdf: "Import PDF",
+    importByDoi: "Import Paper by DOI",
+    doiDescription:
+      "Enter the DOI (Digital Object Identifier) to import the paper.",
+    doiPlaceholder: "e.g., 10.1038/nature12373",
+    importByArxiv: "Import Paper from arXiv",
+    arxivDescription:
+      "Enter the arXiv ID (e.g., 2301.12345) or URL to import the paper.",
+    arxivPlaceholder: "e.g., 2301.12345 or https://arxiv.org/abs/2301.12345",
+    import: "Import",
+    doiRequired: "DOI is required",
+    arxivRequired: "arXiv ID is required",
+  },
+
+  // Settings
+  settings: {
+    appearance: "Appearance",
+    llmProviders: "LLM Providers",
+    grobidServers: "GROBID Servers",
+    addProvider: "Add Provider",
+    addServer: "Add Server",
+    noProviders: "No LLM providers configured",
+    noServers: "No GROBID servers configured",
+    default: "Default",
+    active: "Active",
+    model: "Model",
+    version: "Version",
+    license: "License",
+    database: "Database",
+    orm: "ORM",
+    appVersion: "App Version",
+    tauriVersion: "Tauri Version",
+    vueVersion: "Vue Version",
+    vuetifyVersion: "Vuetify Version",
+    appDescription:
+      "AI-driven research literature management desktop application",
+    github: "GitHub",
+    reportIssue: "Report Issue",
   },
 } as const;

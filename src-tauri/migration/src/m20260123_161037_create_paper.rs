@@ -112,7 +112,6 @@ impl MigrationTrait for Migration {
                 CREATE TABLE attachments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     paper_id INTEGER NOT NULL,
-                    file_path TEXT NOT NULL,
                     file_type TEXT,
                     file_name TEXT,
                     description TEXT,

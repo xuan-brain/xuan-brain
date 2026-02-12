@@ -17,9 +17,15 @@ crate-type = ["cdylib", "rlib", "staticlib"]
 name = "xuan_brain_lib"
 
 [dependencies]
+base64 = "0.22"
 chrono = "0.4.43"
 dirs = "5"
+futures = "0.3.31"
+lopdf = "0.35.0"
 migration = { path = "migration" }
+quick-xml = { version = "0.39.0", features = ["serialize"] }
+regex = "1.12.2"
+reqwest = { version = "0.13.1", features = ["json", "multipart"] }
 sea-orm = { version = "=2.0.0-rc.28", features = [
   "macros",
   "runtime-tokio-rustls",
@@ -29,6 +35,7 @@ sea-orm = { version = "=2.0.0-rc.28", features = [
 # anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha1 = "0.10.6"
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
@@ -36,6 +43,7 @@ tauri-plugin-http = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-os = "2"
+tauri-plugin-tracing = { version = "0.3", features = ["specta"] }
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"

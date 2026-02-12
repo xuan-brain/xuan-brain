@@ -9,28 +9,24 @@
     <script>
       (function () {
         // Initialize dark mode
-        const darkMode = localStorage.getItem("dark-mode") === "true";
-        document.documentElement.setAttribute(
-          "data-mode",
-          darkMode ? "dark" : "light",
-        );
+        const darkMode =
+          localStorage.getItem('xuan-brain-app-storage') &&
+          JSON.parse(localStorage.getItem('xuan-brain-app-storage') || {}).isDark;
+        document.documentElement.setAttribute('data-mode', darkMode ? 'dark' : 'light');
 
         // Initialize accent color
-        const accentColor = localStorage.getItem("accent-color") || "#3b82f6";
-        document.documentElement.style.setProperty(
-          "--accent-color",
-          accentColor,
-        );
+        const appStorage = JSON.parse(localStorage.getItem('xuan-brain-app-storage') || '{}');
+        const accentColor = appStorage.accentColor || '#3b82f6';
+        document.documentElement.style.setProperty('--accent-color', accentColor);
 
         // Initialize language
-        const savedLanguage = localStorage.getItem("xuan-brain-locale") || "zh";
-        document.documentElement.setAttribute("lang", savedLanguage);
-        window.__xuan_brain_language = savedLanguage;
+        const savedLanguage = localStorage.getItem('xuan-brain-locale') || 'zh';
+        document.documentElement.setAttribute('lang', savedLanguage);
       })();
     </script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

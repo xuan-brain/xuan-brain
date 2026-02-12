@@ -35,6 +35,9 @@ pub struct Model {
     pub notes: Option<String>,
     pub created_at: Option<DateTimeUtc>,
     pub updated_at: Option<DateTimeUtc>,
+    pub deleted_at: Option<DateTimeUtc>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub attachment_path: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -43,6 +46,8 @@ pub enum Relation {
     Attachments,
     #[sea_orm(has_many = "super::paper_authors::Entity")]
     PaperAuthors,
+    #[sea_orm(has_many = "super::paper_category::Entity")]
+    PaperCategory,
     #[sea_orm(has_many = "super::paper_keywords::Entity")]
     PaperKeywords,
     #[sea_orm(has_many = "super::paper_labels::Entity")]
@@ -58,6 +63,12 @@ impl Related<super::attachments::Entity> for Entity {
 impl Related<super::paper_authors::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::PaperAuthors.def()
+    }
+}
+
+impl Related<super::paper_category::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::PaperCategory.def()
     }
 }
 
@@ -79,6 +90,15 @@ impl Related<super::authors::Entity> for Entity {
     }
     fn via() -> Option<RelationDef> {
         Some(super::paper_authors::Relation::Papers.def().rev())
+    }
+}
+
+impl Related<super::category::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::paper_category::Relation::Category.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::paper_category::Relation::Papers.def().rev())
     }
 }
 

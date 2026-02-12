@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "xuan-brain",
         "width": 800,
         "height": 600,
@@ -19,7 +20,8 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": ["default", "pdf-viewer"]
     }
   },
   "bundle": {

@@ -8,6 +8,7 @@ pub mod category;
 pub mod keywords;
 pub mod label;
 pub mod paper_authors;
+pub mod paper_category;
 pub mod paper_keywords;
 pub mod paper_labels;
 pub mod papers;

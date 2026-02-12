@@ -2,9 +2,9 @@ use sea_orm::*;
 use tracing::info;
 
 use crate::{
-    command::category_command::CategoryDto,
+    command::category_command::{CategoryDto, TreeNodeDto},
+    database::entities,
     database::entities::prelude::Category,
-    database::entities::{self},
 };
 
 pub struct CategoryService<'a> {
@@ -16,10 +16,10 @@ impl<'a> CategoryService<'a> {
         Self { db }
     }
 
-    // 加载整棵树，转为 CategoryDto[]（含 ltree_path）
+    // 加载整棵树，转为 CategoryDto[]
     pub async fn load_tree(&self) -> Result<Vec<CategoryDto>, DbErr> {
         let all = Category::find()
-            .order_by_asc(entities::category::Column::LtreePath)
+            .order_by_asc(entities::category::Column::SortOrder)
             .all(self.db)
             .await?;
 
@@ -27,7 +27,6 @@ impl<'a> CategoryService<'a> {
             .into_iter()
             .map(|m| CategoryDto {
                 id: m.id,
-                path: m.ltree_path,
                 name: m.name,
                 parent_id: m.parent_id,
                 sort_order: m.sort_order,
@@ -37,50 +36,94 @@ impl<'a> CategoryService<'a> {
         Ok(dtos)
     }
 
-    // 新建分类：parentPath 为 NULL 表示根节点
-    pub async fn create(&self, name: &str, parent_path: Option<&str>) -> Result<(), DbErr> {
-        // 1. 找父节点（如果有）
-        let parent_opt = match parent_path {
-            Some(path) => Some(
-                Category::find()
-                    .filter(entities::category::Column::LtreePath.eq(path))
-                    .one(self.db)
-                    .await?
-                    .ok_or_else(|| DbErr::Custom("Parent not found".into()))?,
-            ),
-            None => None,
+    // 新建分类：parent_id 为 NULL 表示根节点
+    pub async fn create(&self, name: &str, parent_id: Option<i64>) -> Result<(), DbErr> {
+        info!(
+            "Creating category '{}' with parent_id: {:?}",
+            name, parent_id
+        );
+
+        // 计算 sort_order（同级节点数量）
+        let new_sort_order = if let Some(pid) = parent_id {
+            // 有父节点：计算同级节点数量
+            Category::find()
+                .filter(entities::category::Column::ParentId.eq(pid))
+                .count(self.db)
+                .await? as i64
+        } else {
+            // 根节点：计算所有根节点数量
+            Category::find()
+                .filter(entities::category::Column::ParentId.is_null())
+                .count(self.db)
+                .await? as i64
         };
 
-        // 2. 决定新的 ltree_path
-        //  - 如果没有父节点，作为新的根：找 max(id) + 1，path = id.toString
-        //  - 如果有父节点，找父节点的所有子节点中 max(路径最后一段) + 1，path = parent_path + "." + newSeq
-        let new_path = self.calc_new_path(parent_opt.as_ref()).await?;
-
-        // 3. 插入新记录
+        // 插入新记录
         let active = entities::category::ActiveModel {
             id: ActiveValue::NotSet,
             name: ActiveValue::Set(name.into()),
-            parent_id: ActiveValue::Set(parent_opt.map(|p| p.id)),
-            ltree_path: ActiveValue::Set(new_path.clone()),
-            sort_order: ActiveValue::Set(0),
-            created_at: ActiveValue::Set(chrono::Local::now().to_rfc3339()), // 或其他时间格式
+            parent_id: ActiveValue::Set(parent_id),
+            sort_order: ActiveValue::Set(new_sort_order),
+            created_at: ActiveValue::Set(chrono::Local::now().to_rfc3339()),
         };
+
         active.insert(self.db).await?;
+
+        info!(
+            "Category created successfully: name={}, sort_order={}",
+            name, new_sort_order
+        );
         Ok(())
     }
 
-    // 根据 ltree_path 删除节点及所有子孙
-    pub async fn delete_by_path(&self, path: &str) -> Result<DeleteResult, DbErr> {
-        Category::delete_many()
-            .filter(entities::category::Column::LtreePath.starts_with(path))
+    // 递归删除节点及所有子孙（通过 ID）
+    pub async fn delete_by_id(&self, id: i64) -> Result<DeleteResult, DbErr> {
+        info!("Deleting category and all descendants with id={}", id);
+
+        // 先找到所有子孙节点（递归查找）
+        let descendants = self.find_all_descendants(id).await?;
+
+        // 删除所有子孙节点和当前节点
+        let all_ids_to_delete: Vec<i64> = descendants.into_iter().map(|m| m.id).collect();
+
+        let result = Category::delete_many()
+            .filter(entities::category::Column::Id.is_in(all_ids_to_delete))
             .exec(self.db)
-            .await
+            .await?;
+
+        info!("Deleted {} categories", result.rows_affected);
+        Ok(result)
     }
 
-    // 根据 ltree_path 更新分类名称
-    pub async fn update_by_path(&self, path: &str, name: &str) -> Result<(), DbErr> {
-        let category = Category::find()
-            .filter(entities::category::Column::LtreePath.eq(path))
+    // 辅助方法：递归查找所有子孙节点
+    async fn find_all_descendants(
+        &self,
+        parent_id: i64,
+    ) -> Result<Vec<entities::category::Model>, DbErr> {
+        let mut all_descendants = Vec::new();
+        let mut to_process = vec![parent_id];
+
+        while let Some(current_id) = to_process.pop() {
+            // 查找直接子节点
+            let children = Category::find()
+                .filter(entities::category::Column::ParentId.eq(current_id))
+                .all(self.db)
+                .await?;
+
+            for child in children {
+                to_process.push(child.id);
+                all_descendants.push(child);
+            }
+        }
+
+        Ok(all_descendants)
+    }
+
+    // 根据 ID 更新分类名称
+    pub async fn update_by_id(&self, id: i64, name: &str) -> Result<(), DbErr> {
+        info!("Updating category id={} to name '{}'", id, name);
+
+        let category = Category::find_by_id(id)
             .one(self.db)
             .await?
             .ok_or_else(|| DbErr::Custom("Category not found".into()))?;
@@ -88,160 +131,73 @@ impl<'a> CategoryService<'a> {
         let mut active: entities::category::ActiveModel = category.into();
         active.name = ActiveValue::Set(name.to_string());
         active.update(self.db).await?;
+
+        info!("Category updated successfully");
         Ok(())
     }
 
-    // 移动节点: 核心逻辑是根据 targetPath + position 更新 parent_id 和 sort_order
+    // 移动节点：更新 parent_id 和重新计算 sort_order
     pub async fn move_node(
         &self,
-        dragged_path: &str,
-        target_path: Option<&str>,
+        dragged_id: i64,
+        target_id: Option<i64>,
         position: &str, // "above" | "below" | "child"
-    ) -> Result<String, DbErr> {
+    ) -> Result<(), DbErr> {
         info!(
-            "move_node called: dragged={}, target={:?}, pos={}",
-            dragged_path, target_path, position
+            "move_node called: dragged_id={}, target_id={:?}, pos={}",
+            dragged_id, target_id, position
         );
 
         // 1. 获取 dragged node
-        let dragged_node = Category::find()
-            .filter(entities::category::Column::LtreePath.eq(dragged_path))
+        let dragged_node = Category::find_by_id(dragged_id)
             .one(self.db)
             .await?
             .ok_or_else(|| DbErr::Custom("Dragged node not found".into()))?;
 
-        // 2. 确定新的 parent 信息
-        let (new_parent_id, new_parent_path) = if let Some(t_path) = target_path {
-            let target_node = Category::find()
-                .filter(entities::category::Column::LtreePath.eq(t_path))
-                .one(self.db)
-                .await?
-                .ok_or_else(|| DbErr::Custom("Target node not found".into()))?;
-
+        // 2. 确定新的 parent_id
+        let new_parent_id = if let Some(tid) = target_id {
             if position == "child" {
-                (Some(target_node.id), Some(target_node.ltree_path))
+                Some(tid)
             } else {
                 // above or below: parent is target's parent
-                if let Some(pid) = target_node.parent_id {
-                    let parent = Category::find_by_id(pid)
-                        .one(self.db)
-                        .await?
-                        .ok_or_else(|| DbErr::Custom("Target parent not found".into()))?;
-                    (Some(pid), Some(parent.ltree_path))
-                } else {
-                    (None, None) // Root level
-                }
+                let target_node = Category::find_by_id(tid)
+                    .one(self.db)
+                    .await?
+                    .ok_or_else(|| DbErr::Custom("Target node not found".into()))?;
+                target_node.parent_id
             }
         } else {
-            (None, None) // Move to root
+            None // Move to root
         };
 
-        // 3. 计算新路径 (仅当 parent 改变或 path 需要刷新时)
-        // 使用 ID 保证唯一性: new_parent_path.id OR id (if root)
-        let new_ltree_path = if let Some(ref pp) = new_parent_path {
-            format!("{}.{}", pp, dragged_node.id)
-        } else {
-            dragged_node.id.to_string()
-        };
+        // 3. 更新 dragged_node 的 parent_id
+        let mut dragged_active: entities::category::ActiveModel = dragged_node.into();
+        dragged_active.parent_id = ActiveValue::Set(new_parent_id);
+        dragged_active.update(self.db).await?;
 
-        // 4. 更新子树路径 (如果路径改变了)
-        // 即使 parent 没变，如果原本 path 不是以 ID 结尾（旧数据），这里也会统一规范化
-        if new_ltree_path != dragged_node.ltree_path {
-            // 查找所有以 dragged_path 开头的节点
-            let all_descendants = Category::find()
-                .filter(entities::category::Column::LtreePath.starts_with(dragged_path))
-                .all(self.db)
-                .await?;
+        // 4. 重新计算所有同级节点的 sort_order
+        self.reorder_siblings(new_parent_id).await?;
 
-            for descendant in all_descendants {
-                let suffix_str = descendant
-                    .ltree_path
-                    .strip_prefix(dragged_path)
-                    .unwrap_or("")
-                    .to_string(); // Own the string
+        info!("Category moved successfully");
+        Ok(())
+    }
 
-                let new_desc_path = format!("{}{}", new_ltree_path, suffix_str);
-
-                let mut am: entities::category::ActiveModel = descendant.into();
-                am.ltree_path = ActiveValue::Set(new_desc_path);
-                // 如果是 dragged node 本身，顺便更新 parent_id
-                if suffix_str.is_empty() {
-                    am.parent_id = ActiveValue::Set(new_parent_id);
-                }
-                am.update(self.db).await?;
-            }
-        } else {
-            // 路径没变（同级移动且 parent 没变），但可能需要更新 parent_id
-            let mut am: entities::category::ActiveModel = dragged_node.clone().into();
-            am.parent_id = ActiveValue::Set(new_parent_id);
-            am.update(self.db).await?;
-        }
-
-        // 5. 处理排序 (Sort Order)
-        // 获取新 Parent 下的所有子节点（包括刚移动过来的 dragged_node）
-        // 注意：这里需要重新从 DB 查一次，确保拿到最新的状态
-        let mut siblings = if let Some(pid) = new_parent_id {
+    // 重新排序同级节点
+    async fn reorder_siblings(&self, parent_id: Option<i64>) -> Result<(), DbErr> {
+        let siblings = if let Some(pid) = parent_id {
             Category::find()
                 .filter(entities::category::Column::ParentId.eq(pid))
                 .order_by_asc(entities::category::Column::SortOrder)
-                .order_by_asc(entities::category::Column::LtreePath)
                 .all(self.db)
                 .await?
         } else {
             Category::find()
                 .filter(entities::category::Column::ParentId.is_null())
                 .order_by_asc(entities::category::Column::SortOrder)
-                .order_by_asc(entities::category::Column::LtreePath)
                 .all(self.db)
                 .await?
         };
 
-        // 从列表中临时移除 dragged_node (通过 ID 识别)
-        let dragged_idx = siblings.iter().position(|c| c.id == dragged_node.id);
-        if let Some(idx) = dragged_idx {
-            siblings.remove(idx);
-        }
-
-        // 找到插入位置
-        let insert_index = if let Some(t_path) = target_path {
-            if position == "child" {
-                // 插入到末尾
-                siblings.len()
-            } else {
-                // above or below
-                // 找到 target 在 siblings 中的位置
-                let target_node = Category::find()
-                    .filter(entities::category::Column::LtreePath.eq(t_path))
-                    .one(self.db)
-                    .await?
-                    .ok_or_else(|| DbErr::Custom("Target node not found for sorting".into()))?; // Should exist
-
-                let t_idx = siblings.iter().position(|c| c.id == target_node.id);
-
-                if let Some(idx) = t_idx {
-                    if position == "above" {
-                        idx
-                    } else {
-                        idx + 1
-                    }
-                } else {
-                    siblings.len()
-                }
-            }
-        } else {
-            siblings.len() // Root end
-        };
-
-        // 插入 dragged_node
-        let current_dragged = Category::find_by_id(dragged_node.id)
-            .one(self.db)
-            .await?
-            .ok_or_else(|| DbErr::Custom("Dragged node lost".into()))?;
-
-        let safe_insert_index = insert_index.min(siblings.len());
-        siblings.insert(safe_insert_index, current_dragged);
-
-        // 6. 批量更新 sort_order
         for (index, node) in siblings.iter().enumerate() {
             if node.sort_order != index as i64 {
                 let mut am: entities::category::ActiveModel = node.clone().into();
@@ -250,40 +206,58 @@ impl<'a> CategoryService<'a> {
             }
         }
 
-        Ok(new_ltree_path)
+        Ok(())
     }
 
-    // 工具：计算新建节点的 ltree_path
-    async fn calc_new_path(
+    // 根据新的树结构重建整个数据库（用于拖拽后保存）
+    pub async fn rebuild_tree_from_structure(
         &self,
-        parent_opt: Option<&entities::category::Model>,
-    ) -> Result<String, DbErr> {
-        if let Some(parent) = parent_opt {
-            // 找到 parent 下所有子节点，解析 path 最后一段，取 max + 1
-            let children = Category::find()
-                .filter(entities::category::Column::ParentId.eq(parent.id))
-                .all(self.db)
-                .await?;
+        new_structure: &[TreeNodeDto],
+    ) -> Result<(), DbErr> {
+        info!(
+            "Rebuilding tree from structure with {} root nodes",
+            new_structure.len()
+        );
 
-            let max_seq = children
-                .iter()
-                .filter_map(|c| c.ltree_path.rsplit('.').next())
-                .filter_map(|s| s.parse::<i64>().ok())
-                .max()
-                .unwrap_or(0);
+        self.rebuild_tree_recursive(new_structure, None, 0).await?;
 
-            Ok(format!("{}.{}", parent.ltree_path, max_seq + 1))
-        } else {
-            // 没有父节点：找最大 id + 1
-            let max_id = Category::find()
-                .order_by_desc(entities::category::Column::Id)
+        info!("Tree rebuild completed");
+        Ok(())
+    }
+
+    // 递归重建树结构
+    async fn rebuild_tree_recursive(
+        &self,
+        nodes: &[TreeNodeDto],
+        parent_id: Option<i64>,
+        sort_order: i64,
+    ) -> Result<(), DbErr> {
+        for (index, node) in nodes.iter().enumerate() {
+            let current_sort_order = sort_order + index as i64;
+
+            // 更新当前节点
+            let category = Category::find_by_id(node.id)
                 .one(self.db)
                 .await?
-                .map(|m| m.id)
-                .unwrap_or(0);
+                .ok_or_else(|| DbErr::Custom(format!("Category {} not found", node.id)))?;
 
-            Ok((max_id + 1).to_string())
+            let mut am: entities::category::ActiveModel = category.into();
+            am.parent_id = ActiveValue::Set(parent_id);
+            am.sort_order = ActiveValue::Set(current_sort_order);
+            am.update(self.db).await?;
+
+            info!(
+                "Updated category {}: parent_id={:?}, sort_order={}",
+                node.id, parent_id, current_sort_order
+            );
+
+            // 递归处理子节点
+            if let Some(children) = &node.children {
+                if !children.is_empty() {
+                    Box::pin(self.rebuild_tree_recursive(children, Some(node.id), 0)).await?;
+                }
+            }
         }
+        Ok(())
     }
 }
-

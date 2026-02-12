@@ -17,7 +17,8 @@
       "Bash(yarn build:*)",
       "Bash(yarn eslint:*)",
       "Bash(git add:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(yarn remove:*)"
     ]
   }
 }

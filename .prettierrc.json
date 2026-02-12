@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json.schemastore.org/prettierrc",
+  "semi": true,
+  "singleQuote": true,
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "trailingComma": "es5",
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "vueIndentScriptAndStyle": true,
+  "htmlWhitespaceSensitivity": "ignore",
+  "endOfLine": "lf",
+  "plugins": [
+    "prettier-plugin-organize-imports",
+    "prettier-plugin-packagejson",
+    "prettier-plugin-tailwindcss"
+  ],
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx", "*.js", "*.jsx"],
+      "options": {
+        "parser": "typescript"
+      }
+    },
+    {
+      "files": ["*.vue"],
+      "options": {
+        "parser": "vue"
+      }
+    },
+    {
+      "files": ["*.json", "*.json5"],
+      "options": {
+        "parser": "json"
+      }
+    },
+    {
+      "files": ["*.scss", "*.css"],
+      "options": {
+        "parser": "scss"
+      }
+    }
+  ]
+}

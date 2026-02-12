@@ -1,0 +1,131 @@
+/* CSS Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* CSS Variables for Light Mode (Fallback values) */
+:root {
+  --ant-color-border: #d9d9d9;
+  --ant-color-border-secondary: #f0f0f0;
+  --ant-color-bg-layout: #f5f5f5;
+  --ant-color-bg-container: #ffffff;
+  --ant-color-fill-alter: rgba(0, 0, 0, 0.04);
+  --ant-color-primary-bg: rgba(24, 144, 255, 0.1);
+  --ant-color-text: rgba(0, 0, 0, 0.88);
+  --ant-color-text-secondary: rgba(0, 0, 0, 0.65);
+}
+
+/* CSS Variables for Dark Mode (Fallback values) */
+[data-mode="dark"] {
+  --ant-color-border: #424242;
+  --ant-color-border-secondary: #303030;
+  --ant-color-bg-layout: #141414;
+  --ant-color-bg-container: #1f1f1f;
+  --ant-color-fill-alter: rgba(255, 255, 255, 0.04);
+  --ant-color-primary-bg: rgba(24, 144, 255, 0.15);
+  --ant-color-text: rgba(255, 255, 255, 0.85);
+  --ant-color-text-secondary: rgba(255, 255, 255, 0.65);
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+#app {
+  width: 100%;
+  height: 100vh;
+}
+
+/* Vuetify 覆盖样式 */
+.v-navigation-drawer {
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* 深色模式覆盖 */
+.v-theme--dark {
+  --v-border-color: rgba(255, 255, 255, 0.12);
+  --v-background-opacity: 1;
+}
+
+/* 浅色模式覆盖 */
+.v-theme--light {
+  --v-border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 禁用所有 Vuetify 过渡动画 */
+.v-application,
+.v-application > * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* 禁用所有 Vuetify 组件的过渡 */
+.v-btn,
+.v-card,
+.v-list-item,
+.v-navigation-drawer,
+.v-dialog,
+.v-menu,
+.v-tooltip,
+.v-expansion-panel,
+.v-tabs,
+.v-window,
+.v-carousel,
+.v-slide-group,
+.v-btn-toggle {
+  transition: none !important;
+}
+
+/* 禁用所有 Vuetify 的过渡和动画类 */
+* {
+  transition: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+
+/* 禁用 Vuetify 的 fade、slide、scale 等过渡 */
+.fade-enter-active,
+.fade-leave-active,
+.fade-slide-transition,
+.slide-x-transition,
+.slide-y-transition,
+.slide-x-reverse-transition,
+.slide-y-reverse-transition,
+.scale-transition,
+.expand-transition,
+.scroll-x-transition,
+.scroll-y-transition,
+.scroll-x-reverse-transition,
+.scroll-y-reverse-transition {
+  transition: none !important;
+}

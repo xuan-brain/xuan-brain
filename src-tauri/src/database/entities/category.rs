@@ -10,8 +10,6 @@ pub struct Model {
     #[sea_orm(column_type = "Text")]
     pub name: String,
     pub parent_id: Option<i64>,
-    #[sea_orm(column_type = "Text", unique)]
-    pub ltree_path: String,
     pub sort_order: i64,
     #[sea_orm(column_type = "Text")]
     pub created_at: String,

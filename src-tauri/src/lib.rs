@@ -23,6 +23,10 @@ use crate::database::init_database_connection;
 use crate::sys::error::Result;
 use futures::executor::block_on;
 use tauri::Manager;
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+};
 use tracing::info;
 
 use crate::sys::dirs::init_app_dirs;
@@ -74,12 +78,53 @@ pub fn run() -> Result<()> {
                 Ok(db) => {
                     info!("Database connection initialized");
                     app_handle.manage(db);
-                    Ok(())
                 }
                 Err(e) => {
                     tracing::error!("Failed to initialize database connection: {}", e);
-                    Err(Box::new(e))
+                    return Err(Box::new(e));
                 }
+            }
+
+            // Setup system tray
+            let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit_i])?;
+
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| {
+                    if event.id.as_ref() == "quit" {
+                        app.exit(0);
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            if window.is_visible().unwrap_or(false) {
+                                let _ = window.hide();
+                            } else {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                    }
+                })
+                .build(app)?;
+
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Prevent window from closing and hide it instead
+                window.hide().unwrap();
+                api.prevent_close();
             }
         })
         // TODO: Uncomment after fixing Tauri 2.x error type compatibility

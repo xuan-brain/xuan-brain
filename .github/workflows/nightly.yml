@@ -79,6 +79,7 @@ jobs:
         with:
           name: nightly-${{ matrix.platform.artifact_name }}
           path: |
-            src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle/**/*
+            src-tauri/target/${{ matrix.platform.rust_target }}/
+              release/bundle/**/*
           retention-days: 7
           if-no-files-found: error

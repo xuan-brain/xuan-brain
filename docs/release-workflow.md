@@ -1,12 +1,60 @@
-# GitHub Actions Release Workflow
+# GitHub Actions Workflows
 
-本文档介绍了 xuan-brain 项目的自动化发布流程。
+本文档介绍了 xuan-brain 项目的自动化构建和发布流程。
 
 ## 概述
 
-项目使用 GitHub Actions 实现了自动化的跨平台构建和发布流程。当创建新的 Release 时，工作流会自动构建并上传适用于 Windows、Linux 和 macOS 的安装包。
+项目使用 GitHub Actions 实现了两种自动化构建流程：
 
-## 工作流文件
+1. **Release Build** - 正式版本发布构建
+2. **Nightly Build** - 每日自动构建最新开发版本
+
+## Nightly Build (每日构建)
+
+### 工作流文件
+
+位置: `.github/workflows/nightly.yml`
+
+### 触发条件
+
+- **定时触发**: 每天 UTC 时间 00:00（北京时间 08:00）自动构建
+- **手动触发**: 可以在 GitHub Actions 页面手动触发工作流
+
+### 构建说明
+
+Nightly Build 用于：
+- 持续集成最新代码更改
+- 提前发现潜在问题
+- 为测试人员提供最新版本
+
+### 如何获取 Nightly Build
+
+1. 访问仓库的 [Actions](https://github.com/xuan-brain/xuan-brain/actions) 页面
+2. 点击 "Nightly Build" 工作流
+3. 选择最新的成功运行
+4. 在 "Artifacts" 部分下载对应平台的构建产物：
+   - `nightly-linux-x86_64` - Linux AppImage 和 deb 包
+   - `nightly-macos-x86_64` - macOS Intel 版本
+   - `nightly-macos-aarch64` - macOS Apple Silicon 版本
+   - `nightly-windows-x86_64` - Windows MSI 和 EXE 安装包
+
+### 构建产物保留期
+
+Nightly Build 的产物会保留 **7 天**，之后自动删除以节省存储空间。
+
+### 手动触发 Nightly Build
+
+1. 访问 [Actions](https://github.com/xuan-brain/xuan-brain/actions) 页面
+2. 点击 "Nightly Build" 工作流
+3. 点击右侧的 "Run workflow" 按钮
+4. 选择分支（通常是 `main`）
+5. 点击绿色的 "Run workflow" 按钮
+
+---
+
+## Release Build (正式发布)
+
+### 工作流文件
 
 位置: `.github/workflows/release.yml`
 
@@ -18,7 +66,7 @@
 
 ## 构建平台
 
-工作流会为以下平台构建安装包:
+两个工作流都会为以下平台构建安装包:
 
 ### Linux
 - **架构**: x86_64

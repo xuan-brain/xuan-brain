@@ -22,6 +22,14 @@
     "security": {
       "csp": null,
       "capabilities": ["default", "pdf-viewer"]
+    },
+    "trayIcon": {
+      "id": "main",
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": false,
+      "menuOnLeftClick": false,
+      "title": "xuan-brain",
+      "tooltip": "xuan-brain"
     }
   },
   "bundle": {

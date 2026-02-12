@@ -78,8 +78,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nightly-${{ matrix.platform.artifact_name }}
-          path: >-
-            src-tauri/target/${{ matrix.platform.rust_target }}/release/
-            bundle/**/*
+          path: src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle/**/*
           retention-days: 7
           if-no-files-found: error

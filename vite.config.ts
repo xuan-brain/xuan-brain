@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
-import vuetify from "vite-plugin-vuetify";
-import type { UserConfig, ConfigEnv } from "vite";
-import path from "node:path";
+import vue from '@vitejs/plugin-vue';
+import path from 'node:path';
+import type { ConfigEnv, UserConfig } from 'vite';
+import { defineConfig } from 'vite';
+import vuetify from 'vite-plugin-vuetify';
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -14,35 +14,35 @@ export default defineConfig(
     ],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
-        vue: "vue/dist/vue.esm-bundler.js",
+        '@': path.resolve(__dirname, './src'),
+        vue: 'vue/dist/vue.esm-bundler.js',
       },
     },
     clearScreen: false,
     server: {
       port: 1420,
       strictPort: true,
-      host: host || "127.0.0.1",
+      host: host || '127.0.0.1',
       hmr: host
         ? {
-            protocol: "ws",
+            protocol: 'ws',
             host,
             port: 1421,
           }
         : undefined,
       watch: {
-        ignored: ["**/src-tauri/**"],
+        ignored: ['**/src-tauri/**'],
       },
     },
     build: {
-      outDir: "dist",
+      outDir: 'dist',
       emptyOutDir: true,
       rollupOptions: {
         input: {
-          main: "./index.html",
-          "pdf-viewer": "./pdf-viewer.html",
+          main: './index.html',
+          // "pdf-viewer": "./pdf-viewer.html",
         },
       },
     },
-  }),
+  })
 );

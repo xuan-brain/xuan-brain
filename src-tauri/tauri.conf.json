@@ -17,14 +17,6 @@
         "width": 800,
         "height": 600,
         "dragDropEnabled": false
-      },
-      {
-        "label": "pdf-viewer",
-        "title": "PDF Viewer",
-        "width": 1200,
-        "height": 800,
-        "dragDropEnabled": false,
-        "center": true
       }
     ],
     "security": {

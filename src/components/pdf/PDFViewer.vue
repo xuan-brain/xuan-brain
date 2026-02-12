@@ -1,20 +1,49 @@
 <script setup lang="ts">
-  import { invokeCommand } from '@/lib/tauri';
+  import { loadPdfAsBlob, revokePdfBlobUrl, savePdfBlob } from '@/lib/api/pdf';
   import { PDFViewer } from '@embedpdf/vue-pdf-viewer';
   import { getCurrentWindow } from '@tauri-apps/api/window';
-  import { BaseDirectory, readFile } from '@tauri-apps/plugin-fs';
   import { onBeforeUnmount, onMounted, ref } from 'vue';
 
   const loading = ref(true);
   const error = ref('');
   const pdfUrl = ref('');
   const paperTitle = ref('');
+  const fileSizeMB = ref(0);
+  const paperId = ref(0);
+  const isSaving = ref(false);
+  const saveSuccess = ref(false);
   let objectUrl: string | null = null;
+  let pdfBlob: Blob | null = null;
 
   // Close window function
   async function closeWindow() {
     const currentWindow = getCurrentWindow();
     await currentWindow.close();
+  }
+
+  // Save PDF function
+  async function savePdf() {
+    if (!pdfBlob || isSaving.value) {
+      return;
+    }
+
+    isSaving.value = true;
+    try {
+      const response = await savePdfBlob(paperId.value, pdfBlob);
+      saveSuccess.value = true;
+      error.value = '';
+      console.info('PDF saved successfully:', response.message);
+
+      // Show success message for 3 seconds
+      setTimeout(() => {
+        saveSuccess.value = false;
+      }, 3000);
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : String(err);
+      console.error('Failed to save PDF:', err);
+    } finally {
+      isSaving.value = false;
+    }
   }
 
   onMounted(async () => {
@@ -31,51 +60,23 @@
       }
 
       const id = parseInt(idMatch[1], 10);
-      const info = await invokeCommand<{
-        file_path: string;
-        file_name: string;
-        paper_id: number;
-        paper_title: string;
-      }>('get_pdf_attachment_path', { paperId: id });
-      console.info('pdf info ', info);
-      console.info('raw file path:', info.file_path);
+      paperId.value = id;
+      console.info('Loading PDF for paper:', id);
 
-      // Frontend: read file directly and build a blob URL
-      const normalizedPath = info.file_path.replace(/\\/g, '/');
+      // Load PDF as blob from Rust backend
+      const { blobUrl, fileName, paperTitle: title, sizeMB } = await loadPdfAsBlob(id);
 
-      // Robustly derive path relative to AppData/Roaming to satisfy fs scope
-      // 1) Cut after "/AppData/Roaming/"
-      const marker = '/AppData/Roaming/';
-      const markerIdx = normalizedPath.indexOf(marker);
-      let relativeFromAppData =
-        markerIdx !== -1 ? normalizedPath.slice(markerIdx + marker.length) : normalizedPath;
+      // Fetch the blob for saving
+      const response = await fetch(blobUrl);
+      pdfBlob = await response.blob();
 
-      // 2) Keep only the segment starting with "files/" (strip leading org.xuan-brain/)
-      const match = relativeFromAppData.match(/org\.xuan-brain\/files\/.*$/);
-      if (match) {
-        // strip the leading "org.xuan-brain/" so we end up with "files/..."
-        relativeFromAppData = match[0].replace(/^org\.xuan-brain\//, '');
-      } else {
-        console.error('Path not under org.xuan-brain/files:', relativeFromAppData);
-        error.value = 'PDF path is outside allowed scope';
-        loading.value = false;
-        return;
-      }
+      objectUrl = blobUrl;
+      pdfUrl.value = blobUrl;
+      paperTitle.value = title;
+      fileSizeMB.value = sizeMB;
 
-      // 3) Defensive: if any duplicated prefix like "org.xuan-brain/files/" slipped through, strip it
-      relativeFromAppData = relativeFromAppData.replace(/^org\.xuan-brain\//, '');
-
-      console.info('normalized path:', normalizedPath);
-      console.info('relative AppData path (files/...):', relativeFromAppData);
-
-      // Read via BaseDirectory.AppData with a relative path starting at "files/..."
-      const data = await readFile(relativeFromAppData, { baseDir: BaseDirectory.AppData });
-      const blob = new Blob([data], { type: 'application/pdf' });
-      objectUrl = URL.createObjectURL(blob);
-
-      pdfUrl.value = objectUrl;
-      paperTitle.value = info.paper_title;
-      await currentWindow.setTitle(info.paper_title);
+      console.info(`Successfully loaded PDF: ${fileName} (${sizeMB.toFixed(2)} MB)`);
+      await currentWindow.setTitle(title);
     } catch (err) {
       console.error('Failed to load PDF:', err);
       error.value = err instanceof Error ? err.message : String(err);
@@ -86,7 +87,7 @@
 
   onBeforeUnmount(() => {
     if (objectUrl) {
-      URL.revokeObjectURL(objectUrl);
+      revokePdfBlobUrl(objectUrl);
       objectUrl = null;
     }
   });
@@ -108,13 +109,40 @@
 
     <!-- PDF viewer -->
     <div v-else class="pdf-container">
+      <div class="pdf-header">
+        <div class="header-content">
+          <h1>{{ paperTitle }}</h1>
+          <span class="file-size">{{ fileSizeMB.toFixed(2) }} MB</span>
+        </div>
+        <div class="header-actions">
+          <v-btn
+            :disabled="isSaving"
+            :loading="isSaving"
+            size="small"
+            variant="tonal"
+            @click="savePdf"
+          >
+            {{ isSaving ? 'Saving...' : 'Save' }}
+          </v-btn>
+        </div>
+      </div>
+
+      <!-- Save success message -->
+      <v-alert
+        v-if="saveSuccess"
+        type="success"
+        class="save-alert"
+        text="PDF saved successfully!"
+        closable
+      />
+
       <PDFViewer
         v-if="pdfUrl"
         :config="{
           src: pdfUrl,
           theme: { preference: 'light' },
         }"
-        :style="{ width: '100%', height: '100%' }"
+        :style="{ width: '100%', height: 'calc(100% - 60px)' }"
       />
     </div>
   </div>
@@ -141,5 +169,51 @@
   .pdf-container {
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pdf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f5f5f5;
+    gap: 16px;
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pdf-header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-size {
+    color: #666;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .save-alert {
+    margin: 0;
+    border-radius: 0;
   }
 </style>

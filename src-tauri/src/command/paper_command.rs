@@ -52,6 +52,34 @@ pub struct PdfAttachmentBase64 {
 }
 
 #[derive(Serialize)]
+pub struct PdfBlobResponse {
+    pub file_name: String,
+    pub paper_title: String,
+    pub paper_id: i64,
+    pub base64_data: String,
+    pub size_bytes: usize,
+}
+
+#[derive(Deserialize)]
+pub struct PdfBlobRequest {
+    pub paper_id: i64,
+}
+
+#[derive(Deserialize)]
+pub struct PdfBlobSaveRequest {
+    pub paper_id: i64,
+    pub base64_data: String,
+}
+
+#[derive(Serialize)]
+pub struct PdfSaveResponse {
+    pub success: bool,
+    pub file_path: String,
+    pub size_bytes: usize,
+    pub message: String,
+}
+
+#[derive(Serialize)]
 pub struct PaperDto {
     pub id: i64,
     pub title: String,
@@ -1146,6 +1174,89 @@ fn find_first_pdf(dir: &PathBuf) -> Result<Option<PathBuf>> {
     Ok(None)
 }
 
+fn base64_encode(data: &[u8]) -> String {
+    use std::fmt::Write;
+
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = String::with_capacity((data.len() + 2) / 3 * 4);
+
+    for chunk in data.chunks(3) {
+        let b1 = chunk[0];
+        let b2 = chunk.get(1).copied().unwrap_or(0);
+        let b3 = chunk.get(2).copied().unwrap_or(0);
+
+        let n = ((b1 as u32) << 16) | ((b2 as u32) << 8) | (b3 as u32);
+
+        result.push(CHARSET[((n >> 18) & 0x3F) as usize] as char);
+        result.push(CHARSET[((n >> 12) & 0x3F) as usize] as char);
+
+        if chunk.len() > 1 {
+            result.push(CHARSET[((n >> 6) & 0x3F) as usize] as char);
+        } else {
+            result.push('=');
+        }
+
+        if chunk.len() > 2 {
+            result.push(CHARSET[(n & 0x3F) as usize] as char);
+        } else {
+            result.push('=');
+        }
+    }
+
+    result
+}
+
+fn base64_decode(data: &str) -> std::result::Result<Vec<u8>, String> {
+    let bytes = data.as_bytes();
+    let mut result = Vec::with_capacity((bytes.len() * 3) / 4);
+    let mut i = 0;
+
+    while i < bytes.len() {
+        let b1 = base64_char_to_value(bytes[i] as char)?;
+        let b2 = if i + 1 < bytes.len() {
+            base64_char_to_value(bytes[i + 1] as char)?
+        } else {
+            0
+        };
+        let b3 = if i + 2 < bytes.len() {
+            base64_char_to_value(bytes[i + 2] as char)?
+        } else {
+            0
+        };
+        let b4 = if i + 3 < bytes.len() {
+            base64_char_to_value(bytes[i + 3] as char)?
+        } else {
+            0
+        };
+
+        let n = ((b1 as u32) << 18) | ((b2 as u32) << 12) | ((b3 as u32) << 6) | (b4 as u32);
+
+        result.push(((n >> 16) & 0xFF) as u8);
+        if bytes[i + 2] as char != '=' {
+            result.push(((n >> 8) & 0xFF) as u8);
+        }
+        if bytes[i + 3] as char != '=' {
+            result.push((n & 0xFF) as u8);
+        }
+
+        i += 4;
+    }
+
+    Ok(result)
+}
+
+fn base64_char_to_value(c: char) -> std::result::Result<u8, String> {
+    match c {
+        'A'..='Z' => Ok((c as u8 - b'A') as u8),
+        'a'..='z' => Ok((c as u8 - b'a' + 26) as u8),
+        '0'..='9' => Ok((c as u8 - b'0' + 52) as u8),
+        '+' => Ok(62),
+        '/' => Ok(63),
+        '=' => Ok(0),
+        _ => Err(format!("Invalid base64 character: {}", c)),
+    }
+}
+
 #[tauri::command]
 #[instrument(skip(app_dirs))]
 pub async fn read_pdf_file(app_dirs: State<'_, AppDirs>, file_path: String) -> Result<Vec<u8>> {
@@ -1173,242 +1284,370 @@ pub async fn read_pdf_file(app_dirs: State<'_, AppDirs>, file_path: String) -> R
 }
 
 #[tauri::command]
-#[instrument(skip(app_dirs))]
-pub async fn save_pdf_file(
+#[instrument(skip(db, app_dirs))]
+pub async fn read_pdf_as_blob(
+    paper_id: i64,
+    db: State<'_, DatabaseConnection>,
     app_dirs: State<'_, AppDirs>,
-    file_path: String,
-    pdf_data: Vec<u8>,
-) -> Result<()> {
-    info!(
-        "Saving PDF file: {}, size: {} bytes",
-        file_path,
-        pdf_data.len()
-    );
+) -> Result<PdfBlobResponse> {
+    info!("Reading PDF as blob for paper {}", paper_id);
 
-    // Validate the file path is within the app's files directory
-    let path = PathBuf::from(&file_path);
+    // Get paper details
+    let paper = Papers::find_by_id(paper_id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
+
+    // Get attachment path hash
+    let hash_string = if let Some(path) = &paper.attachment_path {
+        path.clone()
+    } else {
+        let mut hasher = Sha1::new();
+        hasher.update(paper.title.as_bytes());
+        let result = hasher.finalize();
+        format!("{:x}", result)
+    };
+
+    // Get all attachments and find PDF
+    let all_attachments = Attachments::find()
+        .filter(attachments::Column::PaperId.eq(paper_id))
+        .all(db.inner())
+        .await?;
+
+    let attachment = all_attachments
+        .iter()
+        .find(|a| {
+            let file_type = a.file_type.as_deref().unwrap_or("");
+            let file_name = a.file_name.as_deref().unwrap_or("");
+            file_type.to_lowercase().contains("pdf") || file_name.to_lowercase().ends_with(".pdf")
+        })
+        .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
+
+    let file_name = attachment.file_name.clone().unwrap_or_else(|| {
+        format!(
+            "{}.pdf",
+            paper
+                .title
+                .replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
+        )
+    });
+
+    // Find PDF file path
+    let hash_lower = hash_string.to_lowercase();
+    let hash_upper = hash_string.to_uppercase();
     let files_dir = PathBuf::from(&app_dirs.files);
 
-    // Check if the path is within the allowed directory
-    if !path.starts_with(&files_dir) {
-        return Err(AppError::permission(format!(
-            "save_pdf_file: Path {} is not within the allowed directory",
-            file_path
-        )));
-    }
+    let pdf_path = {
+        let lower_path = files_dir.join(&hash_lower).join(&file_name);
+        let upper_path = files_dir.join(&hash_upper).join(&file_name);
+
+        if lower_path.exists() {
+            lower_path
+        } else if upper_path.exists() {
+            upper_path
+        } else {
+            // Try to find any PDF in the hash directory
+            let lower_dir = files_dir.join(&hash_lower);
+            let upper_dir = files_dir.join(&hash_upper);
+
+            if let Ok(Some(found)) = find_first_pdf(&lower_dir) {
+                found
+            } else if let Ok(Some(found)) = find_first_pdf(&upper_dir) {
+                found
+            } else {
+                return Err(AppError::not_found(
+                    "PDF file",
+                    format!("hash={}", hash_lower),
+                ));
+            }
+        }
+    };
+
+    // Read PDF file
+    let pdf_bytes = std::fs::read(&pdf_path).map_err(|e| {
+        AppError::file_system(
+            pdf_path.to_string_lossy().to_string(),
+            format!("Failed to read PDF file: {}", e),
+        )
+    })?;
+
+    let size_bytes = pdf_bytes.len();
+
+    // Encode to base64
+    let base64_data = base64_encode(&pdf_bytes);
+
+    info!(
+        "Successfully read PDF as blob for paper {}: {} bytes, encoded as base64",
+        paper_id, size_bytes
+    );
+
+    Ok(PdfBlobResponse {
+        file_name,
+        paper_title: paper.title,
+        paper_id,
+        base64_data,
+        size_bytes,
+    })
+}
+
+#[tauri::command]
+#[instrument(skip(db, app_dirs, base64_data))]
+pub async fn save_pdf_blob(
+    paper_id: i64,
+    base64_data: String,
+    db: State<'_, DatabaseConnection>,
+    app_dirs: State<'_, AppDirs>,
+) -> Result<PdfSaveResponse> {
+    info!("Saving PDF blob for paper {}", paper_id);
+
+    // Get paper details
+    let paper = Papers::find_by_id(paper_id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
+
+    // Get attachment path hash
+    let hash_string = if let Some(path) = &paper.attachment_path {
+        path.clone()
+    } else {
+        let mut hasher = Sha1::new();
+        hasher.update(paper.title.as_bytes());
+        let result = hasher.finalize();
+        format!("{:x}", result)
+    };
+
+    // Get all attachments and find PDF
+    let all_attachments = Attachments::find()
+        .filter(attachments::Column::PaperId.eq(paper_id))
+        .all(db.inner())
+        .await?;
+
+    let attachment = all_attachments
+        .iter()
+        .find(|a| {
+            let file_type = a.file_type.as_deref().unwrap_or("");
+            let file_name = a.file_name.as_deref().unwrap_or("");
+            file_type.to_lowercase().contains("pdf") || file_name.to_lowercase().ends_with(".pdf")
+        })
+        .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
+
+    let file_name = attachment.file_name.clone().unwrap_or_else(|| {
+        format!(
+            "{}.pdf",
+            paper
+                .title
+                .replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
+        )
+    });
+
+    // Decode base64 data
+    let pdf_bytes = base64_decode(&base64_data).map_err(|e| {
+        AppError::validation("base64_data", format!("Failed to decode base64: {}", e))
+    })?;
+
+    let size_bytes = pdf_bytes.len();
+
+    // Find or create PDF file path
+    let hash_lower = hash_string.to_lowercase();
+    let hash_upper = hash_string.to_uppercase();
+    let files_dir = PathBuf::from(&app_dirs.files);
+
+    let pdf_path = {
+        let lower_path = files_dir.join(&hash_lower).join(&file_name);
+        let upper_path = files_dir.join(&hash_upper).join(&file_name);
+
+        // Check if path already exists
+        if lower_path.exists() {
+            lower_path
+        } else if upper_path.exists() {
+            upper_path
+        } else {
+            // Create in lowercase directory by default
+            let lower_dir = files_dir.join(&hash_lower);
+            if !lower_dir.exists() {
+                std::fs::create_dir_all(&lower_dir).map_err(|e| {
+                    AppError::file_system(
+                        lower_dir.to_string_lossy().to_string(),
+                        format!("Failed to create directory: {}", e),
+                    )
+                })?;
+            }
+            lower_path
+        }
+    };
 
     // Ensure parent directory exists
-    if let Some(parent) = path.parent() {
+    if let Some(parent) = pdf_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| {
             AppError::file_system(
-                file_path.clone(),
+                parent.to_string_lossy().to_string(),
                 format!("Failed to create directory: {}", e),
             )
         })?;
     }
 
-    // Write the file
-    std::fs::write(&path, &pdf_data).map_err(|e| {
-        AppError::file_system(file_path.clone(), format!("Failed to write file: {}", e))
-    })?;
-
-    info!("Successfully saved PDF file: {}", file_path);
-    Ok(())
-}
-
-#[tauri::command]
-#[instrument(skip(app_dirs))]
-pub async fn save_annotations_data(
-    app_dirs: State<'_, AppDirs>,
-    file_path: String,
-    annotations_json: String,
-) -> Result<()> {
-    info!(
-        "Saving annotations data for file: {}, size: {} bytes",
-        file_path,
-        annotations_json.len()
-    );
-
-    // Validate the file path is within the app's files directory
-    let path = PathBuf::from(&file_path);
-    let files_dir = PathBuf::from(&app_dirs.files);
-
-    // Check if the path is within the allowed directory
-    if !path.starts_with(&files_dir) {
-        return Err(AppError::permission(format!(
-            "save_annotations_data: Path {} is not within the allowed directory",
-            file_path
-        )));
-    }
-
-    // Save annotations to a sidecar .json file
-    let annotations_path = path.with_extension("json");
-    std::fs::write(&annotations_path, &annotations_json).map_err(|e| {
+    // Write PDF file
+    std::fs::write(&pdf_path, &pdf_bytes).map_err(|e| {
         AppError::file_system(
-            annotations_path.to_string_lossy().to_string(),
-            format!("Failed to write annotations file: {}", e),
+            pdf_path.to_string_lossy().to_string(),
+            format!("Failed to write PDF file: {}", e),
         )
     })?;
 
     info!(
-        "Successfully saved annotations data to: {}",
-        annotations_path.display()
+        "Successfully saved PDF blob for paper {}: {} bytes written to {}",
+        paper_id,
+        size_bytes,
+        pdf_path.display()
     );
-    Ok(())
+
+    Ok(PdfSaveResponse {
+        success: true,
+        file_path: pdf_path.to_string_lossy().to_string(),
+        size_bytes,
+        message: format!(
+            "PDF saved successfully: {} ({} bytes)",
+            file_name, size_bytes
+        ),
+    })
 }
 
 #[tauri::command]
-#[instrument(skip(app_dirs))]
-pub async fn load_annotations_data(
+#[instrument(skip(db, app_dirs, base64_data))]
+pub async fn save_pdf_with_annotations(
+    paper_id: i64,
+    base64_data: String,
+    annotations_json: Option<String>,
+    db: State<'_, DatabaseConnection>,
     app_dirs: State<'_, AppDirs>,
-    file_path: String,
-) -> Result<Option<String>> {
-    info!("Loading annotations data for file: {}", file_path);
+) -> Result<PdfSaveResponse> {
+    info!("Saving PDF blob with annotations for paper {}", paper_id);
 
-    // Validate the file path is within the app's files directory
-    let path = PathBuf::from(&file_path);
-    let files_dir = PathBuf::from(&app_dirs.files);
+    // Get paper details
+    let paper = Papers::find_by_id(paper_id)
+        .one(db.inner())
+        .await?
+        .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
 
-    // Check if the path is within the allowed directory
-    if !path.starts_with(&files_dir) {
-        return Err(AppError::permission(format!(
-            "load_annotations_data: Path {} is not within the allowed directory",
-            file_path
-        )));
-    }
+    // Get attachment path hash
+    let hash_string = if let Some(path) = &paper.attachment_path {
+        path.clone()
+    } else {
+        let mut hasher = Sha1::new();
+        hasher.update(paper.title.as_bytes());
+        let result = hasher.finalize();
+        format!("{:x}", result)
+    };
 
-    // Try to load annotations from sidecar .json file
-    let annotations_path = path.with_extension("json");
-    match std::fs::read_to_string(&annotations_path) {
-        Ok(content) => {
-            info!(
-                "Successfully loaded annotations data from: {}",
-                annotations_path.display()
-            );
-            Ok(Some(content))
-        }
-        Err(_) => {
-            info!(
-                "No annotations data found at: {}",
-                annotations_path.display()
-            );
-            Ok(None)
-        }
-    }
-}
+    // Get all attachments and find PDF
+    let all_attachments = Attachments::find()
+        .filter(attachments::Column::PaperId.eq(paper_id))
+        .all(db.inner())
+        .await?;
 
-#[tauri::command]
-#[instrument(skip(app_dirs))]
-pub async fn export_pdf_with_annotations(
-    app_dirs: State<'_, AppDirs>,
-    source_file_path: String,
-    export_file_path: String,
-    pdf_data: Vec<u8>,
-) -> Result<()> {
-    info!(
-        "Exporting PDF with annotations from {} to {}",
-        source_file_path, export_file_path
-    );
+    let attachment = all_attachments
+        .iter()
+        .find(|a| {
+            let file_type = a.file_type.as_deref().unwrap_or("");
+            let file_name = a.file_name.as_deref().unwrap_or("");
+            file_type.to_lowercase().contains("pdf") || file_name.to_lowercase().ends_with(".pdf")
+        })
+        .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
 
-    // Validate both file paths are within the app's allowed directories
-    let source_path = PathBuf::from(&source_file_path);
-    let export_path = PathBuf::from(&export_file_path);
-    let files_dir = PathBuf::from(&app_dirs.files);
-
-    if !source_path.starts_with(&files_dir) {
-        return Err(AppError::permission(format!(
-            "export_pdf_with_annotations: Source path {} is not within the allowed directory",
-            source_file_path
-        )));
-    }
-
-    if !export_path.starts_with(&files_dir) {
-        return Err(AppError::permission(format!(
-            "export_pdf_with_annotations: Export path {} is not within the allowed directory",
-            export_file_path
-        )));
-    }
-
-    // Ensure export directory exists
-    if let Some(parent) = export_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| {
-            AppError::file_system(
-                export_file_path.clone(),
-                format!("Failed to create directory: {}", e),
-            )
-        })?;
-    }
-
-    // Write the exported file
-    std::fs::write(&export_path, &pdf_data).map_err(|e| {
-        AppError::file_system(
-            export_file_path.clone(),
-            format!("Failed to write exported file: {}", e),
+    let file_name = attachment.file_name.clone().unwrap_or_else(|| {
+        format!(
+            "{}.pdf",
+            paper
+                .title
+                .replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
         )
+    });
+
+    // Decode base64 data
+    let pdf_bytes = base64_decode(&base64_data).map_err(|e| {
+        AppError::validation("base64_data", format!("Failed to decode base64: {}", e))
     })?;
 
-    info!(
-        "Successfully saved PDF with annotations to: {}",
-        export_file_path
-    );
-    Ok(())
-}
+    let size_bytes = pdf_bytes.len();
 
-#[tauri::command]
-#[instrument(skip(app_dirs, pdf_data))]
-pub async fn save_pdf_with_annotations_data(
-    app_dirs: State<'_, AppDirs>,
-    file_path: String,
-    pdf_data: Vec<u8>,
-    annotations_json: String,
-) -> Result<()> {
-    info!(
-        "Saving PDF with annotations: {}, size: {} bytes",
-        file_path,
-        pdf_data.len()
-    );
-
-    // Validate the file path is within the app's files directory
-    let path = PathBuf::from(&file_path);
+    // Find or create PDF file path
+    let hash_lower = hash_string.to_lowercase();
+    let hash_upper = hash_string.to_uppercase();
     let files_dir = PathBuf::from(&app_dirs.files);
 
-    // Check if the path is within the allowed directory
-    if !path.starts_with(&files_dir) {
-        return Err(AppError::permission(format!(
-            "save_pdf_with_annotations_data: Path {} is not within the allowed directory",
-            file_path
-        )));
-    }
+    let lower_path = files_dir.join(&hash_lower).join(&file_name);
+    let upper_path = files_dir.join(&hash_upper).join(&file_name);
+
+    let pdf_path = if lower_path.exists() {
+        lower_path
+    } else if upper_path.exists() {
+        upper_path
+    } else {
+        let lower_dir = files_dir.join(&hash_lower);
+        if !lower_dir.exists() {
+            std::fs::create_dir_all(&lower_dir).map_err(|e| {
+                AppError::file_system(
+                    lower_dir.to_string_lossy().to_string(),
+                    format!("Failed to create directory: {}", e),
+                )
+            })?;
+        }
+        lower_path
+    };
 
     // Ensure parent directory exists
-    if let Some(parent) = path.parent() {
+    if let Some(parent) = pdf_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| {
             AppError::file_system(
-                file_path.clone(),
+                parent.to_string_lossy().to_string(),
                 format!("Failed to create directory: {}", e),
             )
         })?;
     }
 
-    // Write the file directly (annotations are saved separately as JSON)
-    // This is a workaround since we don't have a Rust PDF library for merging annotations
-    std::fs::write(&path, &pdf_data).map_err(|e| {
-        AppError::file_system(file_path.clone(), format!("Failed to write file: {}", e))
-    })?;
-
-    // Save annotations as JSON sidecar file
-    let annotations_path = path.with_extension("json");
-    std::fs::write(&annotations_path, &annotations_json).map_err(|e| {
+    // Write PDF file
+    std::fs::write(&pdf_path, &pdf_bytes).map_err(|e| {
         AppError::file_system(
-            annotations_path.to_string_lossy().to_string(),
-            format!("Failed to write annotations file: {}", e),
+            pdf_path.to_string_lossy().to_string(),
+            format!("Failed to write PDF file: {}", e),
         )
     })?;
 
-    info!(
-        "Successfully saved PDF with annotations: {} (annotations: {})",
-        file_path,
-        annotations_path.display()
-    );
-    Ok(())
+    // Save annotations if provided
+    if let Some(annotations) = annotations_json {
+        info!("Saving annotations for paper {}", paper_id);
+        let annotations_path = pdf_path.with_extension("json");
+
+        std::fs::write(&annotations_path, &annotations).map_err(|e| {
+            AppError::file_system(
+                annotations_path.to_string_lossy().to_string(),
+                format!("Failed to write annotations file: {}", e),
+            )
+        })?;
+
+        info!(
+            "Successfully saved PDF with annotations for paper {}: {} bytes written to {}",
+            paper_id,
+            size_bytes,
+            pdf_path.display()
+        );
+        return Ok(PdfSaveResponse {
+            success: true,
+            file_path: pdf_path.to_string_lossy().to_string(),
+            size_bytes,
+            message: format!(
+                "PDF and annotations saved successfully ({} bytes)",
+                size_bytes
+            ),
+        });
+    }
+
+    return Err(AppError::DocumentParseError {
+        message: format!(
+            "PDF saved successfully: {} ({} bytes)",
+            &file_name, size_bytes
+        ),
+    });
 }
+
+// ...existing code...

@@ -1,6 +1,12 @@
 <script setup lang="ts">
   import { loadPdfAsBlob, revokePdfBlobUrl, savePdfBlob } from '@/lib/api/pdf';
-  import { PDFViewer } from '@embedpdf/vue-pdf-viewer';
+  import {
+    DocumentManagerPlugin,
+    ExportPlugin,
+    PDFViewer,
+    type ExportScope,
+    type PluginRegistry,
+  } from '@embedpdf/vue-pdf-viewer';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { onBeforeUnmount, onMounted, ref } from 'vue';
 
@@ -12,8 +18,11 @@
   const paperId = ref(0);
   const isSaving = ref(false);
   const saveSuccess = ref(false);
+  // const registry = ref<PluginRegistry | null>(null);
+  const exportScope = ref<ExportScope | null>(null);
   let objectUrl: string | null = null;
   let pdfBlob: Blob | null = null;
+  let docId = ref('');
 
   // Close window function
   async function closeWindow() {
@@ -21,15 +30,28 @@
     await currentWindow.close();
   }
 
-  // Save PDF function
-  async function savePdf() {
-    if (!pdfBlob || isSaving.value) {
-      return;
-    }
+  const handleReady = (registry: PluginRegistry) => {
+    const docManager = registry.getPlugin<DocumentManagerPlugin>('document-manager')?.provides();
+    const exportPlugin = registry.getPlugin<ExportPlugin>('export')?.provides();
+    docManager?.onDocumentOpened((doc) => {
+      docId.value = doc.id;
+      if (exportPlugin) {
+        exportScope.value = exportPlugin.forDocument(docId.value);
+      }
+    });
+  };
+
+  async function savePdfWithPlugin() {
+    // 1. Get the PDF data as an ArrayBuffer
+    const arrayBuffer = await exportScope.value?.saveAsCopy().toPromise();
+    if (!arrayBuffer) return;
+
+    // 2. Convert ArrayBuffer to a Blob/File
+    const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
 
     isSaving.value = true;
     try {
-      const response = await savePdfBlob(paperId.value, pdfBlob);
+      const response = await savePdfBlob(paperId.value, blob);
       saveSuccess.value = true;
       error.value = '';
       console.info('PDF saved successfully:', response.message);
@@ -45,6 +67,8 @@
       isSaving.value = false;
     }
   }
+
+  // Save PDF function
 
   onMounted(async () => {
     try {
@@ -120,7 +144,7 @@
             :loading="isSaving"
             size="small"
             variant="tonal"
-            @click="savePdf"
+            @click="savePdfWithPlugin"
           >
             {{ isSaving ? 'Saving...' : 'Save' }}
           </v-btn>
@@ -143,6 +167,7 @@
           theme: { preference: 'light' },
         }"
         :style="{ width: '100%', height: 'calc(100% - 60px)' }"
+        @ready="handleReady"
       />
     </div>
   </div>

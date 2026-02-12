@@ -1175,10 +1175,8 @@ fn find_first_pdf(dir: &PathBuf) -> Result<Option<PathBuf>> {
 }
 
 fn base64_encode(data: &[u8]) -> String {
-    use std::fmt::Write;
-
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut result = String::with_capacity((data.len() + 2) / 3 * 4);
+    let mut result = String::with_capacity((data.len() + 2).div_ceil(3) * 4);
 
     for chunk in data.chunks(3) {
         let b1 = chunk[0];
@@ -1247,9 +1245,9 @@ fn base64_decode(data: &str) -> std::result::Result<Vec<u8>, String> {
 
 fn base64_char_to_value(c: char) -> std::result::Result<u8, String> {
     match c {
-        'A'..='Z' => Ok((c as u8 - b'A') as u8),
-        'a'..='z' => Ok((c as u8 - b'a' + 26) as u8),
-        '0'..='9' => Ok((c as u8 - b'0' + 52) as u8),
+        'A'..='Z' => Ok(c as u8 - b'A'),
+        'a'..='z' => Ok(c as u8 - b'a' + 26),
+        '0'..='9' => Ok(c as u8 - b'0' + 52),
         '+' => Ok(62),
         '/' => Ok(63),
         '=' => Ok(0),

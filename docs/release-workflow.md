@@ -13,7 +13,8 @@
 ## 触发条件
 
 工作流在以下情况下自动触发:
-- 当在 GitHub 上发布(publish)一个新的 Release 时
+- 当推送以 `v` 开头的 tag 时（例如：`v0.1.0`, `v1.2.3`）
+- Workflow 会自动创建 GitHub Release 并上传构建产物
 
 ## 构建平台
 
@@ -53,19 +54,52 @@
    - libjavascriptcoregtk-4.1-dev
 7. **安装前端依赖**: 运行 `yarn install --frozen-lockfile`
 8. **构建 Tauri 应用**: 使用 `tauri-apps/tauri-action` 构建应用
-9. **上传制品**: 自动将构建产物上传到 GitHub Release
+9. **自动创建/更新 Release**: 如果 Release 不存在则创建，否则更新
+10. **上传制品**: 自动将所有构建产物上传到 GitHub Release 的附件中
+
+### 自动上传功能
+
+Workflow 使用 `tauri-apps/tauri-action@v0` 的内置上传功能：
+
+- **自动检测构建产物**: Action 会自动找到所有构建生成的安装包
+- **批量上传**: 将所有平台的安装包一次性上传到 Release
+- **覆盖已有文件**: 如果 Release 中已存在同名文件，会自动覆盖
+- **附件命名**: 保持 Tauri 默认的文件命名格式
+- **完整性验证**: 所有上传的文件都包含 SHA256 校验和
 
 ## 如何使用
 
 ### 创建新的 Release
 
+有两种方式创建 release：
+
+#### 方式一：通过 Git Tag 触发（推荐）
+
+```bash
+# 1. 确保所有更改已提交
+git add .
+git commit -m "Prepare for release v0.1.0"
+
+# 2. 创建并推送 tag
+git tag v0.1.0
+git push origin v0.1.0
+
+# 3. GitHub Actions 会自动：
+#    - 构建所有平台的安装包
+#    - 创建 GitHub Release
+#    - 上传所有构建产物到 Release
+```
+
+#### 方式二：通过 GitHub 界面
+
 1. 在 GitHub 仓库页面，点击 "Releases"
 2. 点击 "Create a new release"
 3. 填写以下信息:
-   - **Tag**: 版本号，如 `v0.1.0`
+   - **Choose a tag**: 创建新 tag，如 `v0.1.0`
    - **Release title**: 如 "xuan-brain v0.1.0"
    - **Description**: 发布说明（更新内容、新功能等）
 4. 点击 "Publish release"
+5. 创建 release 会自动创建 tag，触发构建流程
 
 ### 监控构建进度
 
@@ -84,7 +118,14 @@
 
 ### 下载安装包
 
-构建完成后，安装包会自动上传到对应的 Release 页面。用户可以从 Release 页面下载对应平台的安装包。
+构建完成后，安装包会自动上传到对应的 Release 页面：
+
+1. 访问仓库的 Releases 页面
+2. 找到对应版本的 release（例如 `v0.1.0`）
+3. 在 "Assets" 部分可以看到所有平台的安装包
+4. 点击下载对应平台的安装包
+
+所有构建产物都会自动作为 release 附件上传。
 
 ## 构建产物
 

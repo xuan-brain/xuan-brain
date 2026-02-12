@@ -2,8 +2,9 @@
 name: Release Build
 
 'on':
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -70,4 +71,6 @@ jobs:
           releaseBody: 'See the CHANGELOG for details.'
           releaseDraft: false
           prerelease: false
+          # Automatically upload build artifacts to release
+          uploadUrl: true
           args: --target ${{ matrix.platform.rust_target }}

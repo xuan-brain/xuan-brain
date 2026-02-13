@@ -126,7 +126,7 @@ yarn tauri build
 当创建新的 Release 时，会自动构建并上传所有平台的安装包。
 
 #### Nightly Build（每日构建）
-每天自动构建最新开发版本，并自动创建/更新 "nightly" 预发布版本。可直接在 [Releases 页面](https://github.com/xuan-brain/xuan-brain/releases)下载标记为 "Pre-release" 的 nightly 版本。
+每天自动构建最新开发版本，并自动创建/更新 "nightly" 预发布版本。可直接在 [Releases 页面](https://github.com/xuan-brain/xuan-brain/releases) 下载标记为 "Pre-release" 的 nightly 版本。
 
 详细信息请参阅 [发布工作流文档](docs/release-workflow.md)。
 

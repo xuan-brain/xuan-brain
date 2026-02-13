@@ -79,9 +79,9 @@ jobs:
           releaseBody: |
             🌙 Nightly Build - Automated Development Build
             
-            **Build Date:** ${{ github.event.repository.updated_at }}
-            **Run Number:** ${{ github.run_number }}
+            **Build Number:** ${{ github.run_number }}
             **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
             
             ⚠️ **Note:** This is an automated nightly build and may contain unstable features. Not recommended for production use.
             

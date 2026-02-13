@@ -16,6 +16,7 @@ use crate::database::entities::{
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
 use crate::papers::importer::grobid::process_header_document;
+use crate::papers::importer::pubmed::{fetch_pubmed_metadata, PubmedError};
 use crate::sys::config::AppConfig;
 use crate::sys::dirs::AppDirs;
 use crate::sys::error::{AppError, Result};
@@ -575,6 +576,133 @@ pub async fn import_paper_by_arxiv_id(
     info!(
         "Successfully imported arXiv paper: {} (id: {}, arxiv_id: {})",
         metadata.title, paper.id, metadata.arxiv_id
+    );
+
+    Ok(PaperDto {
+        id: paper.id,
+        title: paper.title,
+        publication_year: paper.publication_year,
+        journal_name: paper.journal_name,
+        conference_name: paper.conference_name,
+        authors: metadata.authors,
+        labels: vec![],
+        attachment_count: 0,
+        attachments: vec![],
+    })
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn import_paper_by_pmid(
+    pmid: String,
+    category_id: Option<i64>,
+    db: State<'_, Arc<DatabaseConnection>>,
+) -> Result<PaperDto> {
+    info!("Importing paper with PMID: {}", pmid);
+    let db = db.inner().as_ref();
+
+    // Fetch metadata from PubMed using E-utilities API
+    let metadata = fetch_pubmed_metadata(&pmid).await.map_err(|e| match e {
+        PubmedError::InvalidPmid(id) => {
+            AppError::validation("pmid", format!("Invalid PMID: {}", id))
+        }
+        PubmedError::NotFound => AppError::not_found("PMID", pmid),
+        PubmedError::ParseError(msg) => AppError::validation(
+            "metadata",
+            format!("Failed to parse PubMed metadata: {}", msg),
+        ),
+        PubmedError::XmlError(msg) => {
+            AppError::validation("metadata", format!("Failed to parse PubMed XML: {}", msg))
+        }
+        PubmedError::RequestError(e) => {
+            AppError::network_error(&pmid, format!("Failed to fetch PubMed: {}", e))
+        }
+    })?;
+
+    // Check if paper already exists by DOI or URL
+    if let Some(doi) = &metadata.doi {
+        if let Some(existing) = Papers::find()
+            .filter(papers::Column::Doi.eq(doi))
+            .one(db)
+            .await?
+        {
+            info!("Paper with DOI {} already exists, id: {}", doi, existing.id);
+            return Err(AppError::validation(
+                "doi",
+                format!("Paper with DOI {} already exists", doi),
+            ));
+        }
+    }
+
+    // Store PubMed URL
+    let pubmed_url = format!("https://pubmed.ncbi.nlm.nih.gov/{}/", metadata.pmid);
+
+    // Calculate attachment path hash
+    let mut hasher = Sha1::new();
+    hasher.update(metadata.title.as_bytes());
+    let result = hasher.finalize();
+    let hash_string = format!("{:x}", result);
+
+    // Parse publication year
+    let publication_year = metadata
+        .publication_year
+        .and_then(|y| y.parse::<i64>().ok());
+
+    // Create paper
+    let paper = papers::ActiveModel {
+        title: Set(metadata.title.clone()),
+        doi: Set(metadata.doi.clone()),
+        publication_year: Set(publication_year),
+        journal_name: Set(metadata.journal_name.clone()),
+        url: Set(Some(pubmed_url)),
+        r#abstract: Set(metadata.abstract_text.clone()),
+        attachment_path: Set(Some(hash_string)),
+        ..Default::default()
+    }
+    .insert(db)
+    .await?;
+
+    // Add authors
+    for author_name in &metadata.authors {
+        // Find or create author
+        let author = if let Some(existing_author) = Authors::find()
+            .filter(authors::Column::Name.eq(author_name))
+            .one(db)
+            .await?
+        {
+            existing_author
+        } else {
+            authors::ActiveModel {
+                name: Set(author_name.clone()),
+                ..Default::default()
+            }
+            .insert(db)
+            .await?
+        };
+
+        // Link author to paper
+        paper_authors::ActiveModel {
+            paper_id: Set(paper.id),
+            author_id: Set(author.id),
+            ..Default::default()
+        }
+        .insert(db)
+        .await?;
+    }
+
+    // Link category if provided
+    if let Some(cat_id) = category_id {
+        paper_category::ActiveModel {
+            paper_id: Set(paper.id),
+            category_id: Set(cat_id),
+        }
+        .insert(db)
+        .await?;
+    }
+
+    info!(
+        "Successfully imported PubMed paper: {} (id: {}, pmid: {})",
+        metadata.title, paper.id, metadata.pmid
     );
 
     Ok(PaperDto {

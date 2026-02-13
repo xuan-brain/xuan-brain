@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+mod axum;
 mod command;
 mod database;
 mod papers;
@@ -6,6 +7,7 @@ mod service;
 mod sys;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::command::category_command::{
     create_category, delete_category, load_categories, move_category, reorder_tree, update_category,
@@ -50,7 +52,7 @@ pub fn run() -> Result<()> {
     // Initialize logger with console and file output
     // The WorkerGuard must be kept alive for the lifetime of the application
 
-    let mut builder = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwdwd| {}))
         .plugin(tauri_plugin_tracing::Builder::new().build())
@@ -63,9 +65,7 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_opener::init());
 
     #[cfg(all(feature = "mcp-bridge", debug_assertions))]
-    {
-        builder = builder.plugin(tauri_plugin_mcp_bridge::init());
-    }
+    let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
 
     builder
         .setup(move |app| {
@@ -76,15 +76,22 @@ pub fn run() -> Result<()> {
 
             // Initialize database connection synchronously in setup
             let app_handle = app.handle().clone();
-            let app_dirs_clone = app_dirs.clone();
+            let app_dirs_for_db = app_dirs.clone();
+            let app_dirs_for_axum = app_dirs.clone();
+            let data_dir = app_dirs_for_db.data.clone();
             let db_result = tauri::async_runtime::block_on(async move {
-                init_database_connection(PathBuf::from(&app_dirs_clone.data)).await
+                init_database_connection(PathBuf::from(&data_dir)).await
             });
 
             match db_result {
                 Ok(db) => {
                     info!("Database connection initialized");
-                    app_handle.manage(db);
+                    let db_arc = Arc::new(db);
+                    app_handle.manage(db_arc.clone());
+                    tauri::async_runtime::spawn(async move {
+                        // Start Axum API server
+                        crate::axum::start_axum_server(db_arc, app_dirs_for_axum);
+                    });
                 }
                 Err(e) => {
                     tracing::error!("Failed to initialize database connection: {}", e);

@@ -17,6 +17,7 @@ crate-type = ["cdylib", "rlib", "staticlib"]
 name = "xuan_brain_lib"
 
 [dependencies]
+axum = "0.8"
 base64 = "0.22"
 chrono = "0.4.43"
 dirs = "5"
@@ -47,6 +48,9 @@ tauri-plugin-os = "2"
 tauri-plugin-tracing = { version = "0.3", features = ["specta"] }
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

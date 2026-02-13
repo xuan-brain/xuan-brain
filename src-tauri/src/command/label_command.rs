@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::prelude::*;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait};
 use serde::Serialize;
@@ -18,10 +20,10 @@ pub struct LabelResponse {
 #[tauri::command]
 #[instrument(skip(connection))]
 pub async fn get_all_labels(
-    connection: State<'_, DatabaseConnection>,
+    connection: State<'_, Arc<DatabaseConnection>>,
 ) -> Result<Vec<LabelResponse>> {
     info!("Fetching all labels");
-    let labels = Label::find().all(connection.inner()).await?;
+    let labels = Label::find().all(&**connection).await?;
 
     // For now, return labels without document count
     // TODO: Join with document_labels table to get actual count
@@ -42,7 +44,7 @@ pub async fn get_all_labels(
 #[tauri::command]
 #[instrument(skip(connection))]
 pub async fn create_label(
-    connection: State<'_, DatabaseConnection>,
+    connection: State<'_, Arc<DatabaseConnection>>,
     name: String,
     color: String,
 ) -> Result<LabelResponse> {
@@ -55,7 +57,7 @@ pub async fn create_label(
         updated_at: Set(Local::now().naive_local()),
         ..Default::default()
     };
-    let label = new_label.insert(connection.inner()).await?;
+    let label = new_label.insert(connection.inner().as_ref()).await?;
 
     info!("Label created successfully with id {}", label.id);
     Ok(LabelResponse {
@@ -69,14 +71,14 @@ pub async fn create_label(
 #[tauri::command]
 #[instrument(skip(connection))]
 pub async fn update_label(
-    connection: State<'_, DatabaseConnection>,
+    connection: State<'_, Arc<DatabaseConnection>>,
     id: i64,
     name: Option<String>,
     color: Option<String>,
 ) -> Result<LabelResponse> {
     info!("Updating label id {}", id);
     let label = Label::find_by_id(id)
-        .one(connection.inner())
+        .one(connection.inner().as_ref())
         .await?
         .ok_or_else(|| AppError::not_found("Label", id.to_string()))?;
 
@@ -90,7 +92,7 @@ pub async fn update_label(
     }
     active_model.updated_at = Set(Local::now().naive_local());
 
-    let updated_label = active_model.update(connection.inner()).await?;
+    let updated_label = active_model.update(connection.inner().as_ref()).await?;
 
     info!("Label updated successfully");
     Ok(LabelResponse {
@@ -103,10 +105,12 @@ pub async fn update_label(
 
 #[tauri::command]
 #[instrument(skip(connection))]
-pub async fn delete_label(connection: State<'_, DatabaseConnection>, id: i64) -> Result<()> {
+pub async fn delete_label(connection: State<'_, Arc<DatabaseConnection>>, id: i64) -> Result<()> {
     info!("Deleting label with id: {}", id);
 
-    let delete_result = Label::delete_by_id(id).exec(connection.inner()).await?;
+    let delete_result = Label::delete_by_id(id)
+        .exec(connection.inner().as_ref())
+        .await?;
 
     info!("Delete affected {} rows", delete_result.rows_affected);
 

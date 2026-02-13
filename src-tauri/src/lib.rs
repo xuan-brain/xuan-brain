@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+mod axum;
 mod command;
 mod database;
 mod papers;
@@ -6,6 +7,7 @@ mod service;
 mod sys;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::command::category_command::{
     create_category, delete_category, load_categories, move_category, reorder_tree, update_category,
@@ -23,6 +25,10 @@ use crate::database::init_database_connection;
 use crate::sys::error::Result;
 use futures::executor::block_on;
 use tauri::Manager;
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+};
 use tracing::info;
 
 use crate::sys::dirs::init_app_dirs;
@@ -46,7 +52,7 @@ pub fn run() -> Result<()> {
     // Initialize logger with console and file output
     // The WorkerGuard must be kept alive for the lifetime of the application
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwdwd| {}))
         .plugin(tauri_plugin_tracing::Builder::new().build())
@@ -56,7 +62,12 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_opener::init());
+
+    #[cfg(all(feature = "mcp-bridge", debug_assertions))]
+    let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+
+    builder
         .setup(move |app| {
             // Initialize data directories on app startup
             let app_handle = app.handle().clone();
@@ -65,21 +76,69 @@ pub fn run() -> Result<()> {
 
             // Initialize database connection synchronously in setup
             let app_handle = app.handle().clone();
-            let app_dirs_clone = app_dirs.clone();
+            let app_dirs_for_db = app_dirs.clone();
+            let app_dirs_for_axum = app_dirs.clone();
+            let data_dir = app_dirs_for_db.data.clone();
             let db_result = tauri::async_runtime::block_on(async move {
-                init_database_connection(PathBuf::from(&app_dirs_clone.data)).await
+                init_database_connection(PathBuf::from(&data_dir)).await
             });
 
             match db_result {
                 Ok(db) => {
                     info!("Database connection initialized");
-                    app_handle.manage(db);
-                    Ok(())
+                    let db_arc = Arc::new(db);
+                    app_handle.manage(db_arc.clone());
+                    tauri::async_runtime::spawn(async move {
+                        // Start Axum API server
+                        crate::axum::start_axum_server(db_arc, app_dirs_for_axum);
+                    });
                 }
                 Err(e) => {
                     tracing::error!("Failed to initialize database connection: {}", e);
-                    Err(Box::new(e))
+                    return Err(Box::new(e));
                 }
+            }
+
+            // Setup system tray
+            let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit_i])?;
+
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| {
+                    if event.id.as_ref() == "quit" {
+                        app.exit(0);
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            if window.is_visible().unwrap_or(false) {
+                                let _ = window.hide();
+                            } else {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                    }
+                })
+                .build(app)?;
+
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Prevent window from closing and hide it instead
+                window.hide().unwrap();
+                api.prevent_close();
             }
         })
         // TODO: Uncomment after fixing Tauri 2.x error type compatibility

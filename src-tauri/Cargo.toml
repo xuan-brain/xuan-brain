@@ -17,6 +17,7 @@ crate-type = ["cdylib", "rlib", "staticlib"]
 name = "xuan_brain_lib"
 
 [dependencies]
+axum = "0.8"
 base64 = "0.22"
 chrono = "0.4.43"
 dirs = "5"
@@ -36,16 +37,20 @@ sea-orm = { version = "=2.0.0-rc.28", features = [
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha1 = "0.10.6"
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["image-ico", "image-png", "tray-icon"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-http = "2"
+tauri-plugin-mcp-bridge = { version = "0.8", optional = true }
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-os = "2"
 tauri-plugin-tracing = { version = "0.3", features = ["specta"] }
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -60,3 +65,6 @@ tauri-build = { version = "2", features = [] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"
+
+[features]
+mcp-bridge = ["dep:tauri-plugin-mcp-bridge"]

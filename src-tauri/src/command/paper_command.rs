@@ -5,6 +5,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::{AppHandle, State};
 use tauri_plugin_opener::OpenerExt;
 use tracing::{info, instrument};
@@ -134,23 +135,20 @@ pub struct UpdatePaperDto {
 
 #[tauri::command]
 #[instrument(skip(db))]
-pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<PaperDto>> {
+pub async fn get_all_papers(db: State<'_, Arc<DatabaseConnection>>) -> Result<Vec<PaperDto>> {
     info!("Fetching all papers");
+    let db = db.inner().as_ref();
     let papers = Papers::find()
         .filter(papers::Column::DeletedAt.is_null())
         .order_by_desc(papers::Column::Id)
-        .all(db.inner())
+        .all(db)
         .await?;
 
-    let authors = papers
-        .load_many_to_many(Authors, PaperAuthors, db.inner())
-        .await?;
+    let authors = papers.load_many_to_many(Authors, PaperAuthors, db).await?;
 
-    let labels = papers
-        .load_many_to_many(Label, PaperLabels, db.inner())
-        .await?;
+    let labels = papers.load_many_to_many(Label, PaperLabels, db).await?;
 
-    let attachments = papers.load_many(Attachments, db.inner()).await?;
+    let attachments = papers.load_many(Attachments, db).await?;
 
     let dtos: Vec<PaperDto> = papers
         .into_iter()
@@ -192,23 +190,20 @@ pub async fn get_all_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<Pap
 
 #[tauri::command]
 #[instrument(skip(db))]
-pub async fn get_deleted_papers(db: State<'_, DatabaseConnection>) -> Result<Vec<PaperDto>> {
+pub async fn get_deleted_papers(db: State<'_, Arc<DatabaseConnection>>) -> Result<Vec<PaperDto>> {
     info!("Fetching deleted papers");
+    let db = db.inner().as_ref();
     let papers = Papers::find()
         .filter(papers::Column::DeletedAt.is_not_null())
         .order_by_desc(papers::Column::DeletedAt)
-        .all(db.inner())
+        .all(db)
         .await?;
 
-    let authors = papers
-        .load_many_to_many(Authors, PaperAuthors, db.inner())
-        .await?;
+    let authors = papers.load_many_to_many(Authors, PaperAuthors, db).await?;
 
-    let labels = papers
-        .load_many_to_many(Label, PaperLabels, db.inner())
-        .await?;
+    let labels = papers.load_many_to_many(Label, PaperLabels, db).await?;
 
-    let attachments = papers.load_many(Attachments, db.inner()).await?;
+    let attachments = papers.load_many(Attachments, db).await?;
 
     let dtos: Vec<PaperDto> = papers
         .into_iter()
@@ -252,18 +247,19 @@ pub async fn get_deleted_papers(db: State<'_, DatabaseConnection>) -> Result<Vec
 #[instrument(skip(db))]
 pub async fn get_paper(
     id: i64,
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
 ) -> Result<Option<PaperDetailDto>> {
     info!("Fetching details for paper id {}", id);
+    let db = db.inner().as_ref();
     let paper_with_authors = Papers::find_by_id(id)
         .filter(papers::Column::DeletedAt.is_null())
         .find_with_related(Authors)
-        .all(db.inner())
+        .all(db)
         .await?;
 
     if let Some((paper, authors)) = paper_with_authors.into_iter().next() {
-        let labels = paper.find_related(Label).all(db.inner()).await?;
-        let categories = paper.find_related(Category).all(db.inner()).await?;
+        let labels = paper.find_related(Label).all(db).await?;
+        let categories = paper.find_related(Category).all(db).await?;
         let category = categories.first();
 
         Ok(Some(PaperDetailDto {
@@ -303,14 +299,15 @@ pub async fn get_paper(
 #[tauri::command]
 #[instrument(skip(db))]
 pub async fn update_paper_details(
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     payload: UpdatePaperDto,
 ) -> Result<()> {
     info!("Updating paper details for id {}", payload.id);
+    let db = db.inner().as_ref();
 
     let paper = Papers::find_by_id(payload.id)
         .filter(papers::Column::DeletedAt.is_null())
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", payload.id.to_string()))?;
 
@@ -329,23 +326,24 @@ pub async fn update_paper_details(
     active.notes = Set(payload.notes);
     active.read_status = Set(payload.read_status);
 
-    active.update(db.inner()).await?;
+    active.update(db).await?;
 
     Ok(())
 }
 
 #[tauri::command]
 #[instrument(skip(db))]
-pub async fn delete_paper(db: State<'_, DatabaseConnection>, id: i64) -> Result<()> {
+pub async fn delete_paper(db: State<'_, Arc<DatabaseConnection>>, id: i64) -> Result<()> {
     info!("Soft deleting paper with id {}", id);
+    let db = db.inner().as_ref();
     let paper = Papers::find_by_id(id)
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
 
     let mut active: papers::ActiveModel = paper.into();
     active.deleted_at = Set(Some(chrono::Utc::now()));
-    active.update(db.inner()).await?;
+    active.update(db).await?;
 
     Ok(())
 }
@@ -355,9 +353,10 @@ pub async fn delete_paper(db: State<'_, DatabaseConnection>, id: i64) -> Result<
 pub async fn import_paper_by_doi(
     doi: String,
     category_id: Option<i64>,
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
 ) -> Result<PaperDto> {
     info!("Importing paper with DOI: {}", doi);
+    let db = db.inner().as_ref();
 
     // Fetch metadata from DOI
     let metadata = fetch_doi_metadata(&doi).await.map_err(|e| match e {
@@ -374,7 +373,7 @@ pub async fn import_paper_by_doi(
     // Check if paper already exists
     if let Some(existing) = Papers::find()
         .filter(papers::Column::Doi.eq(&metadata.doi))
-        .one(db.inner())
+        .one(db)
         .await?
     {
         info!(
@@ -409,7 +408,7 @@ pub async fn import_paper_by_doi(
         attachment_path: Set(Some(hash_string)),
         ..Default::default()
     }
-    .insert(db.inner())
+    .insert(db)
     .await?;
 
     // Add authors
@@ -417,7 +416,7 @@ pub async fn import_paper_by_doi(
         // Find or create author
         let author = if let Some(existing_author) = Authors::find()
             .filter(authors::Column::Name.eq(author_name))
-            .one(db.inner())
+            .one(db)
             .await?
         {
             existing_author
@@ -426,7 +425,7 @@ pub async fn import_paper_by_doi(
                 name: Set(author_name.clone()),
                 ..Default::default()
             }
-            .insert(db.inner())
+            .insert(db)
             .await?
         };
 
@@ -436,7 +435,7 @@ pub async fn import_paper_by_doi(
             author_id: Set(author.id),
             ..Default::default()
         }
-        .insert(db.inner())
+        .insert(db)
         .await?;
     }
 
@@ -446,7 +445,7 @@ pub async fn import_paper_by_doi(
             paper_id: Set(paper.id),
             category_id: Set(cat_id),
         }
-        .insert(db.inner())
+        .insert(db)
         .await?;
     }
 
@@ -473,9 +472,10 @@ pub async fn import_paper_by_doi(
 pub async fn import_paper_by_arxiv_id(
     arxiv_id: String,
     category_id: Option<i64>,
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
 ) -> Result<PaperDto> {
     info!("Importing paper with arXiv ID: {}", arxiv_id);
+    let db = db.inner().as_ref();
 
     // Fetch metadata from arXiv
     let metadata = fetch_arxiv_metadata(&arxiv_id).await.map_err(|e| match e {
@@ -496,7 +496,7 @@ pub async fn import_paper_by_arxiv_id(
     if let Some(doi) = &metadata.doi {
         if let Some(existing) = Papers::find()
             .filter(papers::Column::Doi.eq(doi))
-            .one(db.inner())
+            .one(db)
             .await?
         {
             info!("Paper with DOI {} already exists, id: {}", doi, existing.id);
@@ -531,7 +531,7 @@ pub async fn import_paper_by_arxiv_id(
         attachment_path: Set(Some(hash_string)),
         ..Default::default()
     }
-    .insert(db.inner())
+    .insert(db)
     .await?;
 
     // Add authors
@@ -539,7 +539,7 @@ pub async fn import_paper_by_arxiv_id(
         // Find or create author
         let author = if let Some(existing_author) = Authors::find()
             .filter(authors::Column::Name.eq(author_name))
-            .one(db.inner())
+            .one(db)
             .await?
         {
             existing_author
@@ -548,7 +548,7 @@ pub async fn import_paper_by_arxiv_id(
                 name: Set(author_name.clone()),
                 ..Default::default()
             }
-            .insert(db.inner())
+            .insert(db)
             .await?
         };
 
@@ -558,7 +558,7 @@ pub async fn import_paper_by_arxiv_id(
             author_id: Set(author.id),
             ..Default::default()
         }
-        .insert(db.inner())
+        .insert(db)
         .await?;
     }
 
@@ -568,7 +568,7 @@ pub async fn import_paper_by_arxiv_id(
             paper_id: Set(paper.id),
             category_id: Set(cat_id),
         }
-        .insert(db.inner())
+        .insert(db)
         .await?;
     }
 
@@ -593,18 +593,19 @@ pub async fn import_paper_by_arxiv_id(
 #[tauri::command]
 #[instrument(skip(db))]
 pub async fn add_paper_label(
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     paper_id: i64,
     label_id: i64,
 ) -> Result<()> {
     info!("Adding label {} to paper {}", label_id, paper_id);
+    let db = db.inner().as_ref();
 
     // Check if relation already exists to prevent duplicates (though SeaORM might error or ignore)
     // For now, let's just try to insert. If it exists, handle error?
     // Postgres with ON CONFLICT would be nice, but active model insert is basic.
 
     if (paper_labels::Entity::find_by_id((paper_id, label_id))
-        .one(db.inner())
+        .one(db)
         .await?)
         .is_none()
     {
@@ -612,7 +613,7 @@ pub async fn add_paper_label(
             paper_id: Set(paper_id),
             label_id: Set(label_id),
         }
-        .insert(db.inner())
+        .insert(db)
         .await?;
     }
 
@@ -622,13 +623,14 @@ pub async fn add_paper_label(
 #[tauri::command]
 #[instrument(skip(db))]
 pub async fn remove_paper_label(
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     paper_id: i64,
     label_id: i64,
 ) -> Result<()> {
     info!("Removing label {} from paper {}", label_id, paper_id);
+    let db = db.inner().as_ref();
     paper_labels::Entity::delete_by_id((paper_id, label_id))
-        .exec(db.inner())
+        .exec(db)
         .await?;
     Ok(())
 }
@@ -636,10 +638,11 @@ pub async fn remove_paper_label(
 #[tauri::command]
 #[instrument(skip(db))]
 pub async fn get_papers_by_category(
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     category_id: i64,
 ) -> Result<Vec<PaperDto>> {
     info!("Fetching papers for category id: {}", category_id);
+    let db = db.inner().as_ref();
 
     // Get papers associated with this category
     let papers = Papers::find()
@@ -647,18 +650,14 @@ pub async fn get_papers_by_category(
         .filter(paper_category::Column::CategoryId.eq(category_id))
         .filter(papers::Column::DeletedAt.is_null())
         .order_by_desc(papers::Column::Id)
-        .all(db.inner())
+        .all(db)
         .await?;
 
-    let authors = papers
-        .load_many_to_many(Authors, PaperAuthors, db.inner())
-        .await?;
+    let authors = papers.load_many_to_many(Authors, PaperAuthors, db).await?;
 
-    let labels = papers
-        .load_many_to_many(Label, PaperLabels, db.inner())
-        .await?;
+    let labels = papers.load_many_to_many(Label, PaperLabels, db).await?;
 
-    let attachments = papers.load_many(Attachments, db.inner()).await?;
+    let attachments = papers.load_many(Attachments, db).await?;
 
     let dtos: Vec<PaperDto> = papers
         .into_iter()
@@ -701,7 +700,7 @@ pub async fn get_papers_by_category(
 #[tauri::command]
 #[instrument(skip(db))]
 pub async fn update_paper_category(
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     paper_id: i64,
     category_id: Option<i64>,
 ) -> Result<()> {
@@ -709,6 +708,7 @@ pub async fn update_paper_category(
         "Updating category for paper {}: {:?}",
         paper_id, category_id
     );
+    let db = db.inner().as_ref();
 
     // Transaction?
     let txn = db.begin().await?;
@@ -736,30 +736,35 @@ pub async fn update_paper_category(
 
 #[tauri::command]
 #[instrument(skip(db))]
-pub async fn restore_paper(db: State<'_, DatabaseConnection>, id: i64) -> Result<()> {
+pub async fn restore_paper(db: State<'_, Arc<DatabaseConnection>>, id: i64) -> Result<()> {
     info!("Restoring paper with id {}", id);
+    let db = db.inner().as_ref();
     let paper = Papers::find_by_id(id)
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
 
     let mut active: papers::ActiveModel = paper.into();
     active.deleted_at = Set(None);
-    active.update(db.inner()).await?;
+    active.update(db).await?;
 
     Ok(())
 }
 
 #[tauri::command]
 #[instrument(skip(db))]
-pub async fn permanently_delete_paper(db: State<'_, DatabaseConnection>, id: i64) -> Result<()> {
+pub async fn permanently_delete_paper(
+    db: State<'_, Arc<DatabaseConnection>>,
+    id: i64,
+) -> Result<()> {
     info!("Permanently deleting paper with id {}", id);
+    let db = db.inner().as_ref();
     let paper = Papers::find_by_id(id)
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
 
-    paper.delete(db.inner()).await?;
+    paper.delete(db).await?;
 
     Ok(())
 }
@@ -767,16 +772,17 @@ pub async fn permanently_delete_paper(db: State<'_, DatabaseConnection>, id: i64
 #[tauri::command]
 #[instrument(skip(db, app_dirs))]
 pub async fn add_attachment(
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
     paper_id: i64,
     file_path: String,
 ) -> Result<AttachmentDto> {
     info!("Adding attachment for paper {}: {}", paper_id, file_path);
+    let db = db.inner().as_ref();
 
     // 1. Get paper to calculate SHA1 of title
     let paper = Papers::find_by_id(paper_id)
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
 
@@ -792,7 +798,7 @@ pub async fn add_attachment(
         // Update paper with new attachment path
         let mut active: papers::ActiveModel = paper.clone().into();
         active.attachment_path = Set(Some(hash_string.clone()));
-        active.update(db.inner()).await?;
+        active.update(db).await?;
 
         hash_string
     };
@@ -837,7 +843,7 @@ pub async fn add_attachment(
         created_at: Set(Some(chrono::Utc::now())),
         ..Default::default()
     }
-    .insert(db.inner())
+    .insert(db)
     .await?;
 
     Ok(AttachmentDto {
@@ -852,13 +858,14 @@ pub async fn add_attachment(
 #[tauri::command]
 #[instrument(skip(db))]
 pub async fn get_attachments(
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     paper_id: i64,
 ) -> Result<Vec<AttachmentDto>> {
     info!("Fetching attachments for paper {}", paper_id);
+    let db = db.inner().as_ref();
     let attachments = attachments::Entity::find()
         .filter(attachments::Column::PaperId.eq(paper_id))
-        .all(db.inner())
+        .all(db)
         .await?;
 
     Ok(attachments
@@ -876,12 +883,13 @@ pub async fn get_attachments(
 #[tauri::command]
 #[instrument(skip(db, app_dirs))]
 pub async fn import_paper_by_pdf(
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
     file_path: String,
     category_id: Option<i64>,
 ) -> Result<PaperDto> {
     info!("Importing paper from PDF: {}", file_path);
+    let db = db.inner().as_ref();
     let path = PathBuf::from(&file_path);
     if !path.exists() {
         return Err(AppError::file_system(file_path, "File not found"));
@@ -935,14 +943,14 @@ pub async fn import_paper_by_pdf(
         attachment_path: Set(Some(hash_string.clone())),
         ..Default::default()
     }
-    .insert(db.inner())
+    .insert(db)
     .await?;
 
     // 6. Link authors
     for author_name in metadata.authors {
         let author = if let Some(existing) = Authors::find()
             .filter(authors::Column::Name.eq(&author_name))
-            .one(db.inner())
+            .one(db)
             .await?
         {
             existing
@@ -951,7 +959,7 @@ pub async fn import_paper_by_pdf(
                 name: Set(author_name),
                 ..Default::default()
             }
-            .insert(db.inner())
+            .insert(db)
             .await?
         };
         paper_authors::ActiveModel {
@@ -959,7 +967,7 @@ pub async fn import_paper_by_pdf(
             author_id: Set(author.id),
             ..Default::default()
         }
-        .insert(db.inner())
+        .insert(db)
         .await?;
     }
 
@@ -969,7 +977,7 @@ pub async fn import_paper_by_pdf(
             paper_id: Set(paper.id),
             category_id: Set(cat_id),
         }
-        .insert(db.inner())
+        .insert(db)
         .await?;
     }
 
@@ -994,7 +1002,7 @@ pub async fn import_paper_by_pdf(
         created_at: Set(Some(chrono::Utc::now())),
         ..Default::default()
     }
-    .insert(db.inner())
+    .insert(db)
     .await?;
 
     Ok(PaperDto {
@@ -1020,13 +1028,14 @@ pub async fn import_paper_by_pdf(
 #[instrument(skip(db, app_dirs, app))]
 pub async fn open_paper_folder(
     app: AppHandle,
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
     paper_id: i64,
 ) -> Result<()> {
     info!("Opening folder for paper {}", paper_id);
+    let db = db.inner().as_ref();
     let paper = Papers::find_by_id(paper_id)
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
 
@@ -1068,14 +1077,15 @@ pub async fn open_paper_folder(
 #[tauri::command]
 #[instrument(skip(db, app_dirs))]
 pub async fn get_pdf_attachment_path(
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
     paper_id: i64,
 ) -> Result<PdfAttachmentInfo> {
     info!("Getting PDF attachment path for paper {}", paper_id);
+    let db = db.inner().as_ref();
 
     let paper = Papers::find_by_id(paper_id)
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
 
@@ -1093,7 +1103,7 @@ pub async fn get_pdf_attachment_path(
     // Get all attachments and filter for PDF (file_type might be "pdf" or "application/pdf")
     let all_attachments = Attachments::find()
         .filter(attachments::Column::PaperId.eq(paper_id))
-        .all(db.inner())
+        .all(db)
         .await?;
 
     // Find first attachment that is a PDF (check file_type or file_name extension)
@@ -1285,14 +1295,15 @@ pub async fn read_pdf_file(app_dirs: State<'_, AppDirs>, file_path: String) -> R
 #[instrument(skip(db, app_dirs))]
 pub async fn read_pdf_as_blob(
     paper_id: i64,
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
 ) -> Result<PdfBlobResponse> {
     info!("Reading PDF as blob for paper {}", paper_id);
+    let db = db.inner().as_ref();
 
     // Get paper details
     let paper = Papers::find_by_id(paper_id)
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
 
@@ -1309,7 +1320,7 @@ pub async fn read_pdf_as_blob(
     // Get all attachments and find PDF
     let all_attachments = Attachments::find()
         .filter(attachments::Column::PaperId.eq(paper_id))
-        .all(db.inner())
+        .all(db)
         .await?;
 
     let attachment = all_attachments
@@ -1393,14 +1404,15 @@ pub async fn read_pdf_as_blob(
 pub async fn save_pdf_blob(
     paper_id: i64,
     base64_data: String,
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
 ) -> Result<PdfSaveResponse> {
     info!("Saving PDF blob for paper {}", paper_id);
+    let db = db.inner().as_ref();
 
     // Get paper details
     let paper = Papers::find_by_id(paper_id)
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
 
@@ -1417,7 +1429,7 @@ pub async fn save_pdf_blob(
     // Get all attachments and find PDF
     let all_attachments = Attachments::find()
         .filter(attachments::Column::PaperId.eq(paper_id))
-        .all(db.inner())
+        .all(db)
         .await?;
 
     let attachment = all_attachments
@@ -1516,14 +1528,15 @@ pub async fn save_pdf_with_annotations(
     paper_id: i64,
     base64_data: String,
     annotations_json: Option<String>,
-    db: State<'_, DatabaseConnection>,
+    db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
 ) -> Result<PdfSaveResponse> {
     info!("Saving PDF blob with annotations for paper {}", paper_id);
+    let db = db.inner().as_ref();
 
     // Get paper details
     let paper = Papers::find_by_id(paper_id)
-        .one(db.inner())
+        .one(db)
         .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
 
@@ -1540,7 +1553,7 @@ pub async fn save_pdf_with_annotations(
     // Get all attachments and find PDF
     let all_attachments = Attachments::find()
         .filter(attachments::Column::PaperId.eq(paper_id))
-        .all(db.inner())
+        .all(db)
         .await?;
 
     let attachment = all_attachments
@@ -1647,5 +1660,3 @@ pub async fn save_pdf_with_annotations(
         ),
     });
 }
-
-// ...existing code...

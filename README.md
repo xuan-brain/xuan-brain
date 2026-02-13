@@ -77,7 +77,7 @@
 
 ### 环境要求
 
-- Node.js 18+
+- Node.js 24+
 - yarn 1.22+
 - Rust 1.70+
 - 系统 WebView2 (Windows) / WebKit (macOS/Linux)
@@ -115,8 +115,20 @@ yarn tauri build
 **跨平台支持**:
 
 - Windows: `.msi` 安装包
-- macOS: `.dmg` 磁盘映像
+- macOS: `.dmg` 磁盘映像 (支持 Intel 和 Apple Silicon)
 - Linux: `.AppImage` / `.deb` / `.rpm`
+
+### 自动化构建
+
+项目集成了 GitHub Actions 自动化构建流程：
+
+#### Release Build（正式版本）
+当创建新的 Release 时，会自动构建并上传所有平台的安装包。
+
+#### Nightly Build（每日构建）
+每天自动构建最新开发版本，并自动创建/更新 "nightly" 预发布版本。可直接在 [Releases 页面](https://github.com/xuan-brain/xuan-brain/releases) 下载标记为 "Pre-release" 的 nightly 版本。
+
+详细信息请参阅 [发布工作流文档](docs/release-workflow.md)。
 
 ## 📖 使用文档
 

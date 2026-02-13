@@ -71,7 +71,23 @@ jobs:
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tagName: nightly
+          releaseName: 'xuan-brain Nightly Build ${{ github.run_number }}'
+          releaseBody: |
+            🌙 Nightly Build - Automated Development Build
+            
+            **Build Number:** ${{ github.run_number }}
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            
+            ⚠️ **Note:** This is an automated nightly build and may contain unstable features. Not recommended for production use.
+            
+            For stable releases, please visit the [Releases](https://github.com/${{ github.repository }}/releases) page and download a version-tagged release.
+          releaseDraft: false
+          prerelease: true
           args: --target ${{ matrix.platform.rust_target }}
 
       - name: Upload artifacts

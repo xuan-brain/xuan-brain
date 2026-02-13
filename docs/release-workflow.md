@@ -27,7 +27,31 @@ Nightly Build 用于：
 - 提前发现潜在问题
 - 为测试人员提供最新版本
 
-### 如何获取 Nightly Build
+### 🆕 Nightly Release
+
+从现在开始，每次 Nightly Build 成功后会**自动创建/更新一个名为 "nightly" 的 GitHub Release**：
+
+#### 特点
+
+- **固定标签**: 使用固定的 `nightly` 标签，每次构建会更新这个 Release
+- **预发布版本**: 标记为 `prerelease: true`，不会被视为正式版本
+- **自动更新**: 每天的构建会覆盖之前的 nightly Release
+- **包含构建信息**: Release 说明中包含构建编号、提交哈希等信息
+- **直接下载**: 所有平台的安装包直接上传到 Release，无需登录即可下载
+
+#### 如何获取 Nightly Build
+
+**方式一：通过 Nightly Release 下载（推荐）**
+
+1. 访问仓库的 [Releases](https://github.com/xuan-brain/xuan-brain/releases) 页面
+2. 找到标记为 **"Pre-release"** 的 "nightly" 版本
+3. 在 "Assets" 部分下载对应平台的安装包：
+   - Linux: `.AppImage` 和 `.deb` 包
+   - macOS: `.dmg` (Intel 和 Apple Silicon 版本)
+   - Windows: `.msi` 和 `.exe` 安装包
+4. 无需登录 GitHub 即可下载
+
+**方式二：通过 GitHub Actions Artifacts 下载**
 
 1. 访问仓库的 [Actions](https://github.com/xuan-brain/xuan-brain/actions) 页面
 2. 点击 "Nightly Build" 工作流
@@ -37,10 +61,12 @@ Nightly Build 用于：
    - `nightly-macos-x86_64` - macOS Intel 版本
    - `nightly-macos-aarch64` - macOS Apple Silicon 版本
    - `nightly-windows-x86_64` - Windows MSI 和 EXE 安装包
+5. 注意：需要登录 GitHub 才能下载 Artifacts
 
 ### 构建产物保留期
 
-Nightly Build 的产物会保留 **7 天**，之后自动删除以节省存储空间。
+- **Nightly Release**: 持续更新，始终保持最新版本可用
+- **GitHub Actions Artifacts**: 保留 **7 天**，之后自动删除
 
 ### 手动触发 Nightly Build
 
@@ -49,6 +75,8 @@ Nightly Build 的产物会保留 **7 天**，之后自动删除以节省存储�
 3. 点击右侧的 "Run workflow" 按钮
 4. 选择分支（通常是 `main`）
 5. 点击绿色的 "Run workflow" 按钮
+
+构建完成后会自动更新 "nightly" Release
 
 ---
 

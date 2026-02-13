@@ -18,7 +18,8 @@
       "Bash(yarn eslint:*)",
       "Bash(git add:*)",
       "Bash(git reset:*)",
-      "Bash(yarn remove:*)"
+      "Bash(yarn remove:*)",
+      "mcp__tauri__get_setup_instructions"
     ]
   }
 }

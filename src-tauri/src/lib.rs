@@ -50,7 +50,7 @@ pub fn run() -> Result<()> {
     // Initialize logger with console and file output
     // The WorkerGuard must be kept alive for the lifetime of the application
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwdwd| {}))
         .plugin(tauri_plugin_tracing::Builder::new().build())
@@ -60,7 +60,14 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_opener::init());
+
+    #[cfg(all(feature = "mcp-bridge", debug_assertions))]
+    {
+        builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+    }
+
+    builder
         .setup(move |app| {
             // Initialize data directories on app startup
             let app_handle = app.handle().clone();

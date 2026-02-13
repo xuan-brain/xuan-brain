@@ -40,6 +40,7 @@ tauri = { version = "2", features = ["image-ico", "image-png", "tray-icon"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-http = "2"
+tauri-plugin-mcp-bridge = { version = "0.8", optional = true }
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-os = "2"
@@ -60,3 +61,6 @@ tauri-build = { version = "2", features = [] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"
+
+[features]
+mcp-bridge = ["dep:tauri-plugin-mcp-bridge"]

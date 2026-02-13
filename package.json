@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "lint": "eslint . --ext .ts,.vue --max-warnings=0",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev --features mcp-bridge"
   },
   "dependencies": {
     "@embedpdf/vue-pdf-viewer": "^2.5.0",

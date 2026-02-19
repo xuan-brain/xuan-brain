@@ -3,7 +3,8 @@ use std::sync::Arc;
 use chrono::prelude::*;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait};
 use serde::Serialize;
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
 use crate::database::entities::{label, prelude::Label};
@@ -42,15 +43,16 @@ pub async fn get_all_labels(
 }
 
 #[tauri::command]
-#[instrument(skip(connection))]
+#[instrument(skip(connection, app))]
 pub async fn create_label(
+    app: AppHandle,
     connection: State<'_, Arc<DatabaseConnection>>,
     name: String,
     color: String,
 ) -> Result<LabelResponse> {
     info!("Creating label '{}' with color '{}'", name, color);
     let new_label = label::ActiveModel {
-        name: Set(name),
+        name: Set(name.clone()),
         color: Set(color),
         document_count: Set(Some(0)),
         created_at: Set(Local::now().naive_local()),
@@ -58,6 +60,13 @@ pub async fn create_label(
         ..Default::default()
     };
     let label = new_label.insert(connection.inner().as_ref()).await?;
+
+    let _ = app
+        .notification()
+        .builder()
+        .title("Label Created")
+        .body(format!("Label '{}' created successfully", name))
+        .show();
 
     info!("Label created successfully with id {}", label.id);
     Ok(LabelResponse {
@@ -69,8 +78,9 @@ pub async fn create_label(
 }
 
 #[tauri::command]
-#[instrument(skip(connection))]
+#[instrument(skip(connection, app))]
 pub async fn update_label(
+    app: AppHandle,
     connection: State<'_, Arc<DatabaseConnection>>,
     id: i64,
     name: Option<String>,
@@ -94,6 +104,16 @@ pub async fn update_label(
 
     let updated_label = active_model.update(connection.inner().as_ref()).await?;
 
+    let _ = app
+        .notification()
+        .builder()
+        .title("Label Updated")
+        .body(format!(
+            "Label '{}' updated successfully",
+            updated_label.name
+        ))
+        .show();
+
     info!("Label updated successfully");
     Ok(LabelResponse {
         id: updated_label.id,
@@ -104,8 +124,12 @@ pub async fn update_label(
 }
 
 #[tauri::command]
-#[instrument(skip(connection))]
-pub async fn delete_label(connection: State<'_, Arc<DatabaseConnection>>, id: i64) -> Result<()> {
+#[instrument(skip(connection, app))]
+pub async fn delete_label(
+    app: AppHandle,
+    connection: State<'_, Arc<DatabaseConnection>>,
+    id: i64,
+) -> Result<()> {
     info!("Deleting label with id: {}", id);
 
     let delete_result = Label::delete_by_id(id)
@@ -117,6 +141,12 @@ pub async fn delete_label(connection: State<'_, Arc<DatabaseConnection>>, id: i6
     if delete_result.rows_affected == 0 {
         return Err(AppError::not_found("Label", id.to_string()));
     }
+
+    let _ = app.notification()
+        .builder()
+        .title("Label Deleted")
+        .body(format!("Label with id {} deleted successfully", id))
+        .show();
 
     Ok(())
 }

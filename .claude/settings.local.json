@@ -19,7 +19,10 @@
       "Bash(git add:*)",
       "Bash(git reset:*)",
       "Bash(yarn remove:*)",
-      "mcp__tauri__get_setup_instructions"
+      "mcp__tauri__get_setup_instructions",
+      "Bash(echo:*)",
+      "Bash(printenv:*)",
+      "Bash(env:*)"
     ]
   }
 }

@@ -123,12 +123,20 @@
   "toolbar": {
     "doi": "DOI",
     "arxiv": "arXiv",
+    "pubmed": "PubMed",
+    "importPdf": "导入 PDF",
     "importByDoi": "通过 DOI 导入文献",
     "doiDescription": "输入 DOI（数字对象标识符）来导入文献。",
     "doiPlaceholder": "例如：10.1038/nature12373",
     "importByArxiv": "从 arXiv 导入文献",
     "arxivDescription": "输入 arXiv ID（例如：2301.12345）或 URL 来导入文献。",
     "arxivPlaceholder": "例如：2301.12345 或 https://arxiv.org/abs/2301.12345",
+    "importByPubmed": "从 PubMed 导入文献",
+    "pubmedDescription": "输入 PubMed ID（PMID）或 URL 来导入文献。",
+    "pubmedPlaceholder": "例如：12345678 或 https://pubmed.ncbi.nlm.nih.gov/12345678/",
+    "doiRequired": "DOI 不能为空",
+    "arxivRequired": "arXiv ID 不能为空",
+    "pmidRequired": "PMID 不能为空",
     "import": "导入"
   },
   "settings": {

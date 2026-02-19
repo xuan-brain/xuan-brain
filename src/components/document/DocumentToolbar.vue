@@ -200,29 +200,29 @@
   <!-- Toolbar -->
   <div class="document-toolbar">
     <div class="toolbar-actions">
-      <v-btn size="small" variant="tonal" prepend-icon="mdi-file-pdf-box" @click="handlePdfImport">
+      <v-btn variant="tonal" prepend-icon="mdi-file-pdf-box" class="toolbar-btn" @click="handlePdfImport">
         {{ t('toolbar.importPdf') }}
       </v-btn>
       <v-btn
-        size="small"
         variant="tonal"
         prepend-icon="mdi-identifier"
+        class="toolbar-btn"
         @click="handleDoiButtonClick"
       >
         {{ t('toolbar.doi') }}
       </v-btn>
       <v-btn
-        size="small"
         variant="tonal"
         prepend-icon="mdi-file-document-outline"
+        class="toolbar-btn"
         @click="handleArxivButtonClick"
       >
         {{ t('toolbar.arxiv') }}
       </v-btn>
       <v-btn
-        size="small"
         variant="tonal"
         prepend-icon="mdi-database-search"
+        class="toolbar-btn"
         @click="handlePmidButtonClick"
       >
         {{ t('toolbar.pubmed') }}
@@ -346,8 +346,8 @@
 <style scoped>
   .document-toolbar {
     border-bottom: 1px solid var(--vxe-table-border-color);
-    min-height: 48px;
-    padding: 8px 12px;
+    min-height: 56px;
+    padding: 10px 12px;
     background-color: var(--vxe-table-body-background-color);
     display: flex;
     align-items: center;
@@ -356,8 +356,17 @@
 
   .toolbar-actions {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
+  }
+
+  .toolbar-btn {
+    height: 36px !important;
+    padding: 0 16px !important;
+  }
+
+  .toolbar-btn :deep(.v-icon) {
+    font-size: 20px !important;
   }
 
   .dialog-description {

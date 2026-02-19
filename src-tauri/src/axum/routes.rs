@@ -1,4 +1,4 @@
-use axum::{routing::get, Router};
+use axum::{routing::get, routing::post, Router};
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
@@ -17,6 +17,10 @@ pub fn create_router(state: AppState) -> Router {
         // Papers
         .route("/api/papers", get(handlers::papers::list_papers))
         .route("/api/papers/{id}", get(handlers::papers::get_paper))
+        .route(
+            "/api/papers/import-html",
+            post(handlers::papers::import_paper_from_html),
+        )
         // Categories
         .route(
             "/api/categories",

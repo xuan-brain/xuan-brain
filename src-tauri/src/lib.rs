@@ -2,6 +2,7 @@
 mod axum;
 mod command;
 mod database;
+mod llm;
 mod papers;
 mod service;
 mod sys;

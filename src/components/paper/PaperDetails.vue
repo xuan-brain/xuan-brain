@@ -319,7 +319,7 @@ watch(
 </script>
 
 <template>
-  <div class="document-details">
+  <div class="paper-details">
     <!-- Loading state -->
     <div v-if="loading && !details" class="loading-container">
       <v-progress-circular indeterminate size="48" />
@@ -659,7 +659,7 @@ watch(
 </template>
 
 <style scoped>
-.document-details {
+.paper-details {
   height: 100%;
   overflow-y: auto;
   padding: 16px;

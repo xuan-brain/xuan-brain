@@ -198,7 +198,7 @@
 
 <template>
   <!-- Toolbar -->
-  <div class="document-toolbar">
+  <div class="paper-toolbar">
     <div class="toolbar-actions">
       <v-btn variant="tonal" prepend-icon="mdi-file-pdf-box" class="toolbar-btn" @click="handlePdfImport">
         {{ t('toolbar.importPdf') }}
@@ -344,7 +344,7 @@
 </template>
 
 <style scoped>
-  .document-toolbar {
+  .paper-toolbar {
     border-bottom: 1px solid var(--vxe-table-border-color);
     min-height: 56px;
     padding: 10px 12px;

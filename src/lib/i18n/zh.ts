@@ -41,14 +41,14 @@ export default {
     noSelection: '选择一个文档以查看详情',
   },
 
-  // Document list
-  document: {
+  // Paper list
+  paper: {
     title: '标题',
     authors: '作者',
     source: '期刊/会议',
     year: '年份',
     labels: '标签',
-    select_to_view: '选择一个文档以查看详情',
+    select_to_view: '选择一篇论文以查看详情',
   },
 
   // Theme

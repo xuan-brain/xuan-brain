@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 
-export interface Document {
+export interface Paper {
   id: number;
   title: string;
   authors: string[];
@@ -42,7 +42,7 @@ export const useAppStore = defineStore(
     // State
     const isDark = ref(true);
     const accentColor = ref("#3b82f6");
-    const selectedDocument = ref<Document | null>(null);
+    const selectedPaper = ref<Paper | null>(null);
     const selectedLLMProvider = ref<string | null>(null);
     const selectedGrobidServer = ref<string | null>(null);
     const llmProviders = ref<LLMProvider[]>([]);
@@ -70,8 +70,8 @@ export const useAppStore = defineStore(
       accentColor.value = color;
     }
 
-    function setSelectedDocument(doc: Document | null) {
-      selectedDocument.value = doc;
+    function setSelectedPaper(doc: Paper | null) {
+      selectedPaper.value = doc;
     }
 
     function setSelectedLLMProvider(providerId: string | null) {
@@ -107,7 +107,7 @@ export const useAppStore = defineStore(
     return {
       isDark,
       accentColor,
-      selectedDocument,
+      selectedPaper,
       selectedLLMProvider,
       selectedGrobidServer,
       llmProviders,
@@ -118,7 +118,7 @@ export const useAppStore = defineStore(
       toggleTheme,
       setTheme,
       setAccentColor,
-      setSelectedDocument,
+      setSelectedPaper,
       setSelectedLLMProvider,
       setSelectedGrobidServer,
       setLLMProviders,

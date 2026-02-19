@@ -5,7 +5,7 @@
   import { open } from '@tauri-apps/plugin-dialog';
   import { computed, onMounted, reactive, ref, watch } from 'vue';
   import type { VxeTablePropTypes } from 'vxe-table';
-  import DocumentToolbar from './DocumentToolbar.vue';
+  import PaperToolbar from './PaperToolbar.vue';
 
   const { t } = useI18n();
 
@@ -458,7 +458,7 @@
 </script>
 
 <template>
-  <div class="document-list">
+  <div class="paper-list">
     <!-- View indicator -->
     <div v-if="currentView === 'trash'" class="view-indicator">
       <v-icon size="small" color="warning" class="mr-2">mdi-delete</v-icon>
@@ -466,7 +466,7 @@
     </div>
 
     <!-- Toolbar -->
-    <DocumentToolbar :on-refresh="loadPapers" :selected-category-id="categoryId" />
+    <PaperToolbar :on-refresh="loadPapers" :selected-category-id="categoryId" />
 
     <div class="table-container">
       <!-- Loading overlay -->
@@ -592,7 +592,7 @@
 </template>
 
 <style scoped>
-  .document-list {
+  .paper-list {
     height: 100%;
     display: flex;
     flex-direction: column;

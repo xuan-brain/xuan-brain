@@ -41,14 +41,14 @@ export default {
     noSelection: 'Select a document to view details',
   },
 
-  // Document list
-  document: {
+  // Paper list
+  paper: {
     title: 'Title',
     authors: 'Authors',
     source: 'Journal/Conference',
     year: 'Year',
     labels: 'Labels',
-    select_to_view: 'Select a document to view details',
+    select_to_view: 'Select a paper to view details',
   },
 
   // Theme

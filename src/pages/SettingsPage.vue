@@ -2,6 +2,7 @@
 import { ref, inject } from "vue";
 import { useI18n } from "@/lib/i18n";
 import AppearanceSettings from "@/components/settings/AppearanceSettings.vue";
+import DataFolderSettings from "@/components/settings/DataFolderSettings.vue";
 import AISettings from "@/components/settings/AISettings.vue";
 import PapersSettings from "@/components/settings/PapersSettings.vue";
 import AboutSettings from "@/components/settings/AboutSettings.vue";
@@ -73,6 +74,7 @@ async function handleConfigUpdated() {
 
           <!-- System Settings -->
           <AppearanceSettings v-if="activeTab === 'system'" />
+          <DataFolderSettings v-if="activeTab === 'system'" class="mt-4" />
 
           <!-- AI Settings -->
           <AISettings

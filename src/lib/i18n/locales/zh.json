@@ -160,6 +160,37 @@
     "vuetifyVersion": "Vuetify 版本",
     "appDescription": "AI 驱动的科研文献管理桌面应用",
     "github": "GitHub",
-    "reportIssue": "报告问题"
+    "reportIssue": "报告问题",
+    "dataFolder": "数据文件夹",
+    "currentDataFolder": "当前数据文件夹",
+    "defaultLocation": "默认位置",
+    "customLocation": "自定义位置",
+    "changeDataFolder": "更改数据文件夹",
+    "selectDataFolder": "选择数据文件夹",
+    "dataFolderDescription": "此文件夹包含您的数据库、PDF 文件和配置。",
+    "totalDataSize": "数据总大小",
+    "migrationRequired": "需要数据迁移",
+    "migrationDescription": "更改数据文件夹将把所有数据移动到新位置。根据数据大小，这可能需要几分钟。",
+    "migrationWarning": "迁移完成后应用程序将自动重启。",
+    "migrationProgress": "迁移进度",
+    "applyMigration": "开始迁移",
+    "browseFolder": "浏览",
+    "restartRequired": "需要重启",
+    "restartDescription": "数据文件夹已更改。请重启应用程序以使用新位置。",
+    "restartNow": "立即重启",
+    "restartLater": "稍后重启",
+    "revertToDefault": "恢复默认位置",
+    "migrationPhase": {
+      "preparing": "准备中...",
+      "copying_database": "正在复制数据库...",
+      "copying_files": "正在复制文件...",
+      "copying_cache": "正在复制缓存...",
+      "copying_config": "正在复制配置...",
+      "copying_logs": "正在复制日志...",
+      "verifying": "正在验证数据完整性...",
+      "completed": "迁移完成！",
+      "failed": "迁移失败",
+      "rolling_back": "正在回滚更改..."
+    }
   }
 }

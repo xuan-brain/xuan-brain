@@ -14,6 +14,10 @@ use crate::command::category_command::{
     create_category, delete_category, load_categories, move_category, reorder_tree, update_category,
 };
 use crate::command::config_command::{get_app_config, save_app_config};
+use crate::command::data_folder_command::{
+    get_data_folder_info_command, get_default_data_folder, migrate_data_folder_command,
+    restart_app, revert_to_default_data_folder_command, validate_data_folder_command,
+};
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
 use crate::command::paper_command::{
     add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
@@ -64,7 +68,8 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init());
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init());
 
     #[cfg(all(feature = "mcp-bridge", debug_assertions))]
     let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
@@ -187,7 +192,14 @@ pub fn run() -> Result<()> {
             // load_annotations_data,
             // save_pdf_with_annotations_data,
             get_app_config,
-            save_app_config
+            save_app_config,
+            // Data folder commands
+            get_data_folder_info_command,
+            get_default_data_folder,
+            validate_data_folder_command,
+            migrate_data_folder_command,
+            revert_to_default_data_folder_command,
+            restart_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

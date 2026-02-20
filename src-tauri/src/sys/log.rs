@@ -1,6 +1,5 @@
 use crate::sys::error::{AppError, Result};
 use std::path::PathBuf;
-use tauri_plugin_tracing::LevelFilter;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     fmt::{self, format::FmtSpan},
@@ -39,9 +38,8 @@ pub async fn init_logger(log_dir: &PathBuf) -> Result<(WorkerGuard, impl tracing
     let (non_blocking_file_appender, file_guard) = tracing_appender::non_blocking(file_appender);
 
     // Set up environment filter with h2 and tower-http at warn level to reduce noise
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        EnvFilter::new("xuan_brain=debug,tauri=debug,h2=warn,tower_http=warn")
-    });
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("xuan_brain=debug,tauri=debug,h2=warn,tower_http=warn"));
 
     // Console layer with colored output and span events
     let console_layer = fmt::layer()

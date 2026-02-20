@@ -160,6 +160,37 @@
     "vuetifyVersion": "Vuetify Version",
     "appDescription": "AI-driven research literature management desktop application",
     "github": "GitHub",
-    "reportIssue": "Report Issue"
+    "reportIssue": "Report Issue",
+    "dataFolder": "Data Folder",
+    "currentDataFolder": "Current Data Folder",
+    "defaultLocation": "Default Location",
+    "customLocation": "Custom Location",
+    "changeDataFolder": "Change Data Folder",
+    "selectDataFolder": "Select Data Folder",
+    "dataFolderDescription": "This folder contains your database, PDF files, and configuration.",
+    "totalDataSize": "Total Data Size",
+    "migrationRequired": "Data Migration Required",
+    "migrationDescription": "Changing the data folder will move all your data to the new location. This may take several minutes depending on your data size.",
+    "migrationWarning": "The application will restart automatically after migration.",
+    "migrationProgress": "Migration Progress",
+    "applyMigration": "Start Migration",
+    "browseFolder": "Browse",
+    "restartRequired": "Restart Required",
+    "restartDescription": "The data folder has been changed. Please restart the application to use the new location.",
+    "restartNow": "Restart Now",
+    "restartLater": "Restart Later",
+    "revertToDefault": "Revert to Default",
+    "migrationPhase": {
+      "preparing": "Preparing...",
+      "copying_database": "Copying database...",
+      "copying_files": "Copying files...",
+      "copying_cache": "Copying cache...",
+      "copying_config": "Copying configuration...",
+      "copying_logs": "Copying logs...",
+      "verifying": "Verifying data integrity...",
+      "completed": "Migration completed!",
+      "failed": "Migration failed",
+      "rolling_back": "Rolling back changes..."
+    }
   }
 }

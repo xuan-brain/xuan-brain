@@ -2,8 +2,9 @@
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+  import { listen } from '@tauri-apps/api/event';
   import { open } from '@tauri-apps/plugin-dialog';
-  import { computed, onMounted, reactive, ref, watch } from 'vue';
+  import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
   import type { VxeTablePropTypes } from 'vxe-table';
   import PaperToolbar from './PaperToolbar.vue';
 
@@ -446,9 +447,23 @@
     }
   );
 
-  // Load on mount
-  onMounted(() => {
+  // Listen for paper import events from API
+  let unlistenPaperImported: (() => void) | null = null;
+
+  onMounted(async () => {
     loadPapers();
+
+    // Listen for paper:imported event from backend
+    unlistenPaperImported = await listen('paper:imported', () => {
+      console.info('Received paper:imported event, refreshing paper list');
+      loadPapers();
+    });
+  });
+
+  onUnmounted(() => {
+    if (unlistenPaperImported) {
+      unlistenPaperImported();
+    }
   });
 
   // Expose load function for parent component refresh

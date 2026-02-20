@@ -90,10 +90,12 @@ pub fn run() -> Result<()> {
                     info!("Database connection initialized");
                     let db_arc = Arc::new(db);
                     app_handle.manage(db_arc.clone());
-                    tauri::async_runtime::spawn(async move {
-                        // Start Axum API server
-                        crate::axum::start_axum_server(db_arc, app_dirs_for_axum);
-                    });
+                    // Start Axum API server with app handle for event emission
+                    crate::axum::start_axum_server_with_handle(
+                        db_arc,
+                        app_dirs_for_axum,
+                        app_handle,
+                    );
                 }
                 Err(e) => {
                     tracing::error!("Failed to initialize database connection: {}", e);

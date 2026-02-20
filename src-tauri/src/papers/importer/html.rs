@@ -29,22 +29,34 @@ pub enum HtmlImportError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedPaperMetadata {
     pub title: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_null_vec")]
     pub authors: Vec<String>,
-    #[serde(rename = "abstract")]
+    pub doi: Option<String>,
+    #[serde(rename = "abstract_text")]
     pub abstract_text: Option<String>,
-    pub publication_year: Option<i64>,
+    #[serde(rename = "journal")]
     pub journal_name: Option<String>,
-    pub conference_name: Option<String>,
+    #[serde(rename = "year")]
+    pub publication_year: Option<i64>,
     pub volume: Option<String>,
     pub issue: Option<String>,
     pub pages: Option<String>,
-    pub doi: Option<String>,
     pub url: Option<String>,
-    #[serde(default)]
+    pub source_domain: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_null_vec")]
     pub keywords: Vec<String>,
+    pub extra: Option<serde_json::Value>,
     #[serde(default)]
     pub error: Option<String>,
+}
+
+/// Custom deserializer to handle null values for Vec fields
+fn deserialize_null_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::<Vec<String>>::deserialize(deserializer)?;
+    Ok(opt.unwrap_or_default())
 }
 
 /// Extract paper metadata from HTML content using AI
@@ -59,8 +71,8 @@ pub async fn extract_paper_from_html(
     // Build the prompt with HTML content
     let user_content = format!("{}{}", HTML_PAPER_EXTRACTION_PROMPT, html_content);
 
-    // Call LLM API
-    let response = client.chat(provider, "You are a scholarly paper metadata extraction assistant.", &user_content).await?;
+    // Call LLM API - system prompt is empty since the full prompt is in user_content
+    let response = client.chat(provider, "", &user_content).await?;
 
     info!("LLM response received, parsing metadata");
 
@@ -102,16 +114,26 @@ mod tests {
         let json = r#"{
             "title": "Test Paper Title",
             "authors": ["Author 1", "Author 2"],
-            "abstract": "This is a test abstract.",
-            "publication_year": 2024,
-            "journal_name": "Test Journal",
-            "doi": "10.1000/test123"
+            "abstract_text": "This is a test abstract.",
+            "year": 2024,
+            "journal": "Test Journal",
+            "doi": "10.1000/test123",
+            "volume": "10",
+            "issue": "2",
+            "pages": "1-15",
+            "url": "https://example.com/paper",
+            "source_domain": "example.com",
+            "keywords": ["machine learning", "deep learning"],
+            "extra": {"pii": "S12345678901234567"}
         }"#;
 
         let metadata: ExtractedPaperMetadata = serde_json::from_str(json).unwrap();
         assert_eq!(metadata.title, "Test Paper Title");
         assert_eq!(metadata.authors.len(), 2);
         assert_eq!(metadata.publication_year, Some(2024));
+        assert_eq!(metadata.journal_name, Some("Test Journal".to_string()));
+        assert_eq!(metadata.keywords.len(), 2);
+        assert!(metadata.extra.is_some());
     }
 
     #[test]
@@ -124,6 +146,7 @@ mod tests {
         assert_eq!(metadata.title, "Minimal Paper");
         assert!(metadata.authors.is_empty());
         assert!(metadata.publication_year.is_none());
+        assert!(metadata.extra.is_none());
     }
 
     #[test]
@@ -136,5 +159,19 @@ mod tests {
         let metadata: ExtractedPaperMetadata = serde_json::from_str(json).unwrap();
         assert!(metadata.error.is_some());
         assert_eq!(metadata.error.unwrap(), "Title not found in HTML");
+    }
+
+    #[test]
+    fn test_parse_null_keywords_and_authors() {
+        let json = r#"{
+            "title": "Test Paper",
+            "authors": null,
+            "keywords": null
+        }"#;
+
+        let metadata: ExtractedPaperMetadata = serde_json::from_str(json).unwrap();
+        assert_eq!(metadata.title, "Test Paper");
+        assert!(metadata.authors.is_empty());
+        assert!(metadata.keywords.is_empty());
     }
 }

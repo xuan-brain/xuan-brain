@@ -1,11 +1,14 @@
 use axum::{
+    body::Bytes,
     extract::{Path, State},
     Json,
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
+use tauri::Emitter;
 use tracing::info;
+use utoipa::ToSchema;
 
 use crate::axum::error::ApiError;
 use crate::axum::state::AppState;
@@ -13,6 +16,17 @@ use crate::database::entities::{authors, paper_authors, paper_category, papers, 
 use crate::papers::importer::html::{extract_paper_from_html, HtmlImportError};
 use crate::sys::config::AppConfig;
 
+/// List all papers
+///
+/// Returns a list of all papers in the database with basic metadata.
+#[utoipa::path(
+    get,
+    path = "/api/papers",
+    tag = "papers",
+    responses(
+        (status = 200, description = "List of papers", body = Vec<serde_json::Value>)
+    )
+)]
 pub async fn list_papers(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<serde_json::Value>>, ApiError> {
@@ -43,6 +57,21 @@ pub async fn list_papers(
     Ok(Json(result))
 }
 
+/// Get a paper by ID
+///
+/// Returns detailed information about a specific paper including notes and read status.
+#[utoipa::path(
+    get,
+    path = "/api/papers/{id}",
+    tag = "papers",
+    params(
+        ("id" = i64, Path, description = "Paper ID")
+    ),
+    responses(
+        (status = 200, description = "Paper details", body = serde_json::Value),
+        (status = 404, description = "Paper not found")
+    )
+)]
 pub async fn get_paper(
     State(state): State<AppState>,
     Path(id): Path<i64>,
@@ -74,27 +103,48 @@ pub async fn get_paper(
     }
 }
 
-/// Request body for importing paper from HTML
-#[derive(Deserialize)]
-pub struct ImportHtmlRequest {
-    pub html: String,
-    pub category_id: Option<i64>,
-}
-
 /// Response for HTML import
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ImportHtmlResponse {
+    /// Whether the import was successful
     pub success: bool,
+    /// Imported paper data (if successful)
     pub paper: Option<serde_json::Value>,
+    /// Error message (if failed)
     pub error: Option<String>,
 }
 
 /// Import paper from HTML content using AI
+///
+/// Extracts paper metadata from HTML content using AI and creates a new paper record.
+/// The endpoint uses configured LLM providers to parse title, authors, DOI, and other metadata.
+///
+/// Request body should be raw HTML content (text/html or text/plain).
+#[utoipa::path(
+    post,
+    path = "/api/papers/import-html",
+    tag = "papers",
+    request_body(
+        content = String,
+        content_type = "text/html"
+    ),
+    responses(
+        (status = 200, description = "Import result", body = ImportHtmlResponse),
+        (status = 400, description = "Invalid request or no LLM provider configured")
+    )
+)]
 pub async fn import_paper_from_html(
     State(state): State<AppState>,
-    Json(payload): Json<ImportHtmlRequest>,
+    body: Bytes,
 ) -> Result<Json<ImportHtmlResponse>, ApiError> {
     info!("Importing paper from HTML via API");
+
+    let html = String::from_utf8(body.to_vec()).map_err(|e| {
+        ApiError(crate::sys::error::AppError::validation(
+            "html",
+            format!("Invalid UTF-8 content: {}", e),
+        ))
+    })?;
 
     let db = &*state.db;
 
@@ -121,8 +171,11 @@ pub async fn import_paper_from_html(
         })?;
 
     // 3. Extract metadata from HTML using AI
-    let metadata = match extract_paper_from_html(&payload.html, provider).await {
-        Ok(m) => m,
+    let metadata = match extract_paper_from_html(&html, provider).await {
+        Ok(m) => {
+            info!("Extracted metadata from LLM: {:?}", m);
+            m
+        }
         Err(HtmlImportError::AiError(msg)) => {
             return Ok(Json(ImportHtmlResponse {
                 success: false,
@@ -193,7 +246,6 @@ pub async fn import_paper_from_html(
         doi: Set(metadata.doi.filter(|d| !d.is_empty())),
         publication_year: Set(metadata.publication_year),
         journal_name: Set(metadata.journal_name),
-        conference_name: Set(metadata.conference_name),
         url: Set(metadata.url.filter(|u| !u.is_empty())),
         r#abstract: Set(metadata.abstract_text),
         volume: Set(metadata.volume),
@@ -243,21 +295,19 @@ pub async fn import_paper_from_html(
         .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?;
     }
 
-    // 9. Link category if provided
-    if let Some(cat_id) = payload.category_id {
-        paper_category::ActiveModel {
-            paper_id: Set(paper.id),
-            category_id: Set(cat_id),
-        }
-        .insert(db)
-        .await
-        .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?;
-    }
-
     info!(
         "Successfully imported paper from HTML: {} (id: {})",
         paper.title, paper.id
     );
+
+    // 9. Emit event to notify frontend to refresh paper list
+    if let Some(app_handle) = &state.app_handle {
+        let _ = app_handle.emit("paper:imported", serde_json::json!({
+            "id": paper.id,
+            "title": paper.title,
+        }));
+        info!("Emitted paper:imported event for paper id: {}", paper.id);
+    }
 
     // 10. Return response
     Ok(Json(ImportHtmlResponse {
@@ -267,7 +317,6 @@ pub async fn import_paper_from_html(
             "title": paper.title,
             "publication_year": paper.publication_year,
             "journal_name": paper.journal_name,
-            "conference_name": paper.conference_name,
             "authors": metadata.authors,
             "doi": paper.doi,
             "url": paper.url,

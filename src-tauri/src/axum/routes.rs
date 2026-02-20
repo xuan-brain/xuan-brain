@@ -3,6 +3,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 use crate::axum::handlers;
+use crate::axum::openapi::create_swagger_ui;
 use crate::axum::state::AppState;
 
 pub fn create_router(state: AppState) -> Router {
@@ -28,6 +29,8 @@ pub fn create_router(state: AppState) -> Router {
         )
         // Labels
         .route("/api/labels", get(handlers::labels::list_labels))
+        // Swagger UI (always available for debugging)
+        .merge(create_swagger_ui())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state)

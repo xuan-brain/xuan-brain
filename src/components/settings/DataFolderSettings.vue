@@ -32,6 +32,28 @@ interface MigrationStatus {
   error: string | null;
 }
 
+// Database migration types
+interface DbMigrationStatus {
+  can_migrate: boolean;
+  sqlite_papers_count: number;
+  surreal_papers_count: number;
+  message: string;
+}
+
+interface DbMigrationReport {
+  papers_migrated: number;
+  authors_migrated: number;
+  keywords_migrated: number;
+  labels_migrated: number;
+  categories_migrated: number;
+  attachments_migrated: number;
+  paper_author_relations: number;
+  paper_label_relations: number;
+  paper_category_relations: number;
+  errors: string[];
+  duration_ms: number;
+}
+
 // State
 const dataFolderInfo = ref<DataFolderInfo | null>(null);
 const loading = ref(false);
@@ -43,6 +65,12 @@ const validating = ref(false);
 const showMigrationDialog = ref(false);
 const migrating = ref(false);
 const migrationStatus = ref<MigrationStatus | null>(null);
+
+// Database migration state
+const dbMigrationStatus = ref<DbMigrationStatus | null>(null);
+const dbMigrationReport = ref<DbMigrationReport | null>(null);
+const dbMigrating = ref(false);
+const showDbMigrationDialog = ref(false);
 
 // Event listener
 let unlisten: UnlistenFn | null = null;
@@ -175,9 +203,60 @@ function closeMigrationDialog() {
   showMigrationDialog.value = false;
 }
 
+// Database migration functions
+async function loadDbMigrationStatus() {
+  try {
+    dbMigrationStatus.value = await invokeCommand<DbMigrationStatus>("get_migration_status");
+    console.info("Database migration status:", dbMigrationStatus.value);
+  } catch (error) {
+    console.error("Failed to load database migration status:", error);
+    dbMigrationStatus.value = null;
+  }
+}
+
+async function startDbMigration() {
+  if (!dbMigrationStatus.value?.can_migrate) return;
+
+  dbMigrating.value = true;
+  showDbMigrationDialog.value = true;
+  dbMigrationReport.value = null;
+
+  try {
+    dbMigrationReport.value = await invokeCommand<DbMigrationReport>("run_migration");
+    console.info("Database migration report:", dbMigrationReport.value);
+    // Refresh status after migration
+    await loadDbMigrationStatus();
+  } catch (error) {
+    console.error("Database migration failed:", error);
+    dbMigrationReport.value = {
+      papers_migrated: 0,
+      authors_migrated: 0,
+      keywords_migrated: 0,
+      labels_migrated: 0,
+      categories_migrated: 0,
+      attachments_migrated: 0,
+      paper_author_relations: 0,
+      paper_label_relations: 0,
+      paper_category_relations: 0,
+      errors: [String(error)],
+      duration_ms: 0,
+    };
+  } finally {
+    dbMigrating.value = false;
+  }
+}
+
+function closeDbMigrationDialog() {
+  showDbMigrationDialog.value = false;
+  if (dbMigrationReport.value && dbMigrationReport.value.errors.length === 0) {
+    dbMigrationReport.value = null;
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
   await loadDataFolderInfo();
+  await loadDbMigrationStatus();
 
   // Listen for migration progress events
   try {
@@ -305,6 +384,69 @@ onUnmounted(() => {
 
         <v-divider class="my-4" />
 
+        <!-- Database Migration (SQLite to SurrealDB) -->
+        <div class="setting-section">
+          <div class="setting-label">
+            <v-icon class="mr-2">mdi-database-sync</v-icon>
+            <span>{{ t("settings.dbMigration") }}</span>
+          </div>
+          <div class="mt-2">
+            <p class="text-body-2 text-medium-emphasis mb-3">
+              {{ t("settings.dbMigrationDescription") }}
+            </p>
+
+            <!-- Migration status -->
+            <div v-if="dbMigrationStatus" class="mb-3">
+              <v-chip-group>
+                <v-chip size="small" color="info">
+                  SQLite: {{ dbMigrationStatus.sqlite_papers_count }} papers
+                </v-chip>
+                <v-chip size="small" color="success">
+                  SurrealDB: {{ dbMigrationStatus.surreal_papers_count }} papers
+                </v-chip>
+              </v-chip-group>
+
+              <v-alert
+                v-if="dbMigrationStatus.can_migrate && dbMigrationStatus.sqlite_papers_count > dbMigrationStatus.surreal_papers_count"
+                type="info"
+                density="compact"
+                class="mt-2"
+              >
+                {{ dbMigrationStatus.message }}
+              </v-alert>
+              <v-alert
+                v-else-if="dbMigrationStatus.sqlite_papers_count === 0"
+                type="info"
+                density="compact"
+                class="mt-2"
+              >
+                {{ t("settings.noDataToMigrate") }}
+              </v-alert>
+              <v-alert
+                v-else
+                type="success"
+                density="compact"
+                class="mt-2"
+              >
+                {{ t("settings.migrationCompleted") }}
+              </v-alert>
+            </div>
+
+            <!-- Migrate button -->
+            <v-btn
+              v-if="dbMigrationStatus?.can_migrate && dbMigrationStatus.sqlite_papers_count > dbMigrationStatus.surreal_papers_count"
+              color="primary"
+              :loading="dbMigrating"
+              @click="startDbMigration"
+            >
+              <v-icon start>mdi-database-arrow-right</v-icon>
+              {{ t("settings.startDbMigration") }}
+            </v-btn>
+          </div>
+        </div>
+
+        <v-divider class="my-4" />
+
         <!-- Revert to default -->
         <div v-if="dataFolderInfo.is_custom" class="setting-section">
           <div class="setting-label">
@@ -362,6 +504,100 @@ onUnmounted(() => {
             v-if="migrationStatus?.phase === 'failed'"
             @click="closeMigrationDialog"
           >
+            {{ t("dialog.close") }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Database Migration Dialog -->
+    <v-dialog v-model="showDbMigrationDialog" max-width="600" persistent>
+      <v-card>
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span>{{ t("settings.dbMigrationProgress") }}</span>
+          <v-btn v-if="!dbMigrating" icon="mdi-close" variant="text" @click="closeDbMigrationDialog" />
+        </v-card-title>
+
+        <v-card-text>
+          <!-- Migration in progress -->
+          <div v-if="dbMigrating" class="text-center py-8">
+            <v-progress-circular indeterminate size="64" class="mb-4" />
+            <p class="text-h6">{{ t("settings.migratingData") }}</p>
+            <p class="text-body-2 text-medium-emphasis">{{ t("settings.pleaseWait") }}</p>
+          </div>
+
+          <!-- Migration report -->
+          <div v-else-if="dbMigrationReport">
+            <v-alert
+              :type="dbMigrationReport.errors.length > 0 ? 'warning' : 'success'"
+              class="mb-4"
+            >
+              {{ dbMigrationReport.errors.length > 0 ? t("settings.migrationCompletedWithErrors") : t("settings.migrationCompletedSuccess") }}
+            </v-alert>
+
+            <v-list density="compact">
+              <v-list-item v-if="dbMigrationReport.papers_migrated > 0">
+                <v-list-item-title>{{ t("settings.papers") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ dbMigrationReport.papers_migrated }}</v-chip>
+                </template>
+              </v-list-item>
+              <v-list-item v-if="dbMigrationReport.authors_migrated > 0">
+                <v-list-item-title>{{ t("settings.authors") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ dbMigrationReport.authors_migrated }}</v-chip>
+                </template>
+              </v-list-item>
+              <v-list-item v-if="dbMigrationReport.keywords_migrated > 0">
+                <v-list-item-title>{{ t("settings.keywords") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ dbMigrationReport.keywords_migrated }}</v-chip>
+                </template>
+              </v-list-item>
+              <v-list-item v-if="dbMigrationReport.labels_migrated > 0">
+                <v-list-item-title>{{ t("settings.labels") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ dbMigrationReport.labels_migrated }}</v-chip>
+                </template>
+              </v-list-item>
+              <v-list-item v-if="dbMigrationReport.categories_migrated > 0">
+                <v-list-item-title>{{ t("settings.categories") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ dbMigrationReport.categories_migrated }}</v-chip>
+                </template>
+              </v-list-item>
+              <v-list-item v-if="dbMigrationReport.attachments_migrated > 0">
+                <v-list-item-title>{{ t("settings.attachments") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ dbMigrationReport.attachments_migrated }}</v-chip>
+                </template>
+              </v-list-item>
+              <v-list-item v-if="dbMigrationReport.duration_ms > 0">
+                <v-list-item-title>{{ t("settings.duration") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ (dbMigrationReport.duration_ms / 1000).toFixed(2) }}s</v-chip>
+                </template>
+              </v-list-item>
+            </v-list>
+
+            <v-alert
+              v-if="dbMigrationReport.errors && dbMigrationReport.errors.length > 0"
+              type="warning"
+              class="mt-4"
+            >
+              <p class="font-weight-bold mb-2">{{ t("settings.migrationErrors") }}</p>
+              <v-list density="compact" bg-color="transparent">
+                <v-list-item v-for="(error, i) in dbMigrationReport.errors" :key="i">
+                  <v-list-item-title>{{ error }}</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-alert>
+          </div>
+        </v-card-text>
+
+        <v-card-actions v-if="!dbMigrating && dbMigrationReport">
+          <v-spacer />
+          <v-btn color="primary" variant="flat" @click="closeDbMigrationDialog">
             {{ t("dialog.close") }}
           </v-btn>
         </v-card-actions>

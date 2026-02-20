@@ -82,6 +82,10 @@ pub enum AppError {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
 
+    /// SurrealDB error
+    #[error("SurrealDB error: {operation} - {message}")]
+    SurrealDbError { operation: String, message: String },
+
     /// Generic error with message
     #[error("{0}")]
     Generic(String),
@@ -391,7 +395,10 @@ impl Serialize for AppError {
                 required: None,
                 available: None,
             },
-            AppError::InsufficientSpace { required, available } => ErrorResponse {
+            AppError::InsufficientSpace {
+                required,
+                available,
+            } => ErrorResponse {
                 error_type: "InsufficientSpace",
                 message: None,
                 path: None,
@@ -413,6 +420,23 @@ impl Serialize for AppError {
                 message: Some(&err.to_string()),
                 path: None,
                 operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
+            },
+            AppError::SurrealDbError { operation, message } => ErrorResponse {
+                error_type: "SurrealDbError",
+                message: Some(message),
+                path: None,
+                operation: Some(operation),
                 service: None,
                 plugin_name: None,
                 key: None,
@@ -566,7 +590,23 @@ impl AppError {
 
     /// Create an insufficient space error
     pub fn insufficient_space(required: u64, available: u64) -> Self {
-        AppError::InsufficientSpace { required, available }
+        AppError::InsufficientSpace {
+            required,
+            available,
+        }
+    }
+
+    /// Create a generic error
+    pub fn generic(message: impl Into<String>) -> Self {
+        AppError::Generic(message.into())
+    }
+
+    /// Create a SurrealDB error
+    pub fn surrealdb_error(operation: impl Into<String>, message: impl Into<String>) -> Self {
+        AppError::SurrealDbError {
+            operation: operation.into(),
+            message: message.into(),
+        }
     }
 }
 

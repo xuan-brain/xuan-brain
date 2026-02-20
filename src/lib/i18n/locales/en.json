@@ -191,6 +191,24 @@
       "completed": "Migration completed!",
       "failed": "Migration failed",
       "rolling_back": "Rolling back changes..."
-    }
+    },
+    "dbMigration": "Database Migration",
+    "dbMigrationDescription": "Migrate data from SQLite to SurrealDB for better performance and graph relationships.",
+    "noDataToMigrate": "No data to migrate. SQLite database is empty.",
+    "migrationCompleted": "Migration completed. All data is already in SurrealDB.",
+    "startDbMigration": "Migrate to SurrealDB",
+    "dbMigrationProgress": "Database Migration",
+    "migratingData": "Migrating data...",
+    "pleaseWait": "Please wait while we transfer your data",
+    "migrationCompletedSuccess": "Migration completed successfully!",
+    "migrationCompletedWithErrors": "Migration completed with some errors",
+    "migrationErrors": "Some errors occurred:",
+    "papers": "Papers",
+    "authors": "Authors",
+    "keywords": "Keywords",
+    "labels": "Labels",
+    "categories": "Categories",
+    "attachments": "Attachments",
+    "duration": "Duration"
   }
 }

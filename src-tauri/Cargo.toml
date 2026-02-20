@@ -33,6 +33,10 @@ sea-orm = { version = "=2.0.0-rc.28", features = [
   "sqlx-sqlite",
   "with-chrono",
 ] }
+# SurrealDB 3.0 - embedded database with RocksDB persistence
+surrealdb = { version = "3", features = ["kv-mem", "kv-rocksdb"] }
+# SurrealDB types for SurrealValue derive macro
+surrealdb-types = "3"
 # anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

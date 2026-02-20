@@ -191,6 +191,24 @@
       "completed": "迁移完成！",
       "failed": "迁移失败",
       "rolling_back": "正在回滚更改..."
-    }
+    },
+    "dbMigration": "数据库迁移",
+    "dbMigrationDescription": "将数据从 SQLite 迁移到 SurrealDB，以获得更好的性能和图关系支持。",
+    "noDataToMigrate": "没有需要迁移的数据。SQLite 数据库为空。",
+    "migrationCompleted": "迁移已完成。所有数据已在 SurrealDB 中。",
+    "startDbMigration": "迁移到 SurrealDB",
+    "dbMigrationProgress": "数据库迁移",
+    "migratingData": "正在迁移数据...",
+    "pleaseWait": "请稍候，正在传输您的数据",
+    "migrationCompletedSuccess": "迁移成功完成！",
+    "migrationCompletedWithErrors": "迁移完成，但有一些错误",
+    "migrationErrors": "发生了一些错误：",
+    "papers": "论文",
+    "authors": "作者",
+    "keywords": "关键词",
+    "labels": "标签",
+    "categories": "分类",
+    "attachments": "附件",
+    "duration": "耗时"
   }
 }

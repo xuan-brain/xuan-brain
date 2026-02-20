@@ -4,7 +4,7 @@ use axum::{
     Json,
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sha1::{Digest, Sha1};
 use tauri::Emitter;
 use tracing::info;
@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 
 use crate::axum::error::ApiError;
 use crate::axum::state::AppState;
-use crate::database::entities::{authors, paper_authors, paper_category, papers, prelude::*};
+use crate::database::entities::{authors, paper_authors, papers, prelude::*};
 use crate::papers::importer::html::{extract_paper_from_html, HtmlImportError};
 use crate::sys::config::AppConfig;
 
@@ -302,10 +302,13 @@ pub async fn import_paper_from_html(
 
     // 9. Emit event to notify frontend to refresh paper list
     if let Some(app_handle) = &state.app_handle {
-        let _ = app_handle.emit("paper:imported", serde_json::json!({
-            "id": paper.id,
-            "title": paper.title,
-        }));
+        let _ = app_handle.emit(
+            "paper:imported",
+            serde_json::json!({
+                "id": paper.id,
+                "title": paper.title,
+            }),
+        );
         info!("Emitted paper:imported event for paper id: {}", paper.id);
     }
 

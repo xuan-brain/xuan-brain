@@ -22,7 +22,10 @@
       "mcp__tauri__get_setup_instructions",
       "Bash(echo:*)",
       "Bash(printenv:*)",
-      "Bash(env:*)"
+      "Bash(env:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo check:*)"
     ]
   }
 }

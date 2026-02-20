@@ -4,7 +4,7 @@
 //! (database, files, cache, config, logs) from one location to another.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter};
 use tracing::{info, warn};
 
@@ -34,12 +34,12 @@ impl DataMigrationService {
     /// Get the actual XuanBrain directory from a base path
     /// If the path already ends with APP_FOLDER, return it directly
     /// Otherwise, append APP_FOLDER
-    fn get_xuanbrain_dir(base: &PathBuf) -> PathBuf {
+    fn get_xuanbrain_dir(base: &Path) -> PathBuf {
         if base.file_name()
             .map(|name| name.to_string_lossy() == APP_FOLDER)
             .unwrap_or(false)
         {
-            base.clone()
+            base.to_path_buf()
         } else {
             base.join(APP_FOLDER)
         }
@@ -48,16 +48,16 @@ impl DataMigrationService {
     /// Get the parent directory (for saving to config)
     /// If the path ends with APP_FOLDER, return its parent
     /// Otherwise, return the path as-is
-    fn get_parent_dir(base: &PathBuf) -> PathBuf {
+    fn get_parent_dir(base: &Path) -> PathBuf {
         if base.file_name()
             .map(|name| name.to_string_lossy() == APP_FOLDER)
             .unwrap_or(false)
         {
             base.parent()
                 .map(|p| p.to_path_buf())
-                .unwrap_or_else(|| base.clone())
+                .unwrap_or_else(|| base.to_path_buf())
         } else {
-            base.clone()
+            base.to_path_buf()
         }
     }
 
@@ -587,7 +587,7 @@ fn copy_directory_with_progress(
                 *processed_files += 1;
 
                 // Emit progress every 10 files or for every file if total is small
-                if *copied % 10 == 0 || total_files < 50 {
+                if (*copied).is_multiple_of(10) || total_files < 50 {
                     let status = MigrationStatus {
                         phase: phase.clone(),
                         current_file: Some(file_name.to_string_lossy().to_string()),

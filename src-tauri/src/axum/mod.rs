@@ -5,4 +5,4 @@ pub mod routes;
 pub mod server;
 pub mod state;
 
-pub use server::{start_axum_server, start_axum_server_with_handle};
+pub use server::start_axum_server_with_handle;

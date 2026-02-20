@@ -7,6 +7,7 @@ use sha1::{Digest, Sha1};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{AppHandle, State};
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 use tracing::{info, instrument};
 
@@ -16,6 +17,7 @@ use crate::database::entities::{
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
 use crate::papers::importer::grobid::process_header_document;
+use crate::papers::importer::pubmed::{fetch_pubmed_metadata, PubmedError};
 use crate::sys::config::AppConfig;
 use crate::sys::dirs::AppDirs;
 use crate::sys::error::{AppError, Result};
@@ -297,8 +299,9 @@ pub async fn get_paper(
 }
 
 #[tauri::command]
-#[instrument(skip(db))]
+#[instrument(skip(db, app))]
 pub async fn update_paper_details(
+    app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     payload: UpdatePaperDto,
 ) -> Result<()> {
@@ -313,7 +316,7 @@ pub async fn update_paper_details(
 
     let mut active: papers::ActiveModel = paper.into();
 
-    active.title = Set(payload.title);
+    active.title = Set(payload.title.clone());
     active.publication_year = Set(payload.publication_year);
     active.journal_name = Set(payload.journal_name);
     active.conference_name = Set(payload.conference_name);
@@ -328,12 +331,23 @@ pub async fn update_paper_details(
 
     active.update(db).await?;
 
+    let _ = app
+        .notification()
+        .builder()
+        .title("Paper Updated")
+        .body(format!("Paper '{}' updated successfully", payload.title))
+        .show();
+
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db))]
-pub async fn delete_paper(db: State<'_, Arc<DatabaseConnection>>, id: i64) -> Result<()> {
+#[instrument(skip(db, app))]
+pub async fn delete_paper(
+    app: AppHandle,
+    db: State<'_, Arc<DatabaseConnection>>,
+    id: i64,
+) -> Result<()> {
     info!("Soft deleting paper with id {}", id);
     let db = db.inner().as_ref();
     let paper = Papers::find_by_id(id)
@@ -341,16 +355,24 @@ pub async fn delete_paper(db: State<'_, Arc<DatabaseConnection>>, id: i64) -> Re
         .await?
         .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
 
-    let mut active: papers::ActiveModel = paper.into();
+    let mut active: papers::ActiveModel = paper.clone().into();
     active.deleted_at = Set(Some(chrono::Utc::now()));
     active.update(db).await?;
+
+    let _ = app
+        .notification()
+        .builder()
+        .title("Paper Deleted")
+        .body(format!("Paper '{}' moved to trash", paper.title))
+        .show();
 
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db))]
+#[instrument(skip(db, app))]
 pub async fn import_paper_by_doi(
+    app: AppHandle,
     doi: String,
     category_id: Option<i64>,
     db: State<'_, Arc<DatabaseConnection>>,
@@ -454,6 +476,13 @@ pub async fn import_paper_by_doi(
         metadata.title, paper.id, metadata.doi
     );
 
+    let _ = app
+        .notification()
+        .builder()
+        .title("Paper Imported")
+        .body(format!("Paper '{}' imported successfully", paper.title))
+        .show();
+
     Ok(PaperDto {
         id: paper.id,
         title: paper.title,
@@ -468,8 +497,9 @@ pub async fn import_paper_by_doi(
 }
 
 #[tauri::command]
-#[instrument(skip(db))]
+#[instrument(skip(db, app))]
 pub async fn import_paper_by_arxiv_id(
+    app: AppHandle,
     arxiv_id: String,
     category_id: Option<i64>,
     db: State<'_, Arc<DatabaseConnection>>,
@@ -577,6 +607,13 @@ pub async fn import_paper_by_arxiv_id(
         metadata.title, paper.id, metadata.arxiv_id
     );
 
+    let _ = app
+        .notification()
+        .builder()
+        .title("Paper Imported")
+        .body(format!("Paper '{}' imported successfully", paper.title))
+        .show();
+
     Ok(PaperDto {
         id: paper.id,
         title: paper.title,
@@ -591,8 +628,144 @@ pub async fn import_paper_by_arxiv_id(
 }
 
 #[tauri::command]
-#[instrument(skip(db))]
+#[instrument(skip(db, app))]
+pub async fn import_paper_by_pmid(
+    app: AppHandle,
+    pmid: String,
+    category_id: Option<i64>,
+    db: State<'_, Arc<DatabaseConnection>>,
+) -> Result<PaperDto> {
+    info!("Importing paper with PMID: {}", pmid);
+    let db = db.inner().as_ref();
+
+    // Fetch metadata from PubMed using E-utilities API
+    let metadata = fetch_pubmed_metadata(&pmid).await.map_err(|e| match e {
+        PubmedError::InvalidPmid(id) => {
+            AppError::validation("pmid", format!("Invalid PMID: {}", id))
+        }
+        PubmedError::NotFound => AppError::not_found("PMID", pmid),
+        PubmedError::ParseError(msg) => AppError::validation(
+            "metadata",
+            format!("Failed to parse PubMed metadata: {}", msg),
+        ),
+        PubmedError::XmlError(msg) => {
+            AppError::validation("metadata", format!("Failed to parse PubMed XML: {}", msg))
+        }
+        PubmedError::RequestError(e) => {
+            AppError::network_error(&pmid, format!("Failed to fetch PubMed: {}", e))
+        }
+    })?;
+
+    // Check if paper already exists by DOI or URL
+    if let Some(doi) = &metadata.doi {
+        if let Some(existing) = Papers::find()
+            .filter(papers::Column::Doi.eq(doi))
+            .one(db)
+            .await?
+        {
+            info!("Paper with DOI {} already exists, id: {}", doi, existing.id);
+            return Err(AppError::validation(
+                "doi",
+                format!("Paper with DOI {} already exists", doi),
+            ));
+        }
+    }
+
+    // Store PubMed URL
+    let pubmed_url = format!("https://pubmed.ncbi.nlm.nih.gov/{}/", metadata.pmid);
+
+    // Calculate attachment path hash
+    let mut hasher = Sha1::new();
+    hasher.update(metadata.title.as_bytes());
+    let result = hasher.finalize();
+    let hash_string = format!("{:x}", result);
+
+    // Parse publication year
+    let publication_year = metadata
+        .publication_year
+        .and_then(|y| y.parse::<i64>().ok());
+
+    // Create paper
+    let paper = papers::ActiveModel {
+        title: Set(metadata.title.clone()),
+        doi: Set(metadata.doi.clone()),
+        publication_year: Set(publication_year),
+        journal_name: Set(metadata.journal_name.clone()),
+        url: Set(Some(pubmed_url)),
+        r#abstract: Set(metadata.abstract_text.clone()),
+        attachment_path: Set(Some(hash_string)),
+        ..Default::default()
+    }
+    .insert(db)
+    .await?;
+
+    // Add authors
+    for author_name in &metadata.authors {
+        // Find or create author
+        let author = if let Some(existing_author) = Authors::find()
+            .filter(authors::Column::Name.eq(author_name))
+            .one(db)
+            .await?
+        {
+            existing_author
+        } else {
+            authors::ActiveModel {
+                name: Set(author_name.clone()),
+                ..Default::default()
+            }
+            .insert(db)
+            .await?
+        };
+
+        // Link author to paper
+        paper_authors::ActiveModel {
+            paper_id: Set(paper.id),
+            author_id: Set(author.id),
+            ..Default::default()
+        }
+        .insert(db)
+        .await?;
+    }
+
+    // Link category if provided
+    if let Some(cat_id) = category_id {
+        paper_category::ActiveModel {
+            paper_id: Set(paper.id),
+            category_id: Set(cat_id),
+        }
+        .insert(db)
+        .await?;
+    }
+
+    info!(
+        "Successfully imported PubMed paper: {} (id: {}, pmid: {})",
+        metadata.title, paper.id, metadata.pmid
+    );
+
+    let _ = app
+        .notification()
+        .builder()
+        .title("Paper Imported")
+        .body(format!("Paper '{}' imported successfully", paper.title))
+        .show();
+
+    Ok(PaperDto {
+        id: paper.id,
+        title: paper.title,
+        publication_year: paper.publication_year,
+        journal_name: paper.journal_name,
+        conference_name: paper.conference_name,
+        authors: metadata.authors,
+        labels: vec![],
+        attachment_count: 0,
+        attachments: vec![],
+    })
+}
+
+#[tauri::command]
+#[instrument(skip(db, app))]
 pub async fn add_paper_label(
+    app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     paper_id: i64,
     label_id: i64,
@@ -615,14 +788,22 @@ pub async fn add_paper_label(
         }
         .insert(db)
         .await?;
+
+        let _ = app
+            .notification()
+            .builder()
+            .title("Label Added")
+            .body("Label added to paper successfully")
+            .show();
     }
 
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db))]
+#[instrument(skip(db, app))]
 pub async fn remove_paper_label(
+    app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     paper_id: i64,
     label_id: i64,
@@ -632,6 +813,14 @@ pub async fn remove_paper_label(
     paper_labels::Entity::delete_by_id((paper_id, label_id))
         .exec(db)
         .await?;
+
+    let _ = app
+        .notification()
+        .builder()
+        .title("Label Removed")
+        .body("Label removed from paper successfully")
+        .show();
+
     Ok(())
 }
 
@@ -698,8 +887,9 @@ pub async fn get_papers_by_category(
 }
 
 #[tauri::command]
-#[instrument(skip(db))]
+#[instrument(skip(db, app))]
 pub async fn update_paper_category(
+    app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     paper_id: i64,
     category_id: Option<i64>,
@@ -731,12 +921,23 @@ pub async fn update_paper_category(
 
     txn.commit().await?;
 
+    let _ = app
+        .notification()
+        .builder()
+        .title("Paper Category Updated")
+        .body("Paper category updated successfully")
+        .show();
+
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db))]
-pub async fn restore_paper(db: State<'_, Arc<DatabaseConnection>>, id: i64) -> Result<()> {
+#[instrument(skip(db, app))]
+pub async fn restore_paper(
+    app: AppHandle,
+    db: State<'_, Arc<DatabaseConnection>>,
+    id: i64,
+) -> Result<()> {
     info!("Restoring paper with id {}", id);
     let db = db.inner().as_ref();
     let paper = Papers::find_by_id(id)
@@ -748,12 +949,20 @@ pub async fn restore_paper(db: State<'_, Arc<DatabaseConnection>>, id: i64) -> R
     active.deleted_at = Set(None);
     active.update(db).await?;
 
+    let _ = app
+        .notification()
+        .builder()
+        .title("Paper Restored")
+        .body("Paper restored from trash successfully")
+        .show();
+
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db))]
+#[instrument(skip(db, app))]
 pub async fn permanently_delete_paper(
+    app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     id: i64,
 ) -> Result<()> {
@@ -766,12 +975,20 @@ pub async fn permanently_delete_paper(
 
     paper.delete(db).await?;
 
+    let _ = app
+        .notification()
+        .builder()
+        .title("Paper Deleted Permanently")
+        .body("Paper permanently deleted successfully")
+        .show();
+
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app_dirs))]
+#[instrument(skip(db, app_dirs, app))]
 pub async fn add_attachment(
+    app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
     paper_id: i64,
@@ -846,6 +1063,13 @@ pub async fn add_attachment(
     .insert(db)
     .await?;
 
+    let _ = app
+        .notification()
+        .builder()
+        .title("Attachment Added")
+        .body("Attachment added successfully")
+        .show();
+
     Ok(AttachmentDto {
         id: attachment.id,
         paper_id: attachment.paper_id,
@@ -881,8 +1105,9 @@ pub async fn get_attachments(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app_dirs))]
+#[instrument(skip(db, app_dirs, app))]
 pub async fn import_paper_by_pdf(
+    app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
     file_path: String,
@@ -1004,6 +1229,13 @@ pub async fn import_paper_by_pdf(
     }
     .insert(db)
     .await?;
+
+    let _ = app
+        .notification()
+        .builder()
+        .title("Paper Imported from PDF")
+        .body(format!("Paper '{}' imported successfully", paper.title))
+        .show();
 
     Ok(PaperDto {
         id: paper.id,
@@ -1400,8 +1632,9 @@ pub async fn read_pdf_as_blob(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app_dirs, base64_data))]
+#[instrument(skip(db, app_dirs, base64_data, app))]
 pub async fn save_pdf_blob(
+    app: AppHandle,
     paper_id: i64,
     base64_data: String,
     db: State<'_, Arc<DatabaseConnection>>,
@@ -1511,6 +1744,13 @@ pub async fn save_pdf_blob(
         pdf_path.display()
     );
 
+    let _ = app
+        .notification()
+        .builder()
+        .title("PDF Saved")
+        .body("PDF saved successfully")
+        .show();
+
     Ok(PdfSaveResponse {
         success: true,
         file_path: pdf_path.to_string_lossy().to_string(),
@@ -1523,8 +1763,9 @@ pub async fn save_pdf_blob(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app_dirs, base64_data))]
+#[instrument(skip(db, app_dirs, base64_data, app))]
 pub async fn save_pdf_with_annotations(
+    app: AppHandle,
     paper_id: i64,
     base64_data: String,
     annotations_json: Option<String>,
@@ -1642,6 +1883,14 @@ pub async fn save_pdf_with_annotations(
             size_bytes,
             pdf_path.display()
         );
+
+        let _ = app
+            .notification()
+            .builder()
+            .title("Annotations Saved")
+            .body("PDF and annotations saved successfully")
+            .show();
+
         return Ok(PdfSaveResponse {
             success: true,
             file_path: pdf_path.to_string_lossy().to_string(),

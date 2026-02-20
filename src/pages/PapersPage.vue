@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import DocumentList from "@/components/document/DocumentList.vue";
-import DocumentDetails from "@/components/document/DocumentDetails.vue";
+import PaperList from "@/components/paper/PaperList.vue";
+import PaperDetails from "@/components/paper/PaperDetails.vue";
 
 // Props
 interface Props {
@@ -139,8 +139,8 @@ onUnmounted(() => {
       <!-- Left Panel: Document List -->
       <div class="panel left-panel" :style="leftPanelStyle">
         <div class="panel-content scrollable">
-          <DocumentList
-            ref="documentListRef"
+          <PaperList
+            ref="paperListRef"
             :category-id="props.selectedCategory"
             :current-view="props.currentView"
             @paper-select="handlePaperSelect"
@@ -161,7 +161,7 @@ onUnmounted(() => {
       <!-- Right Panel: Document Details -->
       <div class="panel right-panel" :style="rightPanelStyle">
         <div class="panel-content scrollable">
-          <DocumentDetails :paper-id="selectedPaperId" />
+          <PaperDetails :paper-id="selectedPaperId" />
         </div>
       </div>
     </div>

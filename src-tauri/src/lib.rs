@@ -2,6 +2,7 @@
 mod axum;
 mod command;
 mod database;
+mod llm;
 mod papers;
 mod service;
 mod sys;
@@ -17,9 +18,10 @@ use crate::command::label_command::{create_label, delete_label, get_all_labels, 
 use crate::command::paper_command::{
     add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
     get_deleted_papers, get_paper, get_papers_by_category, get_pdf_attachment_path,
-    import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf, open_paper_folder,
-    permanently_delete_paper, read_pdf_as_blob, read_pdf_file, remove_paper_label, restore_paper,
-    save_pdf_blob, save_pdf_with_annotations, update_paper_category, update_paper_details,
+    import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf, import_paper_by_pmid,
+    open_paper_folder, permanently_delete_paper, read_pdf_as_blob, read_pdf_file,
+    remove_paper_label, restore_paper, save_pdf_blob, save_pdf_with_annotations,
+    update_paper_category, update_paper_details,
 };
 use crate::database::init_database_connection;
 use crate::sys::error::Result;
@@ -88,10 +90,12 @@ pub fn run() -> Result<()> {
                     info!("Database connection initialized");
                     let db_arc = Arc::new(db);
                     app_handle.manage(db_arc.clone());
-                    tauri::async_runtime::spawn(async move {
-                        // Start Axum API server
-                        crate::axum::start_axum_server(db_arc, app_dirs_for_axum);
-                    });
+                    // Start Axum API server with app handle for event emission
+                    crate::axum::start_axum_server_with_handle(
+                        db_arc,
+                        app_dirs_for_axum,
+                        app_handle,
+                    );
                 }
                 Err(e) => {
                     tracing::error!("Failed to initialize database connection: {}", e);
@@ -161,6 +165,7 @@ pub fn run() -> Result<()> {
             import_paper_by_doi,
             import_paper_by_arxiv_id,
             import_paper_by_pdf,
+            import_paper_by_pmid,
             add_paper_label,
             remove_paper_label,
             update_paper_details,

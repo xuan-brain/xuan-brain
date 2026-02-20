@@ -319,16 +319,14 @@ watch(
 </script>
 
 <template>
-  <div class="document-details">
+  <div class="paper-details">
     <!-- Loading state -->
     <div v-if="loading && !details" class="loading-container">
       <v-progress-circular indeterminate size="48" />
     </div>
 
-    <!-- No paper selected -->
-    <v-alert v-else-if="!paperId" type="info" class="no-selection">
-      {{ t("document.select_to_view") || "Select a document to view details" }}
-    </v-alert>
+    <!-- No paper selected - show blank -->
+    <div v-else-if="!paperId" class="no-selection"></div>
 
     <!-- Details view -->
     <div v-else-if="details && !isEditing" class="details-view">
@@ -661,7 +659,7 @@ watch(
 </template>
 
 <style scoped>
-.document-details {
+.paper-details {
   height: 100%;
   overflow-y: auto;
   padding: 16px;

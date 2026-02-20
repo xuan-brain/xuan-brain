@@ -38,8 +38,10 @@ pub async fn init_logger(log_dir: &PathBuf) -> Result<(WorkerGuard, impl tracing
     let file_appender = tracing_appender::rolling::weekly(log_dir, "xuan-brain");
     let (non_blocking_file_appender, file_guard) = tracing_appender::non_blocking(file_appender);
 
-    // Set up environment filter from RUST_LOG environment variable
-    // Default to debug level if not set
+    // Set up environment filter with h2 and tower-http at warn level to reduce noise
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        EnvFilter::new("xuan_brain=debug,tauri=debug,h2=warn,tower_http=warn")
+    });
 
     // Console layer with colored output and span events
     let console_layer = fmt::layer()
@@ -50,7 +52,7 @@ pub async fn init_logger(log_dir: &PathBuf) -> Result<(WorkerGuard, impl tracing
         .with_line_number(true)
         .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
         .with_ansi(true)
-        .with_filter(LevelFilter::DEBUG);
+        .with_filter(env_filter.clone());
 
     // File layer with more detailed formatting
     let file_layer = fmt::layer()
@@ -62,7 +64,7 @@ pub async fn init_logger(log_dir: &PathBuf) -> Result<(WorkerGuard, impl tracing
         .with_line_number(true)
         .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
         .with_ansi(false)
-        .with_filter(LevelFilter::DEBUG);
+        .with_filter(env_filter);
 
     // Initialize global subscriber with both console and file layers
     let layer = tracing_subscriber::registry()
@@ -97,8 +99,12 @@ pub async fn init_logger_with_level(log_dir: &PathBuf, log_level: &str) -> Resul
 
     // Set up environment filter from RUST_LOG environment variable
     // Fall back to the provided log_level if RUST_LOG is not set
+    // Set h2 and tower crates to warn level to reduce noise
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        EnvFilter::new(format!("xuan_brain={},tauri={}", log_level, log_level))
+        EnvFilter::new(format!(
+            "xuan_brain={},tauri={},h2=warn,tower-http=warn",
+            log_level, log_level
+        ))
     });
 
     // Console layer with colored output

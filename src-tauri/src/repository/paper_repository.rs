@@ -47,7 +47,7 @@ impl<'a> PaperRepository<'a> {
         let id = id.to_string();
         let result: Vec<Paper> = self
             .db
-            .query("SELECT * FROM type::thing($id) LIMIT 1")
+            .query("SELECT * FROM <record> $id LIMIT 1")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to get paper: {}", e)))?
@@ -175,7 +175,7 @@ impl<'a> PaperRepository<'a> {
     pub async fn soft_delete(&self, id: &str) -> Result<()> {
         let id = id.to_string();
         self.db
-            .query("UPDATE type::thing($id) SET deleted_at = time::now()")
+            .query("UPDATE <record> $id SET deleted_at = time::now()")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to soft delete paper: {}", e)))?;
@@ -187,7 +187,7 @@ impl<'a> PaperRepository<'a> {
     pub async fn restore(&self, id: &str) -> Result<()> {
         let id = id.to_string();
         self.db
-            .query("UPDATE type::thing($id) SET deleted_at = NONE")
+            .query("UPDATE <record> $id SET deleted_at = NONE")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to restore paper: {}", e)))?;
@@ -240,7 +240,7 @@ impl<'a> PaperRepository<'a> {
                 r#"
                 SELECT * FROM paper
                 WHERE deleted_at IS NONE
-                AND id IN (SELECT `in` FROM paper_category WHERE `out` = type::thing($category_id))
+                AND id IN (SELECT `in` FROM paper_category WHERE `out` = <record> $category_id)
                 ORDER BY created_at DESC
                 "#,
             )
@@ -274,7 +274,7 @@ impl<'a> PaperRepository<'a> {
 
         // First delete existing category relation
         self.db
-            .query("DELETE paper_category WHERE `in` = type::thing($paper)")
+            .query("DELETE paper_category WHERE `in` = <record> $paper")
             .bind(("paper", paper_id.clone()))
             .await
             .map_err(|e| AppError::generic(format!("Failed to delete paper category: {}", e)))?;
@@ -301,8 +301,8 @@ impl<'a> PaperRepository<'a> {
             .db
             .query(
                 r#"
-                SELECT VALUE `out` FROM paper_category
-                WHERE `in` = type::thing($paper)
+                SELECT VALUE <string>`out` FROM paper_category
+                WHERE `in` = <record> $paper
                 LIMIT 1
                 "#,
             )

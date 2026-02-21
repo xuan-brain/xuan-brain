@@ -11,7 +11,11 @@
         <div v-if="!isMigrating && !migrationReport">
           <v-alert
             v-if="status"
-            :type="status.canMigrate && status.sqlitePapersCount > status.surrealPapersCount ? 'info' : 'success'"
+            :type="
+              status.can_migrate && status.sqlite_papers_count > status.surreal_papers_count
+                ? 'info'
+                : 'success'
+            "
             class="mb-4"
           >
             {{ status.message }}
@@ -23,14 +27,14 @@
                 <v-icon icon="mdi-database" />
               </template>
               <v-list-item-title>SQLite Papers</v-list-item-title>
-              <v-list-item-subtitle>{{ status.sqlitePapersCount }} records</v-list-item-subtitle>
+              <v-list-item-subtitle>{{ status.sqlite_papers_count }} records</v-list-item-subtitle>
             </v-list-item>
             <v-list-item>
               <template v-slot:prepend>
                 <v-icon icon="mdi-database-outline" />
               </template>
               <v-list-item-title>SurrealDB Papers</v-list-item-title>
-              <v-list-item-subtitle>{{ status.surrealPapersCount }} records</v-list-item-subtitle>
+              <v-list-item-subtitle>{{ status.surreal_papers_count }} records</v-list-item-subtitle>
             </v-list-item>
           </v-list>
 
@@ -50,7 +54,7 @@
         </div>
 
         <!-- Migration Progress -->
-        <div v-if="isMigrating" class="text-center py-8">
+        <div v-if="isMigrating" class="py-8 text-center">
           <v-progress-circular indeterminate size="64" class="mb-4" />
           <p class="text-h6">Migrating data...</p>
           <p class="text-body-2 text-medium-emphasis">Please wait while we transfer your data</p>
@@ -58,9 +62,7 @@
 
         <!-- Migration Report -->
         <div v-if="migrationReport && !isMigrating">
-          <v-alert type="success" class="mb-4">
-            Migration completed successfully!
-          </v-alert>
+          <v-alert type="success" class="mb-4">Migration completed successfully!</v-alert>
 
           <v-list density="compact">
             <v-list-item v-if="migrationReport.papers_migrated">
@@ -152,19 +154,14 @@
           {{ migrationReport ? 'Close' : 'Cancel' }}
         </v-btn>
         <v-btn
-          v-if="!isMigrating && !migrationReport && status?.canMigrate"
+          v-if="!isMigrating && !migrationReport && status?.can_migrate"
           color="primary"
           variant="flat"
           @click="startMigration"
         >
           Start Migration
         </v-btn>
-        <v-btn
-          v-if="migrationReport"
-          color="primary"
-          variant="flat"
-          @click="resetAndClose"
-        >
+        <v-btn v-if="migrationReport" color="primary" variant="flat" @click="resetAndClose">
           Done
         </v-btn>
       </v-card-actions>
@@ -173,98 +170,101 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+  import { ref, watch } from 'vue';
 
-interface MigrationStatus {
-  can_migrate: boolean
-  sqlite_papers_count: number
-  surreal_papers_count: number
-  message: string
-}
+  interface MigrationStatus {
+    can_migrate: boolean;
+    sqlite_papers_count: number;
+    surreal_papers_count: number;
+    message: string;
+  }
 
-interface MigrationReport {
-  papers_migrated: number
-  authors_migrated: number
-  keywords_migrated: number
-  labels_migrated: number
-  categories_migrated: number
-  attachments_migrated: number
-  paper_author_relations: number
-  paper_label_relations: number
-  paper_category_relations: number
-  errors: string[]
-  duration_ms: number
-}
+  interface MigrationReport {
+    papers_migrated: number;
+    authors_migrated: number;
+    keywords_migrated: number;
+    labels_migrated: number;
+    categories_migrated: number;
+    attachments_migrated: number;
+    paper_author_relations: number;
+    paper_label_relations: number;
+    paper_category_relations: number;
+    errors: string[];
+    duration_ms: number;
+  }
 
-const props = defineProps<{
-  open: boolean
-}>()
+  const props = defineProps<{
+    open: boolean;
+  }>();
 
-const emit = defineEmits<{
-  (e: 'update:open', value: boolean): void
-}>()
+  const emit = defineEmits<{
+    (e: 'update:open', value: boolean): void;
+  }>();
 
-const isOpen = ref(props.open)
-const status = ref<MigrationStatus | null>(null)
-const migrationReport = ref<MigrationReport | null>(null)
-const isMigrating = ref(false)
-const error = ref<string | null>(null)
+  const isOpen = ref(props.open);
+  const status = ref<MigrationStatus | null>(null);
+  const migrationReport = ref<MigrationReport | null>(null);
+  const isMigrating = ref(false);
+  const error = ref<string | null>(null);
 
-// Helper function for lazy loading Tauri API
-async function invokeCommand<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> {
-  const { invoke } = await import('@tauri-apps/api/core')
-  return invoke<T>(cmd, args)
-}
+  // Helper function for lazy loading Tauri API
+  async function invokeCommand<T = unknown>(
+    cmd: string,
+    args?: Record<string, unknown>
+  ): Promise<T> {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return invoke<T>(cmd, args);
+  }
 
-watch(
-  () => props.open,
-  async (newVal) => {
-    isOpen.value = newVal
-    if (newVal) {
-      await loadStatus()
+  watch(
+    () => props.open,
+    async (newVal) => {
+      isOpen.value = newVal;
+      if (newVal) {
+        await loadStatus();
+      }
+    }
+  );
+
+  watch(isOpen, (newVal) => {
+    emit('update:open', newVal);
+  });
+
+  async function loadStatus() {
+    error.value = null;
+    try {
+      status.value = await invokeCommand<MigrationStatus>('get_migration_status');
+      console.info('Migration status:', status.value);
+    } catch (e) {
+      error.value = String(e);
+      console.error('Failed to get migration status:', e);
     }
   }
-)
 
-watch(isOpen, (newVal) => {
-  emit('update:open', newVal)
-})
+  async function startMigration() {
+    isMigrating.value = true;
+    error.value = null;
+    migrationReport.value = null;
 
-async function loadStatus() {
-  error.value = null
-  try {
-    status.value = await invokeCommand<MigrationStatus>('get_migration_status')
-    console.info('Migration status:', status.value)
-  } catch (e) {
-    error.value = String(e)
-    console.error('Failed to get migration status:', e)
+    try {
+      migrationReport.value = await invokeCommand<MigrationReport>('run_migration');
+      console.info('Migration report:', migrationReport.value);
+    } catch (e) {
+      error.value = String(e);
+      console.error('Migration failed:', e);
+    } finally {
+      isMigrating.value = false;
+    }
   }
-}
 
-async function startMigration() {
-  isMigrating.value = true
-  error.value = null
-  migrationReport.value = null
-
-  try {
-    migrationReport.value = await invokeCommand<MigrationReport>('run_migration')
-    console.info('Migration report:', migrationReport.value)
-  } catch (e) {
-    error.value = String(e)
-    console.error('Migration failed:', e)
-  } finally {
-    isMigrating.value = false
+  function close() {
+    isOpen.value = false;
   }
-}
 
-function close() {
-  isOpen.value = false
-}
-
-function resetAndClose() {
-  migrationReport.value = null
-  status.value = null
-  error.value = null
-  close()
-}
+  function resetAndClose() {
+    migrationReport.value = null;
+    status.value = null;
+    error.value = null;
+    close();
+  }
 </script>

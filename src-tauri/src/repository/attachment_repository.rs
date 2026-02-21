@@ -23,7 +23,7 @@ impl<'a> AttachmentRepository<'a> {
             .query(
                 r#"
                 SELECT * FROM attachment
-                WHERE paper = type::thing($paper)
+                WHERE paper = type::record($paper)
                 ORDER BY created_at DESC
                 "#,
             )
@@ -45,7 +45,7 @@ impl<'a> AttachmentRepository<'a> {
             .query(
                 r#"
                 SELECT * FROM attachment
-                WHERE paper = type::thing($paper)
+                WHERE paper = type::record($paper)
                 AND (file_type = "pdf" OR file_type = "application/pdf" OR string::lowercase(file_name) CONTAINS ".pdf")
                 LIMIT 1
                 "#,
@@ -64,7 +64,7 @@ impl<'a> AttachmentRepository<'a> {
         let id = id.to_string();
         let result: Vec<Attachment> = self
             .db
-            .query("SELECT * FROM type::thing($id) LIMIT 1")
+            .query("SELECT * FROM type::record($id) LIMIT 1")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to get attachment: {}", e)))?
@@ -97,7 +97,7 @@ impl<'a> AttachmentRepository<'a> {
     pub async fn delete(&self, id: &str) -> Result<()> {
         let id = id.to_string();
         self.db
-            .query("DELETE type::thing($id)")
+            .query("DELETE type::record($id)")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to delete attachment: {}", e)))?;
@@ -109,7 +109,7 @@ impl<'a> AttachmentRepository<'a> {
     pub async fn delete_by_paper(&self, paper_id: &str) -> Result<()> {
         let paper_id = paper_id.to_string();
         self.db
-            .query("DELETE attachment WHERE paper = type::thing($paper)")
+            .query("DELETE attachment WHERE paper = type::record($paper)")
             .bind(("paper", paper_id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to delete attachments: {}", e)))?;

@@ -61,7 +61,7 @@ impl<'a> CategoryRepository<'a> {
         let id = id.to_string();
         let result: Vec<Category> = self
             .db
-            .query("SELECT * FROM type::thing($id) LIMIT 1")
+            .query("SELECT * FROM <record> $id LIMIT 1")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to get category: {}", e)))?
@@ -78,7 +78,7 @@ impl<'a> CategoryRepository<'a> {
 
         // Use SurrealQL to create category with proper parent reference
         let query = if parent_id.is_some() {
-            "CREATE category SET name = $name, parent = type::thing($parent_id)"
+            "CREATE category SET name = $name, parent = type::record($parent_id)"
         } else {
             "CREATE category SET name = $name, parent = NONE"
         };
@@ -117,7 +117,7 @@ impl<'a> CategoryRepository<'a> {
                 .ok_or_else(|| AppError::not_found("Category", id_owned));
         }
 
-        let query = format!("UPDATE type::thing($id) SET {}", sets.join(", "));
+        let query = format!("UPDATE type::record($id) SET {}", sets.join(", "));
 
         let result: Vec<Category> = self
             .db
@@ -139,11 +139,11 @@ impl<'a> CategoryRepository<'a> {
     /// Move category to a new parent
     pub async fn move_to(&self, id: &str, new_parent_id: Option<String>) -> Result<()> {
         let id = id.to_string();
-        // Convert parent_id string to RecordId reference using type::thing
+        // Convert parent_id string to RecordId reference using type::record
         let query = if new_parent_id.is_some() {
-            "UPDATE type::thing($id) SET parent = type::thing($parent)"
+            "UPDATE type::record($id) SET parent = type::record($parent)"
         } else {
-            "UPDATE type::thing($id) SET parent = NONE"
+            "UPDATE type::record($id) SET parent = NONE"
         };
         self.db
             .query(query)
@@ -160,7 +160,7 @@ impl<'a> CategoryRepository<'a> {
         let id = id.to_string();
         // Delete the category (cascade delete handled by SurrealDB graph relations)
         self.db
-            .query("DELETE type::thing($id)")
+            .query("DELETE type::record($id)")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to delete category: {}", e)))?;
@@ -176,9 +176,9 @@ impl<'a> CategoryRepository<'a> {
             .query(
                 r#"
                 SELECT * FROM category
-                WHERE parent = type::thing($id)
-                   OR parent->parent = type::thing($id)
-                   OR parent->parent->parent = type::thing($id)
+                WHERE parent = type::record($id)
+                   OR parent->parent = type::record($id)
+                   OR parent->parent->parent = type::record($id)
                 "#,
             )
             .bind(("id", id))
@@ -194,7 +194,7 @@ impl<'a> CategoryRepository<'a> {
     pub async fn reorder(&self, orders: Vec<(String, i32)>) -> Result<()> {
         for (id, sort_order) in orders {
             self.db
-                .query("UPDATE type::thing($id) SET sort_order = $order")
+                .query("UPDATE type::record($id) SET sort_order = $order")
                 .bind(("id", id))
                 .bind(("order", sort_order))
                 .await
@@ -210,7 +210,7 @@ impl<'a> CategoryRepository<'a> {
             Some(pid) => {
                 let pid = pid.to_string();
                 self.db
-                    .query("SELECT VALUE sort_order FROM category WHERE parent = type::thing($parent) ORDER BY sort_order DESC LIMIT 1")
+                    .query("SELECT VALUE sort_order FROM category WHERE parent = <record> $parent ORDER BY sort_order DESC LIMIT 1")
                     .bind(("parent", pid))
                     .await
                     .map_err(|e| AppError::generic(format!("Failed to get max sort order: {}", e)))?
@@ -219,7 +219,7 @@ impl<'a> CategoryRepository<'a> {
             }
             None => {
                 self.db
-                    .query("SELECT VALUE sort_order FROM category WHERE parent IS NONE ORDER BY sort_order DESC LIMIT 1")
+                    .query("SELECT VALUE sort_order FROM category WHERE parent = NONE ORDER BY sort_order DESC LIMIT 1")
                     .await
                     .map_err(|e| AppError::generic(format!("Failed to get max sort order: {}", e)))?
                     .take(0)
@@ -241,7 +241,7 @@ impl<'a> CategoryRepository<'a> {
         while let Some(current_id) = to_process.pop() {
             let children: Vec<String> = self
                 .db
-                .query("SELECT VALUE id FROM category WHERE parent = type::thing($id)")
+                .query("SELECT VALUE id FROM category WHERE parent = type::record($id)")
                 .bind(("id", current_id))
                 .await
                 .map_err(|e| AppError::generic(format!("Failed to get children: {}", e)))?
@@ -265,7 +265,7 @@ impl<'a> CategoryRepository<'a> {
 
         for id in ids {
             self.db
-                .query("DELETE type::thing($id)")
+                .query("DELETE <record> $id")
                 .bind(("id", id))
                 .await
                 .map_err(|e| AppError::generic(format!("Failed to delete category: {}", e)))?;
@@ -288,11 +288,11 @@ impl<'a> CategoryRepository<'a> {
         for (index, node) in nodes.iter().enumerate() {
             let current_order = start_order + index as i32;
 
-            // Update current node - use type::thing to convert string to RecordId
+            // Update current node - use type::record to convert string to RecordId
             let query = if parent_id.is_some() {
-                "UPDATE type::thing($id) SET parent = type::thing($parent), sort_order = $order"
+                "UPDATE type::record($id) SET parent = type::record($parent), sort_order = $order"
             } else {
-                "UPDATE type::thing($id) SET parent = NONE, sort_order = $order"
+                "UPDATE type::record($id) SET parent = NONE, sort_order = $order"
             };
             self.db
                 .query(query)

@@ -6,7 +6,7 @@
 
   interface Props {
     onRefresh?: () => void;
-    selectedCategoryId?: number | null;
+    selectedCategoryId?: string | null;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -200,7 +200,12 @@
   <!-- Toolbar -->
   <div class="paper-toolbar">
     <div class="toolbar-actions">
-      <v-btn variant="tonal" prepend-icon="mdi-file-pdf-box" class="toolbar-btn" @click="handlePdfImport">
+      <v-btn
+        variant="tonal"
+        prepend-icon="mdi-file-pdf-box"
+        class="toolbar-btn"
+        @click="handlePdfImport"
+      >
         {{ t('toolbar.importPdf') }}
       </v-btn>
       <v-btn

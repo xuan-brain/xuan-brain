@@ -21,7 +21,6 @@
   // const registry = ref<PluginRegistry | null>(null);
   const exportScope = ref<ExportScope | null>(null);
   let objectUrl: string | null = null;
-  let pdfBlob: Blob | null = null;
   let docId = ref('');
 
   // Close window function
@@ -89,10 +88,6 @@
 
       // Load PDF as blob from Rust backend
       const { blobUrl, fileName, paperTitle: title, sizeMB } = await loadPdfAsBlob(id);
-
-      // Fetch the blob for saving
-      const response = await fetch(blobUrl);
-      pdfBlob = await response.blob();
 
       objectUrl = blobUrl;
       pdfUrl.value = blobUrl;

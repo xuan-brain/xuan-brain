@@ -34,7 +34,7 @@ impl<'a> KeywordRepository<'a> {
         let id = id.to_string();
         let result: Vec<Keyword> = self
             .db
-            .query("SELECT * FROM type::thing($id) LIMIT 1")
+            .query("SELECT * FROM type::record($id) LIMIT 1")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to get keyword: {}", e)))?
@@ -108,7 +108,7 @@ impl<'a> KeywordRepository<'a> {
             .query(
                 r#"
                 SELECT * FROM keyword
-                WHERE id IN (SELECT VALUE `out` FROM paper_keyword WHERE `in` = type::thing($paper))
+                WHERE id IN (SELECT VALUE `out` FROM paper_keyword WHERE `in` = type::record($paper))
                 "#,
             )
             .bind(("paper", paper_id))

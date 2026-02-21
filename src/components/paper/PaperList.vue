@@ -1,8 +1,8 @@
 <script setup lang="ts">
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
-  import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { listen } from '@tauri-apps/api/event';
+  import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { open } from '@tauri-apps/plugin-dialog';
   import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
   import type { VxeTablePropTypes } from 'vxe-table';
@@ -11,21 +11,21 @@
   const { t } = useI18n();
 
   interface Label {
-    id: number;
+    id: string;
     name: string;
     color: string;
   }
 
   interface Attachment {
-    id: number;
-    paper_id: number;
+    id: string;
+    paper_id: string;
     file_name: string | null;
     file_type: string | null;
     created_at: string | null;
   }
 
   interface PaperDto {
-    id: number;
+    id: string;
     title: string;
     authors: string[];
     publication_year?: number;
@@ -36,7 +36,7 @@
   }
 
   interface PaperDetail {
-    id: number;
+    id: string;
     title: string;
     authors: string[];
     publication_year?: number;
@@ -53,12 +53,12 @@
     notes?: string;
     read_status?: string;
     labels: Label[];
-    category_id?: number;
+    category_id?: string;
     category_name?: string;
   }
 
   interface Props {
-    categoryId?: number | null;
+    categoryId?: string | null;
     currentView?: 'library' | 'favorites' | 'trash';
   }
 
@@ -68,8 +68,8 @@
   });
 
   const emit = defineEmits<{
-    paperSelect: [paperId: number];
-    paperUpdated: [paperId: number, detail: PaperDetail];
+    paperSelect: [paperId: string];
+    paperUpdated: [paperId: string, detail: PaperDetail];
   }>();
 
   // State

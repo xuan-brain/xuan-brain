@@ -34,7 +34,7 @@ impl<'a> AuthorRepository<'a> {
         let id = id.to_string();
         let result: Vec<Author> = self
             .db
-            .query("SELECT * FROM type::thing($id) LIMIT 1")
+            .query("SELECT * FROM type::record($id) LIMIT 1")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to get author: {}", e)))?
@@ -109,8 +109,8 @@ impl<'a> AuthorRepository<'a> {
             .query(
                 r#"
                 SELECT * FROM author
-                WHERE id IN (SELECT VALUE `out` FROM paper_author WHERE `in` = type::thing($paper))
-                ORDER BY (SELECT VALUE author_order FROM paper_author WHERE `in` = type::thing($paper) AND `out` = author.id)[0]
+                WHERE id IN (SELECT VALUE `out` FROM paper_author WHERE `in` = type::record($paper))
+                ORDER BY (SELECT VALUE author_order FROM paper_author WHERE `in` = type::record($paper) AND `out` = author.id)[0]
                 "#,
             )
             .bind(("paper", paper_id))

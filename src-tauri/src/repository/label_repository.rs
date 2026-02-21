@@ -47,7 +47,7 @@ impl<'a> LabelRepository<'a> {
         let id = id.to_string();
         let result: Vec<Label> = self
             .db
-            .query("SELECT * FROM type::thing($id) LIMIT 1")
+            .query("SELECT * FROM type::record($id) LIMIT 1")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to get label: {}", e)))?
@@ -131,7 +131,7 @@ impl<'a> LabelRepository<'a> {
                 .ok_or_else(|| AppError::not_found("Label", id_owned));
         }
 
-        let query = format!("UPDATE type::thing($id) SET {}", sets.join(", "));
+        let query = format!("UPDATE type::record($id) SET {}", sets.join(", "));
 
         let result: Vec<Label> = self
             .db
@@ -155,7 +155,7 @@ impl<'a> LabelRepository<'a> {
         let id = id.to_string();
         // First delete all paper-label relations
         self.db
-            .query("DELETE paper_label WHERE `out` = type::thing($id)")
+            .query("DELETE paper_label WHERE `out` = type::record($id)")
             .bind(("id", id.clone()))
             .await
             .map_err(|e| {
@@ -164,7 +164,7 @@ impl<'a> LabelRepository<'a> {
 
         // Then delete the label
         self.db
-            .query("DELETE type::thing($id)")
+            .query("DELETE type::record($id)")
             .bind(("id", id))
             .await
             .map_err(|e| AppError::generic(format!("Failed to delete label: {}", e)))?;
@@ -192,8 +192,8 @@ impl<'a> LabelRepository<'a> {
         self.db
             .query(
                 r#"
-                UPDATE type::thing($label) SET document_count = array::len(
-                    SELECT VALUE `in` FROM paper_label WHERE `out` = type::thing($label)
+                UPDATE type::record($label) SET document_count = array::len(
+                    SELECT VALUE `in` FROM paper_label WHERE `out` = type::record($label)
                 )
                 "#,
             )
@@ -227,8 +227,8 @@ impl<'a> LabelRepository<'a> {
         self.db
             .query(
                 r#"
-                UPDATE type::thing($label) SET document_count = array::len(
-                    SELECT VALUE `in` FROM paper_label WHERE `out` = type::thing($label)
+                UPDATE type::record($label) SET document_count = array::len(
+                    SELECT VALUE `in` FROM paper_label WHERE `out` = type::record($label)
                 )
                 "#,
             )
@@ -249,7 +249,7 @@ impl<'a> LabelRepository<'a> {
             .query(
                 r#"
                 SELECT * FROM label
-                WHERE id IN (SELECT VALUE `out` FROM paper_label WHERE `in` = type::thing($paper))
+                WHERE id IN (SELECT VALUE `out` FROM paper_label WHERE `in` = type::record($paper))
                 "#,
             )
             .bind(("paper", paper_id))

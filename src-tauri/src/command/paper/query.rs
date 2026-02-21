@@ -4,7 +4,9 @@ use std::sync::Arc;
 use tauri::State;
 use tracing::{info, instrument};
 
-use crate::repository::{AttachmentRepository, AuthorRepository, CategoryRepository, LabelRepository, PaperRepository};
+use crate::repository::{
+    AttachmentRepository, AuthorRepository, CategoryRepository, LabelRepository, PaperRepository,
+};
 use crate::surreal::connection::SurrealClient;
 use crate::sys::error::Result;
 
@@ -24,26 +26,45 @@ pub async fn get_all_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec<Pap
 
     let mut result = Vec::new();
     for paper in papers {
-        let paper_id = paper.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+        let paper_id = paper
+            .id
+            .as_ref()
+            .map(record_id_to_string)
+            .unwrap_or_default();
 
-        let authors = author_repo.get_paper_authors(&paper_id).await.unwrap_or_default();
+        let authors = author_repo
+            .get_paper_authors(&paper_id)
+            .await
+            .unwrap_or_default();
         let author_names: Vec<String> = authors.iter().map(|a| a.name.clone()).collect();
 
-        let labels = label_repo.get_paper_labels(&paper_id).await.unwrap_or_default();
-        let label_dtos: Vec<LabelDto> = labels.iter().map(|l| LabelDto {
-            id: l.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
-            name: l.name.clone(),
-            color: l.color.clone(),
-        }).collect();
+        let labels = label_repo
+            .get_paper_labels(&paper_id)
+            .await
+            .unwrap_or_default();
+        let label_dtos: Vec<LabelDto> = labels
+            .iter()
+            .map(|l| LabelDto {
+                id: l.id.as_ref().map(record_id_to_string).unwrap_or_default(),
+                name: l.name.clone(),
+                color: l.color.clone(),
+            })
+            .collect();
 
-        let attachments = attachment_repo.find_by_paper(&paper_id).await.unwrap_or_default();
-        let attachment_dtos: Vec<AttachmentDto> = attachments.iter().map(|a| AttachmentDto {
-            id: a.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
-            paper_id: paper_id.clone(),
-            file_name: a.file_name.clone(),
-            file_type: a.file_type.clone(),
-            created_at: None,
-        }).collect();
+        let attachments = attachment_repo
+            .find_by_paper(&paper_id)
+            .await
+            .unwrap_or_default();
+        let attachment_dtos: Vec<AttachmentDto> = attachments
+            .iter()
+            .map(|a| AttachmentDto {
+                id: a.id.as_ref().map(record_id_to_string).unwrap_or_default(),
+                paper_id: paper_id.clone(),
+                file_name: a.file_name.clone(),
+                file_type: a.file_type.clone(),
+                created_at: None,
+            })
+            .collect();
 
         result.push(PaperDto {
             id: paper_id,
@@ -75,26 +96,53 @@ pub async fn get_deleted_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec
 
     let mut result = Vec::new();
     for paper in papers {
-        let paper_id = paper.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+        let paper_id = paper
+            .id
+            .as_ref()
+            .map(|rid| record_id_to_string(rid))
+            .unwrap_or_default();
 
-        let authors = author_repo.get_paper_authors(&paper_id).await.unwrap_or_default();
+        let authors = author_repo
+            .get_paper_authors(&paper_id)
+            .await
+            .unwrap_or_default();
         let author_names: Vec<String> = authors.iter().map(|a| a.name.clone()).collect();
 
-        let labels = label_repo.get_paper_labels(&paper_id).await.unwrap_or_default();
-        let label_dtos: Vec<LabelDto> = labels.iter().map(|l| LabelDto {
-            id: l.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
-            name: l.name.clone(),
-            color: l.color.clone(),
-        }).collect();
+        let labels = label_repo
+            .get_paper_labels(&paper_id)
+            .await
+            .unwrap_or_default();
+        let label_dtos: Vec<LabelDto> = labels
+            .iter()
+            .map(|l| LabelDto {
+                id: l
+                    .id
+                    .as_ref()
+                    .map(|rid| record_id_to_string(rid))
+                    .unwrap_or_default(),
+                name: l.name.clone(),
+                color: l.color.clone(),
+            })
+            .collect();
 
-        let attachments = attachment_repo.find_by_paper(&paper_id).await.unwrap_or_default();
-        let attachment_dtos: Vec<AttachmentDto> = attachments.iter().map(|a| AttachmentDto {
-            id: a.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
-            paper_id: paper_id.clone(),
-            file_name: a.file_name.clone(),
-            file_type: a.file_type.clone(),
-            created_at: None,
-        }).collect();
+        let attachments = attachment_repo
+            .find_by_paper(&paper_id)
+            .await
+            .unwrap_or_default();
+        let attachment_dtos: Vec<AttachmentDto> = attachments
+            .iter()
+            .map(|a| AttachmentDto {
+                id: a
+                    .id
+                    .as_ref()
+                    .map(|rid| record_id_to_string(rid))
+                    .unwrap_or_default(),
+                paper_id: paper_id.clone(),
+                file_name: a.file_name.clone(),
+                file_type: a.file_type.clone(),
+                created_at: None,
+            })
+            .collect();
 
         result.push(PaperDto {
             id: paper_id,
@@ -131,11 +179,18 @@ pub async fn get_paper(
         let author_names: Vec<String> = authors.iter().map(|a| a.name.clone()).collect();
 
         let labels = label_repo.get_paper_labels(&id).await.unwrap_or_default();
-        let label_dtos: Vec<LabelDto> = labels.iter().map(|l| LabelDto {
-            id: l.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
-            name: l.name.clone(),
-            color: l.color.clone(),
-        }).collect();
+        let label_dtos: Vec<LabelDto> = labels
+            .iter()
+            .map(|l| LabelDto {
+                id: l
+                    .id
+                    .as_ref()
+                    .map(|rid| record_id_to_string(rid))
+                    .unwrap_or_default(),
+                name: l.name.clone(),
+                color: l.color.clone(),
+            })
+            .collect();
 
         let category_id = paper_repo.get_category_id(&id).await?;
         let category_name = if let Some(cat_id) = &category_id {
@@ -145,7 +200,11 @@ pub async fn get_paper(
         };
 
         Ok(Some(PaperDetailDto {
-            id: paper.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
+            id: paper
+                .id
+                .as_ref()
+                .map(|rid| record_id_to_string(rid))
+                .unwrap_or_default(),
             title: paper.title,
             abstract_text: paper.abstract_text,
             doi: paper.doi,
@@ -187,26 +246,53 @@ pub async fn get_papers_by_category(
 
     let mut result = Vec::new();
     for paper in papers {
-        let paper_id = paper.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+        let paper_id = paper
+            .id
+            .as_ref()
+            .map(|rid| record_id_to_string(rid))
+            .unwrap_or_default();
 
-        let authors = author_repo.get_paper_authors(&paper_id).await.unwrap_or_default();
+        let authors = author_repo
+            .get_paper_authors(&paper_id)
+            .await
+            .unwrap_or_default();
         let author_names: Vec<String> = authors.iter().map(|a| a.name.clone()).collect();
 
-        let labels = label_repo.get_paper_labels(&paper_id).await.unwrap_or_default();
-        let label_dtos: Vec<LabelDto> = labels.iter().map(|l| LabelDto {
-            id: l.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
-            name: l.name.clone(),
-            color: l.color.clone(),
-        }).collect();
+        let labels = label_repo
+            .get_paper_labels(&paper_id)
+            .await
+            .unwrap_or_default();
+        let label_dtos: Vec<LabelDto> = labels
+            .iter()
+            .map(|l| LabelDto {
+                id: l
+                    .id
+                    .as_ref()
+                    .map(|rid| record_id_to_string(rid))
+                    .unwrap_or_default(),
+                name: l.name.clone(),
+                color: l.color.clone(),
+            })
+            .collect();
 
-        let attachments = attachment_repo.find_by_paper(&paper_id).await.unwrap_or_default();
-        let attachment_dtos: Vec<AttachmentDto> = attachments.iter().map(|a| AttachmentDto {
-            id: a.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
-            paper_id: paper_id.clone(),
-            file_name: a.file_name.clone(),
-            file_type: a.file_type.clone(),
-            created_at: None,
-        }).collect();
+        let attachments = attachment_repo
+            .find_by_paper(&paper_id)
+            .await
+            .unwrap_or_default();
+        let attachment_dtos: Vec<AttachmentDto> = attachments
+            .iter()
+            .map(|a| AttachmentDto {
+                id: a
+                    .id
+                    .as_ref()
+                    .map(|rid| record_id_to_string(rid))
+                    .unwrap_or_default(),
+                paper_id: paper_id.clone(),
+                file_name: a.file_name.clone(),
+                file_type: a.file_type.clone(),
+                created_at: None,
+            })
+            .collect();
 
         result.push(PaperDto {
             id: paper_id,
@@ -221,6 +307,10 @@ pub async fn get_papers_by_category(
         });
     }
 
-    info!("Fetched {} papers for category {}", result.len(), category_id);
+    info!(
+        "Fetched {} papers for category {}",
+        result.len(),
+        category_id
+    );
     Ok(result)
 }

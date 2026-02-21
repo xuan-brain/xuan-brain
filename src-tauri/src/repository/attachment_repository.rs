@@ -76,12 +76,30 @@ impl<'a> AttachmentRepository<'a> {
 
     /// Create a new attachment
     pub async fn create(&self, attachment: CreateAttachment) -> Result<Attachment> {
-        let attachment = Attachment::from(attachment);
+        let paper_id = attachment.paper_id.clone();
+        let file_type = attachment.file_type.clone();
+        let file_name = attachment.file_name.clone();
+        let file_path = attachment.file_path.clone();
+        let file_size = attachment.file_size;
 
         let result: Vec<Attachment> = self
             .db
-            .query("CREATE attachment CONTENT $attachment")
-            .bind(("attachment", attachment))
+            .query(
+                r#"
+                CREATE attachment SET
+                    paper = type::record($paper_id),
+                    file_type = $file_type,
+                    file_name = $file_name,
+                    file_path = $file_path,
+                    file_size = $file_size,
+                    created_at = time::now()
+                "#,
+            )
+            .bind(("paper_id", paper_id))
+            .bind(("file_type", file_type))
+            .bind(("file_name", file_name))
+            .bind(("file_path", file_path))
+            .bind(("file_size", file_size))
             .await
             .map_err(|e| AppError::generic(format!("Failed to create attachment: {}", e)))?
             .take(0)

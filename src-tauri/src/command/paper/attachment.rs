@@ -72,7 +72,7 @@ pub async fn add_attachment(
 
     Ok(AttachmentDto {
         id: attachment.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
-        paper_id,
+        paper_id: record_id_to_string(&attachment.paper),
         file_name: Some(file_name),
         file_type,
         created_at: None,
@@ -91,7 +91,7 @@ pub async fn get_attachments(
 
     Ok(attachments.iter().map(|a| AttachmentDto {
         id: a.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
-        paper_id: paper_id.clone(),
+        paper_id: record_id_to_string(&a.paper),
         file_name: a.file_name.clone(),
         file_type: a.file_type.clone(),
         created_at: None,

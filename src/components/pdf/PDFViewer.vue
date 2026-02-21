@@ -15,7 +15,7 @@
   const pdfUrl = ref('');
   const paperTitle = ref('');
   const fileSizeMB = ref(0);
-  const paperId = ref(0);
+  const paperId = ref('');
   const isSaving = ref(false);
   const saveSuccess = ref(false);
   // const registry = ref<PluginRegistry | null>(null);
@@ -74,7 +74,7 @@
       const currentWindow = getCurrentWindow();
       const label = currentWindow.label;
 
-      const idMatch = label.match(/pdf-viewer-(\d+)/);
+      const idMatch = label.match(/pdf-viewer-(.+)$/);
 
       if (!idMatch) {
         error.value = 'Invalid PDF viewer window';
@@ -82,7 +82,7 @@
         return;
       }
 
-      const id = parseInt(idMatch[1], 10);
+      const id = idMatch[1];
       paperId.value = id;
       console.info('Loading PDF for paper:', id);
 

@@ -7,7 +7,7 @@ import { invokeCommand } from '@/lib/tauri';
 export interface PdfBlobResponse {
   file_name: string;
   paper_title: string;
-  paper_id: number;
+  paper_id: string;
   base64_data: string;
   size_bytes: number;
 }
@@ -25,7 +25,7 @@ export interface PdfSaveResponse {
  * @param paperId - The paper ID to load
  * @returns Promise resolving to blob URL and metadata
  */
-export async function loadPdfAsBlob(paperId: number): Promise<{
+export async function loadPdfAsBlob(paperId: string): Promise<{
   blobUrl: string;
   fileName: string;
   paperTitle: string;
@@ -67,7 +67,7 @@ export async function loadPdfAsBlob(paperId: number): Promise<{
  * @returns Promise resolving to save response with file path and size
  */
 export async function savePdfBlob(
-  paperId: number,
+  paperId: string,
   blob: Blob
 ): Promise<{
   success: boolean;
@@ -107,7 +107,7 @@ export async function savePdfBlob(
  * @returns Promise resolving to save response with file path and size
  */
 export async function savePdfWithAnnotations(
-  paperId: number,
+  paperId: string,
   blob: Blob,
   annotationsJson?: string
 ): Promise<{

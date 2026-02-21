@@ -5,7 +5,7 @@ edition = "2021"
 description = "A Tauri App"
 
 [workspace]
-members = [".", "migration"]
+members = ["."]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -23,16 +23,9 @@ chrono = "0.4.43"
 dirs = "5"
 futures = "0.3.31"
 lopdf = "0.35.0"
-migration = { path = "migration" }
 quick-xml = { version = "0.39.0", features = ["serialize"] }
 regex = "1.12.2"
 reqwest = { version = "0.13.1", features = ["json", "multipart"] }
-sea-orm = { version = "=2.0.0-rc.28", features = [
-  "macros",
-  "runtime-tokio-rustls",
-  "sqlx-sqlite",
-  "with-chrono",
-] }
 # SurrealDB 3.0 - embedded database with RocksDB persistence
 surrealdb = { version = "3", features = ["kv-mem", "kv-rocksdb"] }
 # SurrealDB types for SurrealValue derive macro
@@ -77,3 +70,10 @@ tauri-plugin-window-state = "2"
 
 [features]
 mcp-bridge = ["dep:tauri-plugin-mcp-bridge"]
+
+[profile.release]
+lto = true
+strip = true
+opt-level = 3
+panic = 'abort'
+codegen-units = 1

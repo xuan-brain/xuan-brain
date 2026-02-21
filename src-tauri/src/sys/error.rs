@@ -12,10 +12,6 @@ pub enum AppError {
     #[error("File system error: {path} - {message}")]
     FileSystemError { path: String, message: String },
 
-    /// Database errors
-    #[error(transparent)]
-    SeaOrmError(#[from] sea_orm::DbErr),
-
     /// AI engine errors
     #[error("AI engine error: {operation} - {message}")]
     AIError { operation: String, message: String },
@@ -138,23 +134,6 @@ impl Serialize for AppError {
                 error_type: "FileSystemError",
                 message: Some(message),
                 path: Some(path),
-                operation: None,
-                service: None,
-                plugin_name: None,
-                key: None,
-                url: None,
-                field: None,
-                resource: None,
-                resource_type: None,
-                resource_id: None,
-                phase: None,
-                required: None,
-                available: None,
-            },
-            AppError::SeaOrmError(err) => ErrorResponse {
-                error_type: "SeaOrmError",
-                message: Some(&err.to_string()),
-                path: None,
                 operation: None,
                 service: None,
                 plugin_name: None,

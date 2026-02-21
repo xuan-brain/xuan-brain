@@ -10,8 +10,8 @@ pub struct Category {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<RecordId>,
     pub name: String,
-    /// Parent category reference as string (e.g., "category:123")
-    pub parent: Option<String>,
+    /// Parent category reference as RecordId
+    pub parent: Option<RecordId>,
     pub sort_order: i32,
     pub created_at: DateTime<Utc>,
 }
@@ -36,25 +36,19 @@ pub struct CategoryNode {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<RecordId>,
     pub name: String,
-    pub parent: Option<String>,
+    pub parent: Option<RecordId>,
     pub sort_order: i32,
     pub children: Vec<CategoryNode>,
 }
 
 impl Category {
-    pub fn new(name: String, parent: Option<String>) -> Self {
+    pub fn new(name: String) -> Self {
         Self {
             id: None,
             name,
-            parent,
+            parent: None,
             sort_order: 0,
             created_at: Utc::now(),
         }
-    }
-}
-
-impl From<CreateCategory> for Category {
-    fn from(create: CreateCategory) -> Self {
-        Self::new(create.name, create.parent_id)
     }
 }

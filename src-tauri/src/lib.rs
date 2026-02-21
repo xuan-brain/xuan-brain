@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 mod axum;
 mod command;
-mod database;
 mod llm;
 mod papers;
 mod repository;
@@ -21,8 +20,7 @@ use crate::command::data_folder_command::{
     restart_app, revert_to_default_data_folder_command, validate_data_folder_command,
 };
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
-use crate::command::migration_command::{get_migration_status, run_migration, verify_migration};
-use crate::command::paper_command::{
+use crate::command::paper::{
     add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
     get_deleted_papers, get_paper, get_papers_by_category, get_pdf_attachment_path,
     import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf, import_paper_by_pmid,
@@ -31,8 +29,7 @@ use crate::command::paper_command::{
     update_paper_category, update_paper_details,
 };
 use crate::command::search_command::{search_papers, search_papers_with_score};
-use crate::database::init_database_connection;
-use crate::surreal::connection::init_surreal_connection;
+use crate::surreal::connection::{init_surreal_connection, SurrealClient};
 use crate::sys::error::Result;
 use futures::executor::block_on;
 use tauri::Manager;
@@ -60,9 +57,6 @@ pub fn run() -> Result<()> {
     tracing::subscriber::set_global_default(layer)
         .expect("failed to set global default subscriber");
 
-    // Initialize logger with console and file output
-    // The WorkerGuard must be kept alive for the lifetime of the application
-
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwdwd| {}))
@@ -86,48 +80,30 @@ pub fn run() -> Result<()> {
             app_handle.manage(log_guard);
             app_handle.manage(app_dirs.clone());
 
-            // Initialize database connection synchronously in setup
-            let app_handle = app.handle().clone();
-            let app_dirs_for_db = app_dirs.clone();
-            let app_dirs_for_axum = app_dirs.clone();
-            let data_dir = app_dirs_for_db.data.clone();
-            let data_dir_for_surreal = data_dir.clone();
-            let db_result = tauri::async_runtime::block_on(async move {
-                init_database_connection(PathBuf::from(&data_dir)).await
+            // Initialize SurrealDB only (no SQLite)
+            let app_handle_for_axum = app.handle().clone();
+            let app_dirs_for_surreal = app_dirs.clone();
+            let data_dir = app_dirs_for_surreal.data.clone();
+
+            let surreal_result = tauri::async_runtime::block_on(async move {
+                init_surreal_connection(PathBuf::from(&data_dir)).await
             });
 
-            match db_result {
-                Ok(db) => {
-                    info!("Database connection initialized");
-                    let db_arc = Arc::new(db);
-                    app_handle.manage(db_arc.clone());
+            match surreal_result {
+                Ok(surreal_db) => {
+                    info!("SurrealDB connection initialized");
+                    let surreal_arc: Arc<SurrealClient> = Arc::new(surreal_db);
+                    app_handle.manage(surreal_arc.clone());
 
-                    // Initialize SurrealDB
-                    let surreal_result = tauri::async_runtime::block_on(async move {
-                        init_surreal_connection(PathBuf::from(&data_dir_for_surreal)).await
-                    });
-
-                    match surreal_result {
-                        Ok(surreal_db) => {
-                            info!("SurrealDB connection initialized");
-                            let surreal_arc = Arc::new(surreal_db);
-                            app_handle.manage(surreal_arc);
-                        }
-                        Err(e) => {
-                            tracing::error!("Failed to initialize SurrealDB connection: {}", e);
-                            // Continue without SurrealDB for now - we're in migration period
-                        }
-                    }
-
-                    // Start Axum API server with app handle for event emission
+                    // Start Axum API server with SurrealDB
                     crate::axum::start_axum_server_with_handle(
-                        db_arc,
-                        app_dirs_for_axum,
-                        app_handle,
+                        surreal_arc,
+                        app_dirs_for_surreal,
+                        app_handle_for_axum,
                     );
                 }
                 Err(e) => {
-                    tracing::error!("Failed to initialize database connection: {}", e);
+                    tracing::error!("Failed to initialize SurrealDB connection: {}", e);
                     return Err(Box::new(e));
                 }
             }
@@ -174,8 +150,6 @@ pub fn run() -> Result<()> {
                 api.prevent_close();
             }
         })
-        // TODO: Uncomment after fixing Tauri 2.x error type compatibility
-        // .invoke_handler(tauri::generate_handler![get_all_labels])
         .invoke_handler(tauri::generate_handler![
             get_all_labels,
             create_label,
@@ -210,20 +184,11 @@ pub fn run() -> Result<()> {
             read_pdf_as_blob,
             save_pdf_blob,
             save_pdf_with_annotations,
-            // save_pdf_file,
-            // export_pdf_with_annotations,
-            // save_annotations_data,
-            // load_annotations_data,
-            // save_pdf_with_annotations_data,
             get_app_config,
             save_app_config,
             // SurrealDB-based search commands
             search_papers,
             search_papers_with_score,
-            // Migration commands
-            get_migration_status,
-            run_migration,
-            verify_migration,
             // Data folder commands
             get_data_folder_info_command,
             get_default_data_folder,

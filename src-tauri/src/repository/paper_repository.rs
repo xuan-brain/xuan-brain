@@ -252,4 +252,98 @@ impl<'a> PaperRepository<'a> {
 
         Ok(result)
     }
+
+    /// Find paper by URL
+    pub async fn find_by_url(&self, url: &str) -> Result<Option<Paper>> {
+        let url_str = url.to_string();
+        let result: Vec<Paper> = self
+            .db
+            .query("SELECT * FROM paper WHERE url = $url LIMIT 1")
+            .bind(("url", url_str))
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to query paper by URL: {}", e)))?
+            .take(0)
+            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+
+        Ok(result.into_iter().next())
+    }
+
+    /// Set paper category (replaces existing category)
+    pub async fn set_category(&self, paper_id: &str, category_id: Option<String>) -> Result<()> {
+        let paper_id = paper_id.to_string();
+
+        // First delete existing category relation
+        self.db
+            .query("DELETE paper_category WHERE `in` = type::thing($paper)")
+            .bind(("paper", paper_id.clone()))
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to delete paper category: {}", e)))?;
+
+        // Then create new relation if category_id is provided
+        if let Some(cat_id) = category_id {
+            let query = format!(
+                "RELATE {}->paper_category->{}",
+                paper_id, cat_id
+            );
+            self.db
+                .query(&query)
+                .await
+                .map_err(|e| AppError::generic(format!("Failed to set paper category: {}", e)))?;
+        }
+
+        Ok(())
+    }
+
+    /// Get paper's category ID
+    pub async fn get_category_id(&self, paper_id: &str) -> Result<Option<String>> {
+        let paper_id = paper_id.to_string();
+        let result: Vec<String> = self
+            .db
+            .query(
+                r#"
+                SELECT VALUE `out` FROM paper_category
+                WHERE `in` = type::thing($paper)
+                LIMIT 1
+                "#,
+            )
+            .bind(("paper", paper_id))
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get paper category: {}", e)))?
+            .take(0)
+            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+
+        Ok(result.into_iter().next())
+    }
+
+    /// Add author to paper with order
+    pub async fn add_author(&self, paper_id: &str, author_id: &str, order: i32) -> Result<()> {
+        let paper_id = paper_id.to_string();
+        let author_id = author_id.to_string();
+
+        // Use RELATE with author_order field
+        let query = format!(
+            "RELATE {}->paper_author->{} SET author_order = {}",
+            paper_id, author_id, order
+        );
+        self.db
+            .query(&query)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to add author to paper: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// Update attachment path
+    pub async fn update_attachment_path(&self, paper_id: &str, path: &str) -> Result<()> {
+        let paper_id = paper_id.to_string();
+        let path = path.to_string();
+        self.db
+            .query("UPDATE type::thing($id) SET attachment_path = $path, updated_at = time::now()")
+            .bind(("id", paper_id))
+            .bind(("path", path))
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to update attachment path: {}", e)))?;
+
+        Ok(())
+    }
 }

@@ -15,3 +15,4 @@ pub use author::*;
 pub use keyword::*;
 pub use label::*;
 pub use category::*;
+pub use attachment::*;

@@ -7,7 +7,7 @@ const { t } = useI18n();
 
 interface Props {
   modelValue: boolean;
-  parentId?: number | null;
+  parentId?: string | null;
   parentName?: string;
 }
 

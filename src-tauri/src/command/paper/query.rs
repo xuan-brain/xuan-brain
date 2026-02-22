@@ -99,7 +99,7 @@ pub async fn get_deleted_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec
         let paper_id = paper
             .id
             .as_ref()
-            .map(|rid| record_id_to_string(rid))
+            .map(record_id_to_string)
             .unwrap_or_default();
 
         let authors = author_repo
@@ -118,7 +118,7 @@ pub async fn get_deleted_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec
                 id: l
                     .id
                     .as_ref()
-                    .map(|rid| record_id_to_string(rid))
+                    .map(record_id_to_string)
                     .unwrap_or_default(),
                 name: l.name.clone(),
                 color: l.color.clone(),
@@ -135,7 +135,7 @@ pub async fn get_deleted_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec
                 id: a
                     .id
                     .as_ref()
-                    .map(|rid| record_id_to_string(rid))
+                    .map(record_id_to_string)
                     .unwrap_or_default(),
                 paper_id: paper_id.clone(),
                 file_name: a.file_name.clone(),
@@ -185,7 +185,7 @@ pub async fn get_paper(
                 id: l
                     .id
                     .as_ref()
-                    .map(|rid| record_id_to_string(rid))
+                    .map(record_id_to_string)
                     .unwrap_or_default(),
                 name: l.name.clone(),
                 color: l.color.clone(),
@@ -203,7 +203,7 @@ pub async fn get_paper(
             id: paper
                 .id
                 .as_ref()
-                .map(|rid| record_id_to_string(rid))
+                .map(record_id_to_string)
                 .unwrap_or_default(),
             title: paper.title,
             abstract_text: paper.abstract_text,
@@ -249,7 +249,7 @@ pub async fn get_papers_by_category(
         let paper_id = paper
             .id
             .as_ref()
-            .map(|rid| record_id_to_string(rid))
+            .map(record_id_to_string)
             .unwrap_or_default();
 
         let authors = author_repo
@@ -268,7 +268,7 @@ pub async fn get_papers_by_category(
                 id: l
                     .id
                     .as_ref()
-                    .map(|rid| record_id_to_string(rid))
+                    .map(record_id_to_string)
                     .unwrap_or_default(),
                 name: l.name.clone(),
                 color: l.color.clone(),
@@ -285,7 +285,7 @@ pub async fn get_papers_by_category(
                 id: a
                     .id
                     .as_ref()
-                    .map(|rid| record_id_to_string(rid))
+                    .map(record_id_to_string)
                     .unwrap_or_default(),
                 paper_id: paper_id.clone(),
                 file_name: a.file_name.clone(),

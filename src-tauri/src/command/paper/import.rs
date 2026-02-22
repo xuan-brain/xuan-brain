@@ -46,7 +46,7 @@ pub async fn import_paper_by_doi(
     let author_repo = AuthorRepository::new(&db);
 
     // Check if paper already exists
-    if let Some(_) = paper_repo.find_by_doi(&metadata.doi).await? {
+    if paper_repo.find_by_doi(&metadata.doi).await?.is_some() {
         return Err(AppError::validation(
             "doi",
             format!("Paper with DOI {} already exists", metadata.doi),
@@ -74,12 +74,12 @@ pub async fn import_paper_by_doi(
         attachment_path: Some(hash_string),
     }).await?;
 
-    let paper_id = paper.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+    let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
 
     // Add authors
     for (order, author_name) in metadata.authors.iter().enumerate() {
         let author = author_repo.create_or_find(author_name, None).await?;
-        let author_id = author.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+        let author_id = author.id.as_ref().map(record_id_to_string).unwrap_or_default();
         paper_repo.add_author(&paper_id, &author_id, order as i32).await?;
     }
 
@@ -139,7 +139,7 @@ pub async fn import_paper_by_arxiv_id(
 
     // Check if paper already exists by DOI
     if let Some(doi) = &metadata.doi {
-        if let Some(_) = paper_repo.find_by_doi(doi).await? {
+        if paper_repo.find_by_doi(doi).await?.is_some() {
             return Err(AppError::validation(
                 "doi",
                 format!("Paper with DOI {} already exists", doi),
@@ -165,11 +165,11 @@ pub async fn import_paper_by_arxiv_id(
         attachment_path: Some(hash_string),
     }).await?;
 
-    let paper_id = paper.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+    let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
 
     for (order, author_name) in metadata.authors.iter().enumerate() {
         let author = author_repo.create_or_find(author_name, None).await?;
-        let author_id = author.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+        let author_id = author.id.as_ref().map(record_id_to_string).unwrap_or_default();
         paper_repo.add_author(&paper_id, &author_id, order as i32).await?;
     }
 
@@ -228,7 +228,7 @@ pub async fn import_paper_by_pmid(
     let author_repo = AuthorRepository::new(&db);
 
     if let Some(doi) = &metadata.doi {
-        if let Some(_) = paper_repo.find_by_doi(doi).await? {
+        if paper_repo.find_by_doi(doi).await?.is_some() {
             return Err(AppError::validation(
                 "doi",
                 format!("Paper with DOI {} already exists", doi),
@@ -255,11 +255,11 @@ pub async fn import_paper_by_pmid(
         attachment_path: Some(hash_string),
     }).await?;
 
-    let paper_id = paper.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+    let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
 
     for (order, author_name) in metadata.authors.iter().enumerate() {
         let author = author_repo.create_or_find(author_name, None).await?;
-        let author_id = author.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+        let author_id = author.id.as_ref().map(record_id_to_string).unwrap_or_default();
         paper_repo.add_author(&paper_id, &author_id, order as i32).await?;
     }
 
@@ -348,11 +348,11 @@ pub async fn import_paper_by_pdf(
         attachment_path: Some(hash_string.clone()),
     }).await?;
 
-    let paper_id = paper.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+    let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
 
     for (order, author_name) in metadata.authors.iter().enumerate() {
         let author = author_repo.create_or_find(author_name, None).await?;
-        let author_id = author.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+        let author_id = author.id.as_ref().map(record_id_to_string).unwrap_or_default();
         paper_repo.add_author(&paper_id, &author_id, order as i32).await?;
     }
 

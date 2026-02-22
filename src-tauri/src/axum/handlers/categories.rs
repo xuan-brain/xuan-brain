@@ -39,12 +39,12 @@ pub async fn list_categories(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<CategoryResponse>>, ApiError> {
     let repo = CategoryRepository::new(&state.db);
-    let categories = repo.find_all().await.map_err(|e| ApiError(e))?;
+    let categories = repo.find_all().await.map_err(ApiError)?;
 
     let result: Vec<CategoryResponse> = categories
         .into_iter()
         .map(|c| CategoryResponse {
-            id: c.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
+            id: c.id.as_ref().map(record_id_to_string).unwrap_or_default(),
             name: c.name,
             parent_id: c.parent.map(|rid| record_id_to_string(&rid)),
             sort_order: c.sort_order,

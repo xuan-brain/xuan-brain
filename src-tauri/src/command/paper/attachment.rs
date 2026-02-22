@@ -71,7 +71,7 @@ pub async fn add_attachment(
         .show();
 
     Ok(AttachmentDto {
-        id: attachment.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
+        id: attachment.id.as_ref().map(record_id_to_string).unwrap_or_default(),
         paper_id: record_id_to_string(&attachment.paper),
         file_name: Some(file_name),
         file_type,
@@ -90,7 +90,7 @@ pub async fn get_attachments(
     let attachments = repo.find_by_paper(&paper_id).await?;
 
     Ok(attachments.iter().map(|a| AttachmentDto {
-        id: a.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
+        id: a.id.as_ref().map(record_id_to_string).unwrap_or_default(),
         paper_id: record_id_to_string(&a.paper),
         file_name: a.file_name.clone(),
         file_type: a.file_type.clone(),

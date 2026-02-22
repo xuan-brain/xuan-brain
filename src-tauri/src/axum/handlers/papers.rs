@@ -43,13 +43,13 @@ pub async fn list_papers(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<serde_json::Value>>, ApiError> {
     let repo = PaperRepository::new(&state.db);
-    let papers = repo.find_all().await.map_err(|e| ApiError(e))?;
+    let papers = repo.find_all().await.map_err(ApiError)?;
 
     let result: Vec<serde_json::Value> = papers
         .into_iter()
         .map(|p| {
             serde_json::json!({
-                "id": p.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
+                "id": p.id.as_ref().map(record_id_to_string).unwrap_or_default(),
                 "title": p.title,
                 "abstract": p.abstract_text,
                 "doi": p.doi,
@@ -84,11 +84,11 @@ pub async fn get_paper(
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let repo = PaperRepository::new(&state.db);
-    let paper = repo.find_by_id(&id).await.map_err(|e| ApiError(e))?;
+    let paper = repo.find_by_id(&id).await.map_err(ApiError)?;
 
     match paper {
         Some(p) => Ok(Json(serde_json::json!({
-            "id": p.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default(),
+            "id": p.id.as_ref().map(record_id_to_string).unwrap_or_default(),
             "title": p.title,
             "abstract": p.abstract_text,
             "doi": p.doi,
@@ -202,7 +202,7 @@ pub async fn import_paper_from_html(
     // 4. Check for duplicates by DOI
     if let Some(ref doi) = metadata.doi {
         if !doi.is_empty() {
-            if let Some(_existing) = paper_repo.find_by_doi(doi).await.map_err(|e| ApiError(e))? {
+            if let Some(_existing) = paper_repo.find_by_doi(doi).await.map_err(ApiError)? {
                 return Ok(Json(ImportHtmlResponse {
                     success: false,
                     paper: None,
@@ -215,7 +215,7 @@ pub async fn import_paper_from_html(
     // 5. Check for duplicates by URL
     if let Some(ref url) = metadata.url {
         if !url.is_empty() {
-            if let Some(_existing) = paper_repo.find_by_url(url).await.map_err(|e| ApiError(e))? {
+            if let Some(_existing) = paper_repo.find_by_url(url).await.map_err(ApiError)? {
                 return Ok(Json(ImportHtmlResponse {
                     success: false,
                     paper: None,
@@ -244,9 +244,9 @@ pub async fn import_paper_from_html(
         url: metadata.url.filter(|u| !u.is_empty()),
         abstract_text: metadata.abstract_text,
         attachment_path: Some(hash_string),
-    }).await.map_err(|e| ApiError(e))?;
+    }).await.map_err(ApiError)?;
 
-    let paper_id = paper.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
+    let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
     info!("Created paper with id: {}", paper_id);
 
     // 8. Add authors
@@ -255,9 +255,9 @@ pub async fn import_paper_from_html(
             continue;
         }
 
-        let author = author_repo.create_or_find(author_name.trim(), None).await.map_err(|e| ApiError(e))?;
-        let author_id = author.id.as_ref().map(|rid| record_id_to_string(rid)).unwrap_or_default();
-        paper_repo.add_author(&paper_id, &author_id, order as i32).await.map_err(|e| ApiError(e))?;
+        let author = author_repo.create_or_find(author_name.trim(), None).await.map_err(ApiError)?;
+        let author_id = author.id.as_ref().map(record_id_to_string).unwrap_or_default();
+        paper_repo.add_author(&paper_id, &author_id, order as i32).await.map_err(ApiError)?;
     }
 
     info!(

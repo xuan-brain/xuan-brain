@@ -133,3 +133,59 @@ GPUI 是 Rust 原生 UI 框架，不是 Vue 组件库。当前 Vue 组件（Vuet
 - **结论三**：推荐采用“分阶段、双轨并行、先主流程后 PDF 标注”的方案，以最小业务风险推进。
 
 如果你同意，我可以下一步直接给出 **按当前文件结构映射的详细任务拆解清单（到组件/命令级）**，用于创建实际迭代计划（Sprint Backlog）。
+
+---
+
+## 8. 参考 `longbridge/gpui-component` 后，仍需自定义实现的 UI 控件清单
+
+基于 `gpui-component` 当前公开模块（如 `button/dialog/menu/select/input/table/tree/resizable/sidebar/tab/color_picker` 等）与当前 `xuan-brain` 前端组件对照，以下能力建议作为**自定义控件**实现：
+
+### P0（必须先做，主流程阻塞）
+
+1. **文献工作台分栏控件（LibraryWorkbench）**
+   - 对应现状：`MainLayout.vue` + `PapersPage.vue`
+   - 原因：虽然有 `resizable` 与 `sidebar`，但“三栏联动 + 宽度持久化 + 路由态同步”是业务特化容器。
+
+2. **文献表格控件（PaperTable）**
+   - 对应现状：`PaperList.vue`（VxeTable）
+   - 原因：需要组合实现“行双击打开阅读器 + 行右键菜单 + Trash/Library 双模式 + 附件展开行 + 标签列渲染”，属于领域表格而非通用 Table。
+
+3. **分类树管理控件（CategoryTreeManager）**
+   - 对应现状：`CategoryTree.vue`
+   - 原因：除 Tree 展示外，还要支持拖拽重排后调用 `reorder_tree`、节点右键增删改、选中/取消选中联动筛选。
+
+4. **标签面板控件（TagPalettePanel）**
+   - 对应现状：`Navigation.vue` 标签区域
+   - 原因：需要“标签 chip 列表 + 右键菜单 + 颜色面板 + 与后端 label API 联动”，是业务化组合控件。
+
+### P1（高价值，建议第二阶段）
+
+5. **文献详情编辑器（PaperDetailEditor）**
+   - 对应现状：`PaperDetails.vue`
+   - 原因：包含 metadata 表单、分类绑定、标签增删、阅读状态切换与保存链路，属于复杂业务表单。
+
+6. **文献导入工具条（PaperImportToolbar）**
+   - 对应现状：`PaperToolbar.vue`
+   - 原因：整合 DOI/arXiv/PubMed/PDF 多入口导入弹窗、输入校验、异步反馈与刷新联动。
+
+7. **状态栏服务切换器（ServiceSwitcherStatusBar）**
+   - 对应现状：`StatusBar.vue`
+   - 原因：需要“LLM Provider/GROBID 选择 + 默认项切换 + 配置持久化”，是应用级状态组件。
+
+### P2（按产品节奏推进）
+
+8. **PDF 阅读器壳层控件（PdfReaderShell）**
+   - 对应现状：`PDFViewer.vue`
+   - 原因：即使底层继续使用第三方 PDF 渲染引擎（如现有 Web/PDF 插件或后续 Rust PDF 库），也需要自定义“文档加载状态/错误态/保存流程/窗口行为”壳层。
+
+9. **批量导入反馈控件（ImportTaskToast/Panel）**
+   - 对应现状：当前散落在多个对话框与 console
+   - 原因：迁移到桌面原生后建议统一异步任务反馈（进度、成功/失败、重试）。
+
+10. **统一错误与空态控件（DomainEmptyState/DomainErrorState）**
+    - 对应现状：各组件内分散实现
+    - 原因：分类空态、列表空态、加载失败态可抽为统一业务控件，减少重复逻辑。
+
+### 可直接复用/轻封装（一般不需要重写为“新控件”）
+
+- 通用按钮、输入框、下拉、菜单、对话框、Tooltip、Switch、Tabs、基础 Tree/Table/Resizable 等，优先使用 `gpui-component` 原生组件，并仅做主题样式与品牌设计（颜色、圆角、间距、字体）层面的统一封装。

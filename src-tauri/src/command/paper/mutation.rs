@@ -12,6 +12,20 @@ use crate::sys::error::Result;
 
 use super::dtos::*;
 
+/// Migrate abstract field to abstract_text for existing papers
+/// Call this once after upgrading from versions that used `abstract` field
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn migrate_abstract_field(
+    db: State<'_, Arc<SurrealClient>>,
+) -> Result<u64> {
+    info!("Starting abstract field migration");
+    let repo = PaperRepository::new(&db);
+    let count = repo.migrate_abstract_field().await?;
+    info!("Migration completed: {} papers updated", count);
+    Ok(count)
+}
+
 #[tauri::command]
 #[instrument(skip(db, app))]
 pub async fn update_paper_details(

@@ -11,7 +11,6 @@ pub struct Paper {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<RecordId>,
     pub title: String,
-    #[serde(rename = "abstract")]
     pub abstract_text: Option<String>,
     pub doi: Option<String>,
     pub publication_year: Option<i32>,
@@ -35,7 +34,6 @@ pub struct Paper {
 #[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct CreatePaper {
     pub title: String,
-    #[serde(rename = "abstract")]
     pub abstract_text: Option<String>,
     pub doi: Option<String>,
     pub publication_year: Option<i32>,
@@ -53,7 +51,6 @@ pub struct CreatePaper {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, SurrealValue)]
 pub struct UpdatePaper {
     pub title: Option<String>,
-    #[serde(rename = "abstract")]
     pub abstract_text: Option<String>,
     pub doi: Option<String>,
     pub publication_year: Option<i32>,

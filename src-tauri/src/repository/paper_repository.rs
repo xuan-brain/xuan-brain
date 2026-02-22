@@ -100,7 +100,7 @@ impl<'a> PaperRepository<'a> {
             sets.push("title = $title");
         }
         if update.abstract_text.is_some() {
-            sets.push("`abstract` = $abstract_text");
+            sets.push("abstract_text = $abstract_text");
         }
         if update.doi.is_some() {
             sets.push("doi = $doi");
@@ -216,7 +216,7 @@ impl<'a> PaperRepository<'a> {
                 r#"
                 SELECT * FROM paper
                 WHERE deleted_at IS NONE
-                AND (title @@ $query OR `abstract` @@ $query)
+                AND (title @@ $query OR abstract_text @@ $query)
                 ORDER BY id DESC
                 LIMIT 50
                 "#,
@@ -345,5 +345,27 @@ impl<'a> PaperRepository<'a> {
             .map_err(|e| AppError::generic(format!("Failed to update attachment path: {}", e)))?;
 
         Ok(())
+    }
+
+    /// Migrate abstract field to abstract_text for existing records
+    /// This is needed because we changed from `abstract` (serde rename) to `abstract_text`
+    pub async fn migrate_abstract_field(&self) -> Result<u64> {
+        let result: Vec<serde_json::Value> = self
+            .db
+            .query(
+                r#"
+                UPDATE paper SET abstract_text = `abstract` 
+                WHERE `abstract` IS NOT NONE 
+                AND (abstract_text IS NONE OR abstract_text = "")
+                "#
+            )
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to migrate abstract field: {}", e)))?
+            .take(0)
+            .map_err(|e| AppError::generic(format!("Failed to get migration results: {}", e)))?;
+
+        let count = result.len() as u64;
+        info!("Migrated {} papers from abstract to abstract_text", count);
+        Ok(count)
     }
 }

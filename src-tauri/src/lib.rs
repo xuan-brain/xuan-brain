@@ -24,8 +24,8 @@ use crate::command::paper::{
     add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
     get_deleted_papers, get_paper, get_papers_by_category, get_pdf_attachment_path,
     import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf, import_paper_by_pmid,
-    open_paper_folder, permanently_delete_paper, read_pdf_as_blob, read_pdf_file,
-    remove_paper_label, restore_paper, save_pdf_blob, save_pdf_with_annotations,
+    migrate_abstract_field, open_paper_folder, permanently_delete_paper, read_pdf_as_blob,
+    read_pdf_file, remove_paper_label, restore_paper, save_pdf_blob, save_pdf_with_annotations,
     update_paper_category, update_paper_details,
 };
 use crate::command::search_command::{search_papers, search_papers_with_score};
@@ -195,7 +195,9 @@ pub fn run() -> Result<()> {
             validate_data_folder_command,
             migrate_data_folder_command,
             revert_to_default_data_folder_command,
-            restart_app
+            restart_app,
+            // Database migration commands
+            migrate_abstract_field
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

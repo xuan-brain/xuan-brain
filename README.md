@@ -135,6 +135,7 @@ yarn tauri build
 详细的使用文档和开发指南,请参阅:
 
 - [项目介绍](docs/introduction.md) - 完整的架构设计文档
+- [GPUI 可行性分析](docs/gpui-feasibility-analysis.md) - 基于当前 Tauri + Vue 架构的迁移评估与实施方案
 - [用户手册](docs/user-guide.md) - 安装、配置和使用教程（待创建）
 - [开发者文档](docs/developer-guide.md) - API 文档、开发指南（待创建）
 - [插件开发](docs/plugin-development.md) - 插件开发教程（待创建）

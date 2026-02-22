@@ -10,7 +10,7 @@
 -- ============================================
 DEFINE TABLE paper SCHEMAFULL;
 DEFINE FIELD title ON paper TYPE string;
-DEFINE FIELD abstract ON paper TYPE option<string>;
+DEFINE FIELD abstract_text ON paper TYPE option<string>;
 DEFINE FIELD doi ON paper TYPE option<string>;
 DEFINE FIELD publication_year ON paper TYPE option<int>;
 DEFINE FIELD publication_date ON paper TYPE option<string>;
@@ -34,7 +34,7 @@ DEFINE INDEX doi_unique ON paper FIELDS doi UNIQUE;
 -- BM25 全文索引 (SurrealDB 3.0 uses FULLTEXT ANALYZER instead of SEARCH ANALYZER)
 DEFINE ANALYZER paper_analyzer TOKENIZERS blank,class FILTERS lowercase,snowball(english);
 DEFINE INDEX paper_title_search ON paper FIELDS title FULLTEXT ANALYZER paper_analyzer;
-DEFINE INDEX paper_abstract_search ON paper FIELDS abstract FULLTEXT ANALYZER paper_analyzer;
+DEFINE INDEX paper_abstract_text_search ON paper FIELDS abstract_text FULLTEXT ANALYZER paper_analyzer;
 
 -- ============================================
 -- AUTHOR (作者表)

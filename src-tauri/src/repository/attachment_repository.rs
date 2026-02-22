@@ -27,13 +27,17 @@ impl<'a> AttachmentRepository<'a> {
                 ORDER BY created_at DESC
                 "#,
             )
-            .bind(("paper", paper_id))
+            .bind(("paper", paper_id.clone()))
             .await
             .map_err(|e| AppError::generic(format!("Failed to query attachments: {}", e)))?
             .take(0)
             .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
 
-        info!("Found {} attachments for paper", result.len());
+        info!(
+            "Found {} attachments for paper for paper id :{}",
+            result.len(),
+            &paper_id
+        );
         Ok(result)
     }
 

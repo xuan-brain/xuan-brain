@@ -2,17 +2,15 @@
 //!
 //! Rust structs representing SurrealDB records with serde serialization.
 
-pub mod paper;
 pub mod author;
+pub mod category;
 pub mod keyword;
 pub mod label;
-pub mod category;
-pub mod attachment;
+pub mod paper;
 pub mod relations;
 
-pub use paper::*;
 pub use author::*;
+pub use category::*;
 pub use keyword::*;
 pub use label::*;
-pub use category::*;
-pub use attachment::*;
+pub use paper::*;

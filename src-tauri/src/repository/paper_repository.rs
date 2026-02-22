@@ -1,7 +1,7 @@
 //! Paper repository for SurrealDB
 
 use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::{CreatePaper, Paper, UpdatePaper};
+use crate::surreal::models::{AttachmentEmbedded, CreatePaper, Paper, UpdatePaper};
 use crate::sys::error::{AppError, Result};
 use tracing::info;
 
@@ -367,5 +367,68 @@ impl<'a> PaperRepository<'a> {
         let count = result.len() as u64;
         info!("Migrated {} papers from abstract to abstract_text", count);
         Ok(count)
+    }
+
+    /// Add attachment to paper
+    pub async fn add_attachment(&self, paper_id: &str, attachment: AttachmentEmbedded) -> Result<Paper> {
+        let paper_id = paper_id.to_string();
+        let result: Vec<Paper> = self
+            .db
+            .query("UPDATE type::thing($id) SET attachments += $attachment, updated_at = time::now()")
+            .bind(("id", paper_id.clone()))
+            .bind(("attachment", attachment))
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to add attachment: {}", e)))?
+            .take(0)
+            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+
+        result
+            .into_iter()
+            .next()
+            .ok_or_else(|| AppError::not_found("Paper", paper_id))
+    }
+
+    /// Get all attachments for a paper
+    pub async fn get_attachments(&self, paper_id: &str) -> Result<Vec<AttachmentEmbedded>> {
+        if let Some(paper) = self.find_by_id(paper_id).await? {
+            Ok(paper.attachments)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    /// Find PDF attachment for a paper
+    pub async fn find_pdf_attachment(&self, paper_id: &str) -> Result<Option<AttachmentEmbedded>> {
+        let attachments = self.get_attachments(paper_id).await?;
+        Ok(attachments
+            .into_iter()
+            .find(|a| {
+                let file_type = a.file_type.as_deref().unwrap_or("").to_lowercase();
+                let file_name = a.file_name.as_deref().unwrap_or("");
+                file_type == "pdf" || file_name.ends_with(".pdf")
+            }))
+    }
+
+    /// Remove attachment from paper by file name
+    pub async fn remove_attachment(&self, paper_id: &str, file_name: &str) -> Result<Paper> {
+        let paper_id = paper_id.to_string();
+        let file_name = file_name.to_string();
+        
+        let result: Vec<Paper> = self
+            .db
+            .query(
+                "UPDATE type::thing($id) SET attachments = array::filter(attachments, |$a| $a.file_name != $file_name), updated_at = time::now()"
+            )
+            .bind(("id", paper_id.clone()))
+            .bind(("file_name", file_name))
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to remove attachment: {}", e)))?
+            .take(0)
+            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+
+        result
+            .into_iter()
+            .next()
+            .ok_or_else(|| AppError::not_found("Paper", paper_id))
     }
 }

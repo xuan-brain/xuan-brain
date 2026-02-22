@@ -7,14 +7,15 @@ use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 use tracing::{info, instrument};
 
-use crate::repository::{AttachmentRepository, PaperRepository};
+use crate::repository::PaperRepository;
 use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::CreateAttachment;
+use crate::surreal::models::paper::AttachmentEmbedded;
 use crate::sys::dirs::AppDirs;
 use crate::sys::error::{AppError, Result};
 
 use super::dtos::*;
-use super::utils::{base64_decode, base64_encode, calculate_attachment_hash, record_id_to_string};
+use super::utils::{base64_decode, base64_encode, calculate_attachment_hash};
+use chrono::Utc;
 
 #[tauri::command]
 #[instrument(skip(db, app_dirs, app))]
@@ -27,7 +28,6 @@ pub async fn add_attachment(
 ) -> Result<AttachmentDto> {
     info!("Adding attachment for paper {}: {}", paper_id, file_path);
     let paper_repo = PaperRepository::new(&db);
-    let attachment_repo = AttachmentRepository::new(&db);
 
     let paper = paper_repo.find_by_id(&paper_id).await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
@@ -54,14 +54,16 @@ pub async fn add_attachment(
     })?;
 
     let file_type = source_path.extension().map(|s| s.to_string_lossy().to_string());
+    let file_size = std::fs::metadata(&target_path).ok().map(|m| m.len() as i64);
 
-    let attachment = attachment_repo.create(CreateAttachment {
-        paper_id: paper_id.clone(),
+    let attachment = AttachmentEmbedded {
         file_name: Some(file_name.clone()),
         file_type: file_type.clone(),
-        file_path: Some(target_path.to_string_lossy().to_string()),
-        file_size: None,
-    }).await?;
+        file_size,
+        created_at: Some(Utc::now()),
+    };
+
+    paper_repo.add_attachment(&paper_id, attachment).await?;
 
     let _ = app
         .notification()
@@ -71,11 +73,11 @@ pub async fn add_attachment(
         .show();
 
     Ok(AttachmentDto {
-        id: attachment.id.as_ref().map(record_id_to_string).unwrap_or_default(),
-        paper_id: record_id_to_string(&attachment.paper),
+        id: String::new(),
+        paper_id: paper_id.clone(),
         file_name: Some(file_name),
         file_type,
-        created_at: None,
+        created_at: Some(Utc::now().to_rfc3339()),
     })
 }
 
@@ -86,16 +88,10 @@ pub async fn get_attachments(
     paper_id: String,
 ) -> Result<Vec<AttachmentDto>> {
     info!("Fetching attachments for paper {}", paper_id);
-    let repo = AttachmentRepository::new(&db);
-    let attachments = repo.find_by_paper(&paper_id).await?;
+    let paper_repo = PaperRepository::new(&db);
+    let attachments = paper_repo.get_attachments(&paper_id).await?;
 
-    Ok(attachments.iter().map(|a| AttachmentDto {
-        id: a.id.as_ref().map(record_id_to_string).unwrap_or_default(),
-        paper_id: record_id_to_string(&a.paper),
-        file_name: a.file_name.clone(),
-        file_type: a.file_type.clone(),
-        created_at: None,
-    }).collect())
+    Ok(attachments.iter().map(|a| AttachmentDto::from_embedded(a, paper_id.clone())).collect())
 }
 
 #[tauri::command]
@@ -142,7 +138,6 @@ pub async fn get_pdf_attachment_path(
 ) -> Result<PdfAttachmentInfo> {
     info!("Getting PDF attachment path for paper {}", paper_id);
     let paper_repo = PaperRepository::new(&db);
-    let attachment_repo = AttachmentRepository::new(&db);
 
     let paper = paper_repo.find_by_id(&paper_id).await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
@@ -151,7 +146,7 @@ pub async fn get_pdf_attachment_path(
         calculate_attachment_hash(&paper.title)
     });
 
-    let attachment = attachment_repo.find_pdf_by_paper(&paper_id).await?
+    let attachment = paper_repo.find_pdf_attachment(&paper_id).await?
         .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
 
     let file_name = attachment.file_name.clone().unwrap_or_else(|| {
@@ -206,7 +201,6 @@ pub async fn read_pdf_as_blob(
 ) -> Result<PdfBlobResponse> {
     info!("Reading PDF as blob for paper {}", paper_id);
     let paper_repo = PaperRepository::new(&db);
-    let attachment_repo = AttachmentRepository::new(&db);
 
     let paper = paper_repo.find_by_id(&paper_id).await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
@@ -215,7 +209,7 @@ pub async fn read_pdf_as_blob(
         calculate_attachment_hash(&paper.title)
     });
 
-    let attachment = attachment_repo.find_pdf_by_paper(&paper_id).await?
+    let attachment = paper_repo.find_pdf_attachment(&paper_id).await?
         .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
 
     let file_name = attachment.file_name.clone().unwrap_or_else(|| {
@@ -258,7 +252,6 @@ pub async fn save_pdf_blob(
 ) -> Result<PdfSaveResponse> {
     info!("Saving PDF blob for paper {}", paper_id);
     let paper_repo = PaperRepository::new(&db);
-    let attachment_repo = AttachmentRepository::new(&db);
 
     let paper = paper_repo.find_by_id(&paper_id).await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
@@ -267,7 +260,7 @@ pub async fn save_pdf_blob(
         calculate_attachment_hash(&paper.title)
     });
 
-    let attachment = attachment_repo.find_pdf_by_paper(&paper_id).await?
+    let attachment = paper_repo.find_pdf_attachment(&paper_id).await?
         .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
 
     let file_name = attachment.file_name.clone().unwrap_or_else(|| {
@@ -322,7 +315,6 @@ pub async fn save_pdf_with_annotations(
 ) -> Result<PdfSaveResponse> {
     info!("Saving PDF blob with annotations for paper {}", paper_id);
     let paper_repo = PaperRepository::new(&db);
-    let attachment_repo = AttachmentRepository::new(&db);
 
     let paper = paper_repo.find_by_id(&paper_id).await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
@@ -331,7 +323,7 @@ pub async fn save_pdf_with_annotations(
         calculate_attachment_hash(&paper.title)
     });
 
-    let attachment = attachment_repo.find_pdf_by_paper(&paper_id).await?
+    let attachment = paper_repo.find_pdf_attachment(&paper_id).await?
         .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
 
     let file_name = attachment.file_name.clone().unwrap_or_else(|| {
@@ -384,4 +376,20 @@ pub async fn save_pdf_with_annotations(
         size_bytes,
         message: format!("PDF saved successfully: {} ({} bytes)", file_name, size_bytes),
     })
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn delete_attachment(
+    db: State<'_, Arc<SurrealClient>>,
+    paper_id: String,
+    file_name: String,
+) -> Result<()> {
+    info!("Deleting attachment {} for paper {}", file_name, paper_id);
+    let paper_repo = PaperRepository::new(&db);
+
+    paper_repo.remove_attachment(&paper_id, &file_name).await?;
+
+    info!("Successfully deleted attachment {} for paper {}", file_name, paper_id);
+    Ok(())
 }

@@ -27,6 +27,14 @@ DEFINE FIELD attachment_path ON paper TYPE option<string>;
 DEFINE FIELD created_at ON paper TYPE datetime DEFAULT time::now();
 DEFINE FIELD updated_at ON paper TYPE datetime DEFAULT time::now();
 DEFINE FIELD deleted_at ON paper TYPE option<datetime>;
+-- 1. 新增 attachments 字段 (数组)
+DEFINE FIELD attachments ON paper TYPE array<option<object>>;
+
+-- 2. 定义数组内对象的结构 (无 file_path)
+DEFINE FIELD attachments[*].file_name ON paper TYPE option<string>;
+DEFINE FIELD attachments[*].file_type ON paper TYPE option<string>;
+DEFINE FIELD attachments[*].file_size ON paper TYPE option<int>;
+DEFINE FIELD attachments[*].created_at ON paper TYPE option<datetime>;
 
 -- DOI 唯一索引
 DEFINE INDEX doi_unique ON paper FIELDS doi UNIQUE;
@@ -88,17 +96,6 @@ DEFINE TABLE paper_label SCHEMAFULL TYPE RELATION FROM paper TO label;
 
 -- Paper-Category relationship
 DEFINE TABLE paper_category SCHEMAFULL TYPE RELATION FROM paper TO category;
-
--- ============================================
--- ATTACHMENT (附件表)
--- ============================================
-DEFINE TABLE attachment SCHEMAFULL;
-DEFINE FIELD paper ON attachment TYPE record<paper>;
-DEFINE FIELD file_type ON attachment TYPE option<string>;
-DEFINE FIELD file_name ON attachment TYPE option<string>;
-DEFINE FIELD file_path ON attachment TYPE option<string>;
-DEFINE FIELD file_size ON attachment TYPE option<int>;
-DEFINE FIELD created_at ON attachment TYPE datetime DEFAULT time::now();
 
 -- ============================================
 -- FUTURE: Vector Search (可选扩展)

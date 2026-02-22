@@ -4,6 +4,15 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use surrealdb_types::{RecordId, SurrealValue};
 
+/// Embedded attachment structure (no id or file_path)
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
+pub struct AttachmentEmbedded {
+    pub file_name: Option<String>,
+    pub file_type: Option<String>,
+    pub file_size: Option<i64>,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
 /// Paper record representing a research paper
 /// Note: `abstract` is renamed to `abstract_text` because `abstract` is a Rust keyword
 #[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
@@ -28,6 +37,7 @@ pub struct Paper {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub attachments: Vec<AttachmentEmbedded>,
 }
 
 /// DTO for creating a new paper
@@ -45,6 +55,7 @@ pub struct CreatePaper {
     pub pages: Option<String>,
     pub url: Option<String>,
     pub attachment_path: Option<String>,
+    pub attachments: Vec<AttachmentEmbedded>,
 }
 
 /// DTO for updating paper details
@@ -64,6 +75,7 @@ pub struct UpdatePaper {
     pub read_status: Option<String>,
     pub notes: Option<String>,
     pub attachment_path: Option<String>,
+    pub attachments: Option<Vec<AttachmentEmbedded>>,
 }
 
 impl Paper {
@@ -90,6 +102,7 @@ impl Paper {
             created_at: now,
             updated_at: now,
             deleted_at: None,
+            attachments: Vec::new(),
         }
     }
 
@@ -122,6 +135,7 @@ impl From<CreatePaper> for Paper {
             created_at: now,
             updated_at: now,
             deleted_at: None,
+            attachments: create.attachments,
         }
     }
 }

@@ -244,6 +244,7 @@ pub async fn import_paper_from_html(
         url: metadata.url.filter(|u| !u.is_empty()),
         abstract_text: metadata.abstract_text,
         attachment_path: Some(hash_string),
+        attachments: vec![],
     }).await.map_err(ApiError)?;
 
     let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();

@@ -5,7 +5,7 @@ use tauri::State;
 use tracing::{info, instrument};
 
 use crate::repository::{
-    AttachmentRepository, AuthorRepository, CategoryRepository, LabelRepository, PaperRepository,
+    AuthorRepository, CategoryRepository, LabelRepository, PaperRepository,
 };
 use crate::surreal::connection::SurrealClient;
 use crate::sys::error::Result;
@@ -20,7 +20,6 @@ pub async fn get_all_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec<Pap
     let paper_repo = PaperRepository::new(&db);
     let author_repo = AuthorRepository::new(&db);
     let label_repo = LabelRepository::new(&db);
-    let attachment_repo = AttachmentRepository::new(&db);
 
     let papers = paper_repo.find_all().await?;
 
@@ -51,14 +50,11 @@ pub async fn get_all_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec<Pap
             })
             .collect();
 
-        let attachments = attachment_repo
-            .find_by_paper(&paper_id)
-            .await
-            .unwrap_or_default();
-        let attachment_dtos: Vec<AttachmentDto> = attachments
+        let attachment_dtos: Vec<AttachmentDto> = paper
+            .attachments
             .iter()
             .map(|a| AttachmentDto {
-                id: a.id.as_ref().map(record_id_to_string).unwrap_or_default(),
+                id: paper_id.clone(),
                 paper_id: paper_id.clone(),
                 file_name: a.file_name.clone(),
                 file_type: a.file_type.clone(),
@@ -90,7 +86,6 @@ pub async fn get_deleted_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec
     let paper_repo = PaperRepository::new(&db);
     let author_repo = AuthorRepository::new(&db);
     let label_repo = LabelRepository::new(&db);
-    let attachment_repo = AttachmentRepository::new(&db);
 
     let papers = paper_repo.find_deleted().await?;
 
@@ -125,18 +120,11 @@ pub async fn get_deleted_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec
             })
             .collect();
 
-        let attachments = attachment_repo
-            .find_by_paper(&paper_id)
-            .await
-            .unwrap_or_default();
-        let attachment_dtos: Vec<AttachmentDto> = attachments
+        let attachment_dtos: Vec<AttachmentDto> = paper
+            .attachments
             .iter()
             .map(|a| AttachmentDto {
-                id: a
-                    .id
-                    .as_ref()
-                    .map(record_id_to_string)
-                    .unwrap_or_default(),
+                id: paper_id.clone(),
                 paper_id: paper_id.clone(),
                 file_name: a.file_name.clone(),
                 file_type: a.file_type.clone(),
@@ -240,7 +228,6 @@ pub async fn get_papers_by_category(
     let paper_repo = PaperRepository::new(&db);
     let author_repo = AuthorRepository::new(&db);
     let label_repo = LabelRepository::new(&db);
-    let attachment_repo = AttachmentRepository::new(&db);
 
     let papers = paper_repo.find_by_category(&category_id).await?;
 
@@ -275,18 +262,11 @@ pub async fn get_papers_by_category(
             })
             .collect();
 
-        let attachments = attachment_repo
-            .find_by_paper(&paper_id)
-            .await
-            .unwrap_or_default();
-        let attachment_dtos: Vec<AttachmentDto> = attachments
+        let attachment_dtos: Vec<AttachmentDto> = paper
+            .attachments
             .iter()
             .map(|a| AttachmentDto {
-                id: a
-                    .id
-                    .as_ref()
-                    .map(record_id_to_string)
-                    .unwrap_or_default(),
+                id: paper_id.clone(),
                 paper_id: paper_id.clone(),
                 file_name: a.file_name.clone(),
                 file_type: a.file_type.clone(),

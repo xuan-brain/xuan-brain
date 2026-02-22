@@ -109,7 +109,7 @@ pub fn run() -> Result<()> {
             }
 
             // Setup system tray
-            let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "&#36864;&#20986;", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&quit_i])?;
 
             let _tray = TrayIconBuilder::new()

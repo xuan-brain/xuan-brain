@@ -10,9 +10,9 @@ use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
 use crate::papers::importer::grobid::process_header_document;
 use crate::papers::importer::pubmed::{fetch_pubmed_metadata, PubmedError};
-use crate::repository::{AttachmentRepository, AuthorRepository, PaperRepository};
+use crate::repository::{AuthorRepository, PaperRepository};
 use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::{CreateAttachment, CreatePaper};
+use crate::surreal::models::{paper::AttachmentEmbedded, CreatePaper};
 use crate::sys::config::AppConfig;
 use crate::sys::dirs::AppDirs;
 use crate::sys::error::{AppError, Result};
@@ -72,6 +72,7 @@ pub async fn import_paper_by_doi(
         url: metadata.url.clone(),
         abstract_text: metadata.abstract_text.clone(),
         attachment_path: Some(hash_string),
+        attachments: vec![],
     }).await?;
 
     let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
@@ -163,6 +164,7 @@ pub async fn import_paper_by_arxiv_id(
         url: Some(metadata.pdf_url.clone()),
         abstract_text: Some(metadata.summary.clone()),
         attachment_path: Some(hash_string),
+        attachments: vec![],
     }).await?;
 
     let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
@@ -253,6 +255,7 @@ pub async fn import_paper_by_pmid(
         url: Some(pubmed_url),
         abstract_text: metadata.abstract_text.clone(),
         attachment_path: Some(hash_string),
+        attachments: vec![],
     }).await?;
 
     let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
@@ -329,8 +332,8 @@ pub async fn import_paper_by_pdf(
 
     let paper_repo = PaperRepository::new(&db);
     let author_repo = AuthorRepository::new(&db);
-    let attachment_repo = AttachmentRepository::new(&db);
 
+    let target_filename = path.file_name().unwrap().to_string_lossy().to_string();
     let hash_string = calculate_attachment_hash(&title);
 
     let paper = paper_repo.create(CreatePaper {
@@ -346,6 +349,12 @@ pub async fn import_paper_by_pdf(
         url: None,
         abstract_text: metadata.abstract_text.clone(),
         attachment_path: Some(hash_string.clone()),
+        attachments: vec![AttachmentEmbedded {
+            file_name: Some(target_filename.clone()),
+            file_type: Some("pdf".to_string()),
+            file_size: None,
+            created_at: None,
+        }],
     }).await?;
 
     let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
@@ -374,14 +383,6 @@ pub async fn import_paper_by_pdf(
     })?;
 
     // Create attachment record
-    attachment_repo.create(CreateAttachment {
-        paper_id: paper_id.clone(),
-        file_name: Some(target_filename.clone()),
-        file_type: Some("pdf".to_string()),
-        file_path: Some(target_path.to_string_lossy().to_string()),
-        file_size: None,
-    }).await?;
-
     let _ = app
         .notification()
         .builder()
@@ -407,3 +408,4 @@ pub async fn import_paper_by_pdf(
         }],
     })
 }
+

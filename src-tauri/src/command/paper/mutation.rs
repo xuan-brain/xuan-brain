@@ -51,6 +51,7 @@ pub async fn update_paper_details(
         read_status: payload.read_status,
         notes: payload.notes,
         attachment_path: None,
+        attachments: None,
     }).await?;
 
     let _ = app

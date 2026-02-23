@@ -96,6 +96,40 @@ DEFINE TABLE paper_label SCHEMAFULL TYPE RELATION FROM paper TO label;
 
 -- Paper-Category relationship
 DEFINE TABLE paper_category SCHEMAFULL TYPE RELATION FROM paper TO category;
+-- ============================================
+-- CLIPPING (网页剪藏主表)
+-- ============================================
+DEFINE TABLE clipping SCHEMAFULL;
+DEFINE FIELD title ON clipping TYPE string;
+DEFINE FIELD url ON clipping TYPE string;
+DEFINE FIELD content ON clipping TYPE option<string>;
+DEFINE FIELD source_domain ON clipping TYPE option<string>;
+DEFINE FIELD author ON clipping TYPE option<string>;
+DEFINE FIELD published_date ON clipping TYPE option<string>;
+DEFINE FIELD excerpt ON clipping TYPE option<string>;
+DEFINE FIELD thumbnail_url ON clipping TYPE option<string>;
+DEFINE FIELD read_status ON clipping TYPE int DEFAULT 0;
+DEFINE FIELD notes ON clipping TYPE option<string>;
+DEFINE FIELD tags ON clipping TYPE array<string>;
+DEFINE FIELD image_paths ON clipping TYPE array<string>;
+DEFINE FIELD created_at ON clipping TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated_at ON clipping TYPE datetime DEFAULT time::now();
+
+-- URL 唯一索引
+DEFINE INDEX clipping_url_unique ON clipping FIELDS url UNIQUE;
+
+-- 来源域名索引
+DEFINE INDEX clipping_source_domain_idx ON clipping FIELDS source_domain;
+
+-- 创建时间索引
+DEFINE INDEX clipping_created_at_idx ON clipping FIELDS created_at;
+
+-- ============================================
+-- CLIPPING-LABEL RELATIONSHIP (剪藏标签关联表)
+-- ============================================
+-- Clipping-Label relationship
+DEFINE TABLE clip_label SCHEMAFULL TYPE RELATION FROM clipping TO label;
+
 
 -- ============================================
 -- FUTURE: Vector Search (可选扩展)

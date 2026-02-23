@@ -208,7 +208,26 @@
     "keywords": "关键词",
     "labels": "标签",
     "categories": "分类",
-    "attachments": "附件",
-    "duration": "耗时"
-  }
+    "attachments": "附件"
+  },
+  "clips": {
+    "title": "网页剪藏",
+    "emptyList": "暂无剪藏。创建您的第一个剪藏！",
+    "sourceDomain": "来源",
+    "author": "作者",
+    "publishedDate": "发布时间",
+    "excerpt": "摘要",
+    "thumbnailUrl": "缩略图",
+    "notes": "笔记",
+    "tags": "标签",
+    "readStatus": "阅读状态",
+    "allClips": "全部剪藏",
+    "newClip": "新建剪藏",
+    "editClip": "编辑剪藏",
+    "clipSaved": "剪藏保存成功",
+    "clipDeleted": "剪藏已删除",
+    "clipUpdated": "剪藏已更新",
+    "imagePaths": "图片"
+  },
+  "duration": "耗时"
 }

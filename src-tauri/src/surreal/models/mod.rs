@@ -4,6 +4,7 @@
 
 pub mod author;
 pub mod category;
+pub mod clipping;
 pub mod keyword;
 pub mod label;
 pub mod paper;
@@ -11,6 +12,7 @@ pub mod relations;
 
 pub use author::*;
 pub use category::*;
+pub use clipping::*;
 pub use keyword::*;
 pub use label::*;
 pub use paper::*;

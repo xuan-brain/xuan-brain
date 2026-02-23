@@ -12,15 +12,23 @@ use crate::axum::handlers;
         handlers::papers::import_paper_from_html,
         handlers::categories::list_categories,
         handlers::labels::list_labels,
+        handlers::clips::create_clip,
+        handlers::clips::list_clips,
+        handlers::clips::get_clip,
     ),
     components(schemas(
         handlers::papers::ImportHtmlResponse,
+        handlers::clips::CreateClippingRequest,
+        handlers::clips::CreateClippingResponse,
+        handlers::clips::ClippingResponse,
+        handlers::clips::ListClipsQuery,
     )),
     tags(
         (name = "health", description = "Health check endpoints"),
         (name = "papers", description = "Paper management endpoints"),
         (name = "categories", description = "Category management endpoints"),
         (name = "labels", description = "Label management endpoints"),
+        (name = "clips", description = "Web clipping management endpoints"),
     ),
     info(
         title = "Xuan Brain API",

@@ -126,13 +126,13 @@
     "pubmed": "PubMed",
     "importPdf": "Import PDF",
     "importByDoi": "Import Paper by DOI",
-    "doiDescription": "Enter the DOI (Digital Object Identifier) to import the paper.",
+    "doiDescription": "Enter DOI (Digital Object Identifier) to import the paper.",
     "doiPlaceholder": "e.g., 10.1038/nature12373",
     "importByArxiv": "Import Paper from arXiv",
-    "arxivDescription": "Enter the arXiv ID (e.g., 2301.12345) or URL to import the paper.",
+    "arxivDescription": "Enter arXiv ID (e.g., 2301.12345) or URL to import the paper.",
     "arxivPlaceholder": "e.g., 2301.12345 or https://arxiv.org/abs/2301.12345",
     "importByPubmed": "Import Paper from PubMed",
-    "pubmedDescription": "Enter the PubMed ID (PMID) or URL to import the paper.",
+    "pubmedDescription": "Enter PubMed ID (PMID) or URL to import the paper.",
     "pubmedPlaceholder": "e.g., 12345678 or https://pubmed.ncbi.nlm.nih.gov/12345678/",
     "doiRequired": "DOI is required",
     "arxivRequired": "arXiv ID is required",
@@ -208,7 +208,26 @@
     "keywords": "Keywords",
     "labels": "Labels",
     "categories": "Categories",
-    "attachments": "Attachments",
-    "duration": "Duration"
-  }
+    "attachments": "Attachments"
+  },
+  "clips": {
+    "title": "Web Clips",
+    "emptyList": "No clips yet. Create your first clip!",
+    "sourceDomain": "Source",
+    "author": "Author",
+    "publishedDate": "Published",
+    "excerpt": "Excerpt",
+    "thumbnailUrl": "Thumbnail",
+    "notes": "Notes",
+    "tags": "Tags",
+    "readStatus": "Read Status",
+    "allClips": "All Clips",
+    "newClip": "New Clip",
+    "editClip": "Edit Clip",
+    "clipSaved": "Clip saved successfully",
+    "clipDeleted": "Clip deleted",
+    "clipUpdated": "Clip updated",
+    "imagePaths": "Images"
+  },
+  "duration": "Duration"
 }

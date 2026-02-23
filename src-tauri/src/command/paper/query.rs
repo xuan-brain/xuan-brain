@@ -50,14 +50,9 @@ pub async fn get_all_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec<Pap
                 journal_name,
                 conference_name,
                 attachments,
-                (SELECT VALUE name FROM author WHERE id IN 
-                    (SELECT VALUE `out` FROM paper_author WHERE `in` = $parent.id)
-                    ORDER BY (SELECT VALUE author_order FROM paper_author 
-                             WHERE `in` = $parent.id AND `out` = author.id)[0]
-                ) AS author_names,
-                (SELECT id, name, color FROM label WHERE id IN 
-                    (SELECT VALUE `out` FROM paper_label WHERE `in` = $parent.id)
-                ) AS labels
+                created_at,
+                (SELECT VALUE name FROM $parent.id->paper_author->author) AS author_names,
+                (SELECT id, name, color FROM $parent.id->paper_label->label) AS labels
             FROM paper
             WHERE deleted_at IS NONE
             ORDER BY created_at DESC
@@ -145,14 +140,9 @@ pub async fn get_deleted_papers(db: State<'_, Arc<SurrealClient>>) -> Result<Vec
                 journal_name,
                 conference_name,
                 attachments,
-                (SELECT VALUE name FROM author WHERE id IN 
-                    (SELECT VALUE `out` FROM paper_author WHERE `in` = $parent.id)
-                    ORDER BY (SELECT VALUE author_order FROM paper_author 
-                             WHERE `in` = $parent.id AND `out` = author.id)[0]
-                ) AS author_names,
-                (SELECT id, name, color FROM label WHERE id IN 
-                    (SELECT VALUE `out` FROM paper_label WHERE `in` = $parent.id)
-                ) AS labels
+                deleted_at,
+                (SELECT VALUE name FROM $parent.id->paper_author->author) AS author_names,
+                (SELECT id, name, color FROM $parent.id->paper_label->label) AS labels
             FROM paper
             WHERE deleted_at IS NOT NONE
             ORDER BY deleted_at DESC
@@ -338,14 +328,9 @@ pub async fn get_papers_by_category(
                 journal_name,
                 conference_name,
                 attachments,
-                (SELECT VALUE name FROM author WHERE id IN 
-                    (SELECT VALUE `out` FROM paper_author WHERE `in` = $parent.id)
-                    ORDER BY (SELECT VALUE author_order FROM paper_author 
-                             WHERE `in` = $parent.id AND `out` = author.id)[0]
-                ) AS author_names,
-                (SELECT id, name, color FROM label WHERE id IN 
-                    (SELECT VALUE `out` FROM paper_label WHERE `in` = $parent.id)
-                ) AS labels
+                created_at,
+                (SELECT VALUE name FROM $parent.id->paper_author->author) AS author_names,
+                (SELECT id, name, color FROM $parent.id->paper_label->label) AS labels
             FROM paper
             WHERE deleted_at IS NONE
             AND id IN (SELECT VALUE `in` FROM paper_category WHERE `out` = type::record($category))

@@ -1,40 +1,56 @@
 use std::sync::Arc;
 
-use chrono::prelude::*;
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait};
 use serde::Serialize;
+use surrealdb_types::RecordIdKey;
 use tauri::{AppHandle, State};
 use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
-use crate::database::entities::{label, prelude::Label};
-use crate::sys::error::{AppError, Result};
+use crate::repository::LabelRepository;
+use crate::surreal::connection::SurrealClient;
+use crate::surreal::models::{CreateLabel, UpdateLabel};
+use crate::sys::error::Result;
 
 #[derive(Serialize)]
 pub struct LabelResponse {
-    pub id: i64,
+    pub id: String,
     pub name: String,
     pub color: String,
-    pub document_count: i64,
+    pub document_count: i32,
+}
+
+/// Convert RecordId to string
+fn record_id_to_string(id: &surrealdb_types::RecordId) -> String {
+    format!("{}:{}", id.table, record_id_key_to_string(&id.key))
+}
+
+fn record_id_key_to_string(key: &RecordIdKey) -> String {
+    match key {
+        RecordIdKey::String(s) => s.clone(),
+        RecordIdKey::Number(n) => n.to_string(),
+        RecordIdKey::Uuid(u) => u.to_string(),
+        RecordIdKey::Array(_) => "array".to_string(),
+        RecordIdKey::Object(_) => "object".to_string(),
+        RecordIdKey::Range(_) => "range".to_string(),
+    }
 }
 
 #[tauri::command]
-#[instrument(skip(connection))]
+#[instrument(skip(db))]
 pub async fn get_all_labels(
-    connection: State<'_, Arc<DatabaseConnection>>,
+    db: State<'_, Arc<SurrealClient>>,
 ) -> Result<Vec<LabelResponse>> {
     info!("Fetching all labels");
-    let labels = Label::find().all(&**connection).await?;
+    let repo = LabelRepository::new(&db);
+    let labels = repo.find_all().await?;
 
-    // For now, return labels without document count
-    // TODO: Join with document_labels table to get actual count
     let result: Vec<LabelResponse> = labels
         .into_iter()
         .map(|l| LabelResponse {
-            id: l.id,
+            id: l.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
             name: l.name,
             color: l.color,
-            document_count: l.document_count.unwrap_or(0),
+            document_count: l.document_count,
         })
         .collect();
 
@@ -43,23 +59,16 @@ pub async fn get_all_labels(
 }
 
 #[tauri::command]
-#[instrument(skip(connection, app))]
+#[instrument(skip(db, app))]
 pub async fn create_label(
     app: AppHandle,
-    connection: State<'_, Arc<DatabaseConnection>>,
+    db: State<'_, Arc<SurrealClient>>,
     name: String,
     color: String,
 ) -> Result<LabelResponse> {
     info!("Creating label '{}' with color '{}'", name, color);
-    let new_label = label::ActiveModel {
-        name: Set(name.clone()),
-        color: Set(color),
-        document_count: Set(Some(0)),
-        created_at: Set(Local::now().naive_local()),
-        updated_at: Set(Local::now().naive_local()),
-        ..Default::default()
-    };
-    let label = new_label.insert(connection.inner().as_ref()).await?;
+    let repo = LabelRepository::new(&db);
+    let label = repo.create(CreateLabel { name: name.clone(), color }).await?;
 
     let _ = app
         .notification()
@@ -68,41 +77,27 @@ pub async fn create_label(
         .body(format!("Label '{}' created successfully", name))
         .show();
 
-    info!("Label created successfully with id {}", label.id);
+    info!("Label created successfully");
     Ok(LabelResponse {
-        id: label.id,
+        id: label.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
         name: label.name,
         color: label.color,
-        document_count: label.document_count.unwrap_or(0),
+        document_count: label.document_count,
     })
 }
 
 #[tauri::command]
-#[instrument(skip(connection, app))]
+#[instrument(skip(db, app))]
 pub async fn update_label(
     app: AppHandle,
-    connection: State<'_, Arc<DatabaseConnection>>,
-    id: i64,
+    db: State<'_, Arc<SurrealClient>>,
+    id: String,
     name: Option<String>,
     color: Option<String>,
 ) -> Result<LabelResponse> {
     info!("Updating label id {}", id);
-    let label = Label::find_by_id(id)
-        .one(connection.inner().as_ref())
-        .await?
-        .ok_or_else(|| AppError::not_found("Label", id.to_string()))?;
-
-    let mut active_model: label::ActiveModel = label.into();
-
-    if let Some(n) = name {
-        active_model.name = Set(n);
-    }
-    if let Some(c) = color {
-        active_model.color = Set(c);
-    }
-    active_model.updated_at = Set(Local::now().naive_local());
-
-    let updated_label = active_model.update(connection.inner().as_ref()).await?;
+    let repo = LabelRepository::new(&db);
+    let updated_label = repo.update(&id, UpdateLabel { name, color }).await?;
 
     let _ = app
         .notification()
@@ -116,31 +111,23 @@ pub async fn update_label(
 
     info!("Label updated successfully");
     Ok(LabelResponse {
-        id: updated_label.id,
+        id: updated_label.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
         name: updated_label.name,
         color: updated_label.color,
-        document_count: updated_label.document_count.unwrap_or(0),
+        document_count: updated_label.document_count,
     })
 }
 
 #[tauri::command]
-#[instrument(skip(connection, app))]
+#[instrument(skip(db, app))]
 pub async fn delete_label(
     app: AppHandle,
-    connection: State<'_, Arc<DatabaseConnection>>,
-    id: i64,
+    db: State<'_, Arc<SurrealClient>>,
+    id: String,
 ) -> Result<()> {
     info!("Deleting label with id: {}", id);
-
-    let delete_result = Label::delete_by_id(id)
-        .exec(connection.inner().as_ref())
-        .await?;
-
-    info!("Delete affected {} rows", delete_result.rows_affected);
-
-    if delete_result.rows_affected == 0 {
-        return Err(AppError::not_found("Label", id.to_string()));
-    }
+    let repo = LabelRepository::new(&db);
+    repo.delete(&id).await?;
 
     let _ = app.notification()
         .builder()

@@ -1,37 +1,76 @@
 use std::sync::Arc;
 
-use sea_orm::DatabaseConnection;
+use serde::{Deserialize, Serialize};
+use surrealdb_types::RecordIdKey;
 use tauri::{AppHandle, State};
 use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
-use crate::service::category_service::CategoryService;
+use crate::repository::{CategoryRepository, TreeNodeData};
+use crate::surreal::connection::SurrealClient;
+use crate::surreal::models::{CreateCategory, UpdateCategory};
 use crate::sys::error::Result;
+
+/// Convert RecordId to string
+fn record_id_to_string(id: &surrealdb_types::RecordId) -> String {
+    format!("{}:{}", id.table, record_id_key_to_string(&id.key))
+}
+
+fn record_id_key_to_string(key: &RecordIdKey) -> String {
+    match key {
+        RecordIdKey::String(s) => s.clone(),
+        RecordIdKey::Number(n) => n.to_string(),
+        RecordIdKey::Uuid(u) => u.to_string(),
+        RecordIdKey::Array(_) => "array".to_string(),
+        RecordIdKey::Object(_) => "object".to_string(),
+        RecordIdKey::Range(_) => "range".to_string(),
+    }
+}
 
 #[tauri::command]
 #[instrument(skip(db))]
-pub async fn load_categories(db: State<'_, Arc<DatabaseConnection>>) -> Result<Vec<CategoryDto>> {
+pub async fn load_categories(db: State<'_, Arc<SurrealClient>>) -> Result<Vec<CategoryDto>> {
     info!("Loading all categories");
-    let service = CategoryService::new(db.inner().as_ref());
-    let categories = service.load_tree().await?;
-    info!("Loaded {} categories", categories.len());
-    Ok(categories)
+    let repo = CategoryRepository::new(&db);
+    let categories = repo.find_all().await?;
+
+    let result: Vec<CategoryDto> = categories
+        .into_iter()
+        .map(|c| CategoryDto {
+            id: c.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
+            name: c.name,
+            parent_id: c.parent.map(|rid| record_id_to_string(&rid)),
+            sort_order: c.sort_order,
+        })
+        .collect();
+
+    info!("Loaded {} categories", result.len());
+    Ok(result)
 }
 
 #[tauri::command]
 #[instrument(skip(db, app))]
 pub async fn create_category(
     app: AppHandle,
-    db: State<'_, Arc<DatabaseConnection>>,
+    db: State<'_, Arc<SurrealClient>>,
     name: String,
-    parent_id: Option<i64>,
+    parent_id: Option<String>,
 ) -> Result<()> {
     info!(
         "Creating category '{}' with parent_id: {:?}",
         name, parent_id
     );
-    let service = CategoryService::new(db.inner().as_ref());
-    service.create(&name, parent_id).await?;
+    let repo = CategoryRepository::new(&db);
+
+    // Get max sort order for siblings
+    let _sort_order = repo.get_max_sort_order(parent_id.as_deref()).await?;
+
+    let create_data = CreateCategory {
+        name: name.clone(),
+        parent_id: parent_id.clone(),
+    };
+
+    repo.create(create_data).await?;
 
     let _ = app.notification()
         .builder()
@@ -47,12 +86,12 @@ pub async fn create_category(
 #[instrument(skip(db, app))]
 pub async fn delete_category(
     app: AppHandle,
-    db: State<'_, Arc<DatabaseConnection>>,
-    id: i64,
+    db: State<'_, Arc<SurrealClient>>,
+    id: String,
 ) -> Result<()> {
     info!("Deleting category with id={}", id);
-    let service = CategoryService::new(db.inner().as_ref());
-    service.delete_by_id(id).await?;
+    let repo = CategoryRepository::new(&db);
+    repo.delete_with_descendants(&id).await?;
 
     let _ = app.notification()
         .builder()
@@ -68,13 +107,16 @@ pub async fn delete_category(
 #[instrument(skip(db, app))]
 pub async fn update_category(
     app: AppHandle,
-    db: State<'_, Arc<DatabaseConnection>>,
-    id: i64,
+    db: State<'_, Arc<SurrealClient>>,
+    id: String,
     name: String,
 ) -> Result<()> {
     info!("Updating category id={} to name '{}'", id, name);
-    let service = CategoryService::new(db.inner().as_ref());
-    service.update_by_id(id, &name).await?;
+    let repo = CategoryRepository::new(&db);
+    repo.update(&id, UpdateCategory {
+        name: Some(name.clone()),
+        sort_order: None,
+    }).await?;
 
     let _ = app.notification()
         .builder()
@@ -90,17 +132,32 @@ pub async fn update_category(
 #[instrument(skip(db, app))]
 pub async fn move_category(
     app: AppHandle,
-    db: State<'_, Arc<DatabaseConnection>>,
-    dragged_id: i64,
-    target_id: Option<i64>,
+    db: State<'_, Arc<SurrealClient>>,
+    dragged_id: String,
+    target_id: Option<String>,
     position: String, // "above" | "below" | "child"
 ) -> Result<()> {
     info!(
         "Moving category {} to {:?} (position: {})",
         dragged_id, target_id, position
     );
-    let service = CategoryService::new(db.inner().as_ref());
-    service.move_node(dragged_id, target_id, &position).await?;
+    let repo = CategoryRepository::new(&db);
+
+    // Determine new parent based on position
+    let new_parent_id = match (target_id.as_ref(), position.as_str()) {
+        (Some(tid), "child") => Some(tid.clone()),
+        (Some(tid), "above" | "below") => {
+            // Get target's parent
+            if let Some(target) = repo.find_by_id(tid).await? {
+                target.parent.map(|rid| record_id_to_string(&rid))
+            } else {
+                None
+            }
+        }
+        _ => None,
+    };
+
+    repo.move_to(&dragged_id, new_parent_id).await?;
 
     let _ = app.notification()
         .builder()
@@ -116,15 +173,31 @@ pub async fn move_category(
 #[instrument(skip(db, app))]
 pub async fn reorder_tree(
     app: AppHandle,
-    db: State<'_, Arc<DatabaseConnection>>,
+    db: State<'_, Arc<SurrealClient>>,
     tree_data: Vec<TreeNodeDto>,
 ) -> Result<()> {
     info!(
         "Reordering tree based on new structure, {} root nodes",
         tree_data.len()
     );
-    let service = CategoryService::new(db.inner().as_ref());
-    service.rebuild_tree_from_structure(&tree_data).await?;
+    let repo = CategoryRepository::new(&db);
+
+    // Convert TreeNodeDto to TreeNodeData
+    let nodes: Vec<TreeNodeData> = tree_data.iter().map(|n| TreeNodeData {
+        id: n.id.clone(),
+        name: n.name.clone(),
+        children: n.children.as_ref().map(|c| c.iter().map(|child| TreeNodeData {
+            id: child.id.clone(),
+            name: child.name.clone(),
+            children: child.children.as_ref().map(|cc| cc.iter().map(|ccc| TreeNodeData {
+                id: ccc.id.clone(),
+                name: ccc.name.clone(),
+                children: None,
+            }).collect()),
+        }).collect()),
+    }).collect();
+
+    repo.rebuild_tree_from_structure(&nodes).await?;
 
     let _ = app.notification()
         .builder()
@@ -136,20 +209,20 @@ pub async fn reorder_tree(
     Ok(())
 }
 
-// 传给前端的 DTO
-#[derive(serde::Serialize, serde::Deserialize)]
+// DTO for frontend
+#[derive(Serialize, Deserialize)]
 pub struct CategoryDto {
-    pub id: i64,
+    pub id: String,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_id: Option<i64>,
-    pub sort_order: i64,
+    pub parent_id: Option<String>,
+    pub sort_order: i32,
 }
 
-// 用于重建树的 DTO，包含完整的层级结构
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+// DTO for tree rebuilding, includes full hierarchy
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TreeNodeDto {
-    pub id: i64,
+    pub id: String,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub children: Option<Vec<TreeNodeDto>>,

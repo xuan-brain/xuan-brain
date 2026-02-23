@@ -3,8 +3,7 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sha1::{Digest, Sha1};
 use tauri::Emitter;
 use tracing::info;
@@ -12,9 +11,22 @@ use utoipa::ToSchema;
 
 use crate::axum::error::ApiError;
 use crate::axum::state::AppState;
-use crate::database::entities::{authors, paper_authors, paper_category, papers, prelude::*};
 use crate::papers::importer::html::{extract_paper_from_html, HtmlImportError};
+use crate::repository::{AuthorRepository, PaperRepository};
+use crate::surreal::models::CreatePaper;
 use crate::sys::config::AppConfig;
+use crate::sys::error::AppError;
+
+/// RecordId to string helper
+fn record_id_to_string(id: &surrealdb_types::RecordId) -> String {
+    use surrealdb_types::RecordIdKey;
+    format!("{}:{}", id.table, match &id.key {
+        RecordIdKey::String(s) => s.clone(),
+        RecordIdKey::Number(n) => n.to_string(),
+        RecordIdKey::Uuid(u) => u.to_string(),
+        _ => "unknown".to_string(),
+    })
+}
 
 /// List all papers
 ///
@@ -30,26 +42,21 @@ use crate::sys::config::AppConfig;
 pub async fn list_papers(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<serde_json::Value>>, ApiError> {
-    let db = &*state.db;
-    let papers = papers::Entity::find()
-        .all(db)
-        .await
-        .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?;
+    let repo = PaperRepository::new(&state.db);
+    let papers = repo.find_all().await.map_err(ApiError)?;
 
     let result: Vec<serde_json::Value> = papers
         .into_iter()
         .map(|p| {
             serde_json::json!({
-                "id": p.id,
+                "id": p.id.as_ref().map(record_id_to_string).unwrap_or_default(),
                 "title": p.title,
-                "abstract": p.r#abstract,
+                "abstract": p.abstract_text,
                 "doi": p.doi,
                 "publication_year": p.publication_year,
                 "journal_name": p.journal_name,
                 "url": p.url,
                 "read_status": p.read_status,
-                "created_at": p.created_at,
-                "updated_at": p.updated_at
             })
         })
         .collect();
@@ -65,7 +72,7 @@ pub async fn list_papers(
     path = "/api/papers/{id}",
     tag = "papers",
     params(
-        ("id" = i64, Path, description = "Paper ID")
+        ("id" = String, Path, description = "Paper ID (e.g., 'paper:abc123')")
     ),
     responses(
         (status = 200, description = "Paper details", body = serde_json::Value),
@@ -74,32 +81,24 @@ pub async fn list_papers(
 )]
 pub async fn get_paper(
     State(state): State<AppState>,
-    Path(id): Path<i64>,
+    Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let db = &*state.db;
-    let paper = papers::Entity::find_by_id(id)
-        .one(db)
-        .await
-        .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?;
+    let repo = PaperRepository::new(&state.db);
+    let paper = repo.find_by_id(&id).await.map_err(ApiError)?;
 
     match paper {
         Some(p) => Ok(Json(serde_json::json!({
-            "id": p.id,
+            "id": p.id.as_ref().map(record_id_to_string).unwrap_or_default(),
             "title": p.title,
-            "abstract": p.r#abstract,
+            "abstract": p.abstract_text,
             "doi": p.doi,
             "publication_year": p.publication_year,
             "journal_name": p.journal_name,
             "url": p.url,
             "notes": p.notes,
             "read_status": p.read_status,
-            "created_at": p.created_at,
-            "updated_at": p.updated_at
         }))),
-        None => Err(ApiError(crate::sys::error::AppError::NotFound {
-            resource_type: "Paper".to_string(),
-            resource_id: id.to_string(),
-        })),
+        None => Err(ApiError(AppError::not_found("Paper", id))),
     }
 }
 
@@ -140,17 +139,15 @@ pub async fn import_paper_from_html(
     info!("Importing paper from HTML via API");
 
     let html = String::from_utf8(body.to_vec()).map_err(|e| {
-        ApiError(crate::sys::error::AppError::validation(
+        ApiError(AppError::validation(
             "html",
             format!("Invalid UTF-8 content: {}", e),
         ))
     })?;
 
-    let db = &*state.db;
-
     // 1. Load config to get LLM provider
     let config = AppConfig::load(&state.app_dirs.config).map_err(|e| {
-        ApiError(crate::sys::error::AppError::config_error(
+        ApiError(AppError::config_error(
             "settings.json",
             e.to_string(),
         ))
@@ -164,7 +161,7 @@ pub async fn import_paper_from_html(
         .find(|p| p.is_default)
         .or_else(|| config.system.llm_providers.first())
         .ok_or_else(|| {
-            ApiError(crate::sys::error::AppError::validation(
+            ApiError(AppError::validation(
                 "llm_provider",
                 "No LLM provider configured. Please add an LLM provider in settings.",
             ))
@@ -199,15 +196,13 @@ pub async fn import_paper_from_html(
         }
     };
 
+    let paper_repo = PaperRepository::new(&state.db);
+    let author_repo = AuthorRepository::new(&state.db);
+
     // 4. Check for duplicates by DOI
     if let Some(ref doi) = metadata.doi {
         if !doi.is_empty() {
-            if let Some(_existing) = Papers::find()
-                .filter(papers::Column::Doi.eq(doi))
-                .one(db)
-                .await
-                .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?
-            {
+            if let Some(_existing) = paper_repo.find_by_doi(doi).await.map_err(ApiError)? {
                 return Ok(Json(ImportHtmlResponse {
                     success: false,
                     paper: None,
@@ -220,12 +215,7 @@ pub async fn import_paper_from_html(
     // 5. Check for duplicates by URL
     if let Some(ref url) = metadata.url {
         if !url.is_empty() {
-            if let Some(_existing) = Papers::find()
-                .filter(papers::Column::Url.eq(url))
-                .one(db)
-                .await
-                .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?
-            {
+            if let Some(_existing) = paper_repo.find_by_url(url).await.map_err(ApiError)? {
                 return Ok(Json(ImportHtmlResponse {
                     success: false,
                     paper: None,
@@ -241,86 +231,65 @@ pub async fn import_paper_from_html(
     let hash_string = format!("{:x}", hasher.finalize());
 
     // 7. Create paper
-    let paper = papers::ActiveModel {
-        title: Set(metadata.title.clone()),
-        doi: Set(metadata.doi.filter(|d| !d.is_empty())),
-        publication_year: Set(metadata.publication_year),
-        journal_name: Set(metadata.journal_name),
-        url: Set(metadata.url.filter(|u| !u.is_empty())),
-        r#abstract: Set(metadata.abstract_text),
-        volume: Set(metadata.volume),
-        issue: Set(metadata.issue),
-        pages: Set(metadata.pages),
-        attachment_path: Set(Some(hash_string)),
-        ..Default::default()
-    }
-    .insert(db)
-    .await
-    .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?;
+    let paper = paper_repo.create(CreatePaper {
+        title: metadata.title.clone(),
+        doi: metadata.doi.filter(|d| !d.is_empty()),
+        publication_year: metadata.publication_year.and_then(|y| i32::try_from(y).ok()),
+        publication_date: None,
+        journal_name: metadata.journal_name,
+        conference_name: None,
+        volume: metadata.volume,
+        issue: metadata.issue,
+        pages: metadata.pages,
+        url: metadata.url.filter(|u| !u.is_empty()),
+        abstract_text: metadata.abstract_text,
+        attachment_path: Some(hash_string),
+        attachments: vec![],
+    }).await.map_err(ApiError)?;
 
-    info!("Created paper with id: {}", paper.id);
+    let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
+    info!("Created paper with id: {}", paper_id);
 
     // 8. Add authors
-    for author_name in &metadata.authors {
+    for (order, author_name) in metadata.authors.iter().enumerate() {
         if author_name.trim().is_empty() {
             continue;
         }
 
-        // Find or create author
-        let author = if let Some(existing) = Authors::find()
-            .filter(authors::Column::Name.eq(author_name.trim()))
-            .one(db)
-            .await
-            .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?
-        {
-            existing
-        } else {
-            authors::ActiveModel {
-                name: Set(author_name.trim().to_string()),
-                ..Default::default()
-            }
-            .insert(db)
-            .await
-            .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?
-        };
-
-        // Link author to paper
-        paper_authors::ActiveModel {
-            paper_id: Set(paper.id),
-            author_id: Set(author.id),
-            ..Default::default()
-        }
-        .insert(db)
-        .await
-        .map_err(|e| ApiError(crate::sys::error::AppError::SeaOrmError(e)))?;
+        let author = author_repo.create_or_find(author_name.trim(), None).await.map_err(ApiError)?;
+        let author_id = author.id.as_ref().map(record_id_to_string).unwrap_or_default();
+        paper_repo.add_author(&paper_id, &author_id, order as i32).await.map_err(ApiError)?;
     }
 
     info!(
         "Successfully imported paper from HTML: {} (id: {})",
-        paper.title, paper.id
+        paper.title, paper_id
     );
 
     // 9. Emit event to notify frontend to refresh paper list
     if let Some(app_handle) = &state.app_handle {
-        let _ = app_handle.emit("paper:imported", serde_json::json!({
-            "id": paper.id,
-            "title": paper.title,
-        }));
-        info!("Emitted paper:imported event for paper id: {}", paper.id);
+        let _ = app_handle.emit(
+            "paper:imported",
+            serde_json::json!({
+                "id": paper_id,
+                "title": paper.title,
+            }),
+        );
+        info!("Emitted paper:imported event for paper id: {}", paper_id);
     }
 
     // 10. Return response
     Ok(Json(ImportHtmlResponse {
         success: true,
         paper: Some(serde_json::json!({
-            "id": paper.id,
+            "id": paper_id,
             "title": paper.title,
             "publication_year": paper.publication_year,
             "journal_name": paper.journal_name,
             "authors": metadata.authors,
             "doi": paper.doi,
             "url": paper.url,
-            "abstract": paper.r#abstract,
+            "abstract": paper.abstract_text,
         })),
         error: None,
     }))

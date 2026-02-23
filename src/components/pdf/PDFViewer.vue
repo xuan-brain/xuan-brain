@@ -15,13 +15,12 @@
   const pdfUrl = ref('');
   const paperTitle = ref('');
   const fileSizeMB = ref(0);
-  const paperId = ref(0);
+  const paperId = ref('');
   const isSaving = ref(false);
   const saveSuccess = ref(false);
   // const registry = ref<PluginRegistry | null>(null);
   const exportScope = ref<ExportScope | null>(null);
   let objectUrl: string | null = null;
-  let pdfBlob: Blob | null = null;
   let docId = ref('');
 
   // Close window function
@@ -75,7 +74,7 @@
       const currentWindow = getCurrentWindow();
       const label = currentWindow.label;
 
-      const idMatch = label.match(/pdf-viewer-(\d+)/);
+      const idMatch = label.match(/pdf-viewer-(.+)$/);
 
       if (!idMatch) {
         error.value = 'Invalid PDF viewer window';
@@ -83,16 +82,12 @@
         return;
       }
 
-      const id = parseInt(idMatch[1], 10);
+      const id = idMatch[1];
       paperId.value = id;
       console.info('Loading PDF for paper:', id);
 
       // Load PDF as blob from Rust backend
       const { blobUrl, fileName, paperTitle: title, sizeMB } = await loadPdfAsBlob(id);
-
-      // Fetch the blob for saving
-      const response = await fetch(blobUrl);
-      pdfBlob = await response.blob();
 
       objectUrl = blobUrl;
       pdfUrl.value = blobUrl;

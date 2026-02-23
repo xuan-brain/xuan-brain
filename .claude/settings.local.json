@@ -25,7 +25,16 @@
       "Bash(env:*)",
       "Bash(cargo build:*)",
       "Bash(cargo test:*)",
-      "Bash(cargo check:*)"
+      "Bash(cargo check:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(cargo doc:*)",
+      "Bash(dir:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo search:*)",
+      "Bash(cargo:*)",
+      "Bash(yarn lint:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

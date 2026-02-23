@@ -5,7 +5,7 @@ edition = "2021"
 description = "A Tauri App"
 
 [workspace]
-members = [".", "migration"]
+members = ["."]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,19 +20,17 @@ name = "xuan_brain_lib"
 axum = "0.8"
 base64 = "0.22"
 chrono = "0.4.43"
+ammonia = "4"
 dirs = "5"
 futures = "0.3.31"
 lopdf = "0.35.0"
-migration = { path = "migration" }
 quick-xml = { version = "0.39.0", features = ["serialize"] }
 regex = "1.12.2"
 reqwest = { version = "0.13.1", features = ["json", "multipart"] }
-sea-orm = { version = "=2.0.0-rc.28", features = [
-  "macros",
-  "runtime-tokio-rustls",
-  "sqlx-sqlite",
-  "with-chrono",
-] }
+# SurrealDB 3.0 - embedded database with RocksDB persistence
+surrealdb = { version = "3", features = ["kv-mem", "kv-rocksdb", "protocol-http", "protocol-ws"] }
+# SurrealDB types for SurrealValue derive macro
+surrealdb-types = "3"
 # anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -50,7 +48,7 @@ thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["cors", "trace"] }
+tower-http = { version = "0.6", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 # OpenAPI / Swagger
 utoipa = { version = "5", features = ["axum_extras"] }
@@ -67,8 +65,16 @@ tauri-build = { version = "2", features = [] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-process = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"
 
 [features]
 mcp-bridge = ["dep:tauri-plugin-mcp-bridge"]
+
+[profile.release]
+lto = true
+strip = true
+opt-level = 3
+panic = 'abort'
+codegen-units = 1

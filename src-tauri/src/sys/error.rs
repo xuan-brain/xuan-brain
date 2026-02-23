@@ -12,10 +12,6 @@ pub enum AppError {
     #[error("File system error: {path} - {message}")]
     FileSystemError { path: String, message: String },
 
-    /// Database errors
-    #[error(transparent)]
-    SeaOrmError(#[from] sea_orm::DbErr),
-
     /// AI engine errors
     #[error("AI engine error: {operation} - {message}")]
     AIError { operation: String, message: String },
@@ -70,9 +66,21 @@ pub enum AppError {
     #[error("PDF error: {operation} - {message}")]
     PDFError { operation: String, message: String },
 
+    /// Data migration errors
+    #[error("Data migration error: {phase} - {message}")]
+    MigrationError { phase: String, message: String },
+
+    /// Insufficient disk space
+    #[error("Insufficient disk space: required {required} bytes, available {available} bytes")]
+    InsufficientSpace { required: u64, available: u64 },
+
     /// IO error wrapper
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+
+    /// SurrealDB error
+    #[error("SurrealDB error: {operation} - {message}")]
+    SurrealDbError { operation: String, message: String },
 
     /// Generic error with message
     #[error("{0}")]
@@ -99,6 +107,9 @@ impl Serialize for AppError {
             resource: Option<&'a String>,
             resource_type: Option<&'a String>,
             resource_id: Option<&'a String>,
+            phase: Option<&'a String>,
+            required: Option<u64>,
+            available: Option<u64>,
         }
 
         let response = match self {
@@ -115,6 +126,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::FileSystemError { path, message } => ErrorResponse {
                 error_type: "FileSystemError",
@@ -129,20 +143,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
-            },
-            AppError::SeaOrmError(err) => ErrorResponse {
-                error_type: "SeaOrmError",
-                message: Some(&err.to_string()),
-                path: None,
-                operation: None,
-                service: None,
-                plugin_name: None,
-                key: None,
-                url: None,
-                field: None,
-                resource: None,
-                resource_type: None,
-                resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::AIError { operation, message } => ErrorResponse {
                 error_type: "AIError",
@@ -157,6 +160,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::SyncError { service, message } => ErrorResponse {
                 error_type: "SyncError",
@@ -171,6 +177,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::PluginError {
                 plugin_name,
@@ -188,6 +197,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::ConfigError { key, message } => ErrorResponse {
                 error_type: "ConfigError",
@@ -202,6 +214,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::AuthenticationError { message } => ErrorResponse {
                 error_type: "AuthenticationError",
@@ -216,6 +231,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::NetworkError { url, message } => ErrorResponse {
                 error_type: "NetworkError",
@@ -230,6 +248,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::ValidationError { field, message } => ErrorResponse {
                 error_type: "ValidationError",
@@ -244,6 +265,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::PermissionError { resource } => ErrorResponse {
                 error_type: "PermissionError",
@@ -258,6 +282,9 @@ impl Serialize for AppError {
                 resource: Some(resource),
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::NotFound {
                 resource_type,
@@ -275,6 +302,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: Some(resource_type),
                 resource_id: Some(resource_id),
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::InvalidInput { message } => ErrorResponse {
                 error_type: "InvalidInput",
@@ -289,6 +319,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::OCRError { message } => ErrorResponse {
                 error_type: "OCRError",
@@ -303,6 +336,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::PDFError { operation, message } => ErrorResponse {
                 error_type: "PDFError",
@@ -317,6 +353,46 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
+            },
+            AppError::MigrationError { phase, message } => ErrorResponse {
+                error_type: "MigrationError",
+                message: Some(message),
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+                phase: Some(phase),
+                required: None,
+                available: None,
+            },
+            AppError::InsufficientSpace {
+                required,
+                available,
+            } => ErrorResponse {
+                error_type: "InsufficientSpace",
+                message: None,
+                path: None,
+                operation: None,
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+                phase: None,
+                required: Some(*required),
+                available: Some(*available),
             },
             AppError::IoError(err) => ErrorResponse {
                 error_type: "IoError",
@@ -331,6 +407,26 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
+            },
+            AppError::SurrealDbError { operation, message } => ErrorResponse {
+                error_type: "SurrealDbError",
+                message: Some(message),
+                path: None,
+                operation: Some(operation),
+                service: None,
+                plugin_name: None,
+                key: None,
+                url: None,
+                field: None,
+                resource: None,
+                resource_type: None,
+                resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
             AppError::Generic(message) => ErrorResponse {
                 error_type: "Generic",
@@ -345,6 +441,9 @@ impl Serialize for AppError {
                 resource: None,
                 resource_type: None,
                 resource_id: None,
+                phase: None,
+                required: None,
+                available: None,
             },
         };
 
@@ -455,6 +554,35 @@ impl AppError {
     /// Create a PDF error
     pub fn pdf_error(operation: impl Into<String>, message: impl Into<String>) -> Self {
         AppError::PDFError {
+            operation: operation.into(),
+            message: message.into(),
+        }
+    }
+
+    /// Create a migration error
+    pub fn migration_error(phase: impl Into<String>, message: impl Into<String>) -> Self {
+        AppError::MigrationError {
+            phase: phase.into(),
+            message: message.into(),
+        }
+    }
+
+    /// Create an insufficient space error
+    pub fn insufficient_space(required: u64, available: u64) -> Self {
+        AppError::InsufficientSpace {
+            required,
+            available,
+        }
+    }
+
+    /// Create a generic error
+    pub fn generic(message: impl Into<String>) -> Self {
+        AppError::Generic(message.into())
+    }
+
+    /// Create a SurrealDB error
+    pub fn surrealdb_error(operation: impl Into<String>, message: impl Into<String>) -> Self {
+        AppError::SurrealDbError {
             operation: operation.into(),
             message: message.into(),
         }

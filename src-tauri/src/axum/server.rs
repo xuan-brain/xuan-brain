@@ -1,18 +1,18 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use sea_orm::DatabaseConnection;
 use tauri::AppHandle;
 use tracing::info;
 
 use crate::axum::routes::create_router;
 use crate::axum::state::AppState;
+use crate::surreal::connection::SurrealClient;
 use crate::sys::dirs::AppDirs;
 
 const DEFAULT_HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 3030;
 
-pub fn start_axum_server(db: Arc<DatabaseConnection>, app_dirs: AppDirs) {
+pub fn start_axum_server(db: Arc<SurrealClient>, app_dirs: AppDirs) {
     let addr: SocketAddr = format!("{}:{}", DEFAULT_HOST, DEFAULT_PORT)
         .parse()
         .expect("Invalid API server address");
@@ -39,7 +39,7 @@ pub fn start_axum_server(db: Arc<DatabaseConnection>, app_dirs: AppDirs) {
 }
 
 pub fn start_axum_server_with_handle(
-    db: Arc<DatabaseConnection>,
+    db: Arc<SurrealClient>,
     app_dirs: AppDirs,
     app_handle: AppHandle,
 ) {

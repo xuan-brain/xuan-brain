@@ -1,135 +1,135 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import PaperList from "@/components/paper/PaperList.vue";
-import PaperDetails from "@/components/paper/PaperDetails.vue";
+  import PaperDetails from '@/components/paper/PaperDetails.vue';
+  import PaperList from '@/components/paper/PaperList.vue';
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
-// Props
-interface Props {
-  selectedCategory?: number | null;
-  currentView?: "library" | "favorites" | "trash";
-}
+  // Props
+  interface Props {
+    selectedCategory?: string | null;
+    currentView?: 'library' | 'favorites' | 'trash';
+  }
 
-const props = withDefaults(defineProps<Props>(), {
-  selectedCategory: null,
-  currentView: "library",
-});
+  const props = withDefaults(defineProps<Props>(), {
+    selectedCategory: null,
+    currentView: 'library',
+  });
 
-// Panel widths (in percentage)
-const STORAGE_KEY = "papers-page-panel-widths";
-const defaultWidths = { left: 60, right: 40 }; // Only two panels now
+  // Panel widths (in percentage)
+  const STORAGE_KEY = 'papers-page-panel-widths';
+  const defaultWidths = { left: 60, right: 40 }; // Only two panels now
 
-const panelWidths = ref({ ...defaultWidths });
+  const panelWidths = ref({ ...defaultWidths });
 
-// Load saved widths from localStorage
-onMounted(() => {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      // Validate and apply saved widths
-      if (parsed && typeof parsed === "object") {
-        const total = (parsed.left || 0) + (parsed.right || 0);
-        if (total === 100) {
-          panelWidths.value = parsed;
+  // Load saved widths from localStorage
+  onMounted(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Validate and apply saved widths
+        if (parsed && typeof parsed === 'object') {
+          const total = (parsed.left || 0) + (parsed.right || 0);
+          if (total === 100) {
+            panelWidths.value = parsed;
+          }
         }
+      } catch (e) {
+        console.error('Failed to parse panel widths:', e);
       }
-    } catch (e) {
-      console.error("Failed to parse panel widths:", e);
     }
+  });
+
+  // Save widths to localStorage
+  function saveWidths() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(panelWidths.value));
   }
-});
 
-// Save widths to localStorage
-function saveWidths() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(panelWidths.value));
-}
+  // Dragging state
+  const isDragging = ref(false);
+  const startX = ref(0);
+  const startWidths = ref({ left: 0, right: 0 });
 
-// Dragging state
-const isDragging = ref(false);
-const startX = ref(0);
-const startWidths = ref({ left: 0, right: 0 });
+  // Calculate panel styles
+  const leftPanelStyle = computed(() => ({
+    width: `${panelWidths.value.left}%`,
+    minWidth: '20%',
+    maxWidth: '80%',
+  }));
 
-// Calculate panel styles
-const leftPanelStyle = computed(() => ({
-  width: `${panelWidths.value.left}%`,
-  minWidth: "20%",
-  maxWidth: "80%",
-}));
+  const rightPanelStyle = computed(() => ({
+    width: `${panelWidths.value.right}%`,
+    minWidth: '20%',
+    maxWidth: '80%',
+  }));
 
-const rightPanelStyle = computed(() => ({
-  width: `${panelWidths.value.right}%`,
-  minWidth: "20%",
-  maxWidth: "80%",
-}));
+  // Divider style
+  const dividerStyle = computed(() => ({
+    left: `${panelWidths.value.left}%`,
+  }));
 
-// Divider style
-const dividerStyle = computed(() => ({
-  left: `${panelWidths.value.left}%`,
-}));
+  // Start dragging divider
+  function startDrag(e: MouseEvent) {
+    isDragging.value = true;
+    startX.value = e.clientX;
+    startWidths.value = { ...panelWidths.value };
 
-// Start dragging divider
-function startDrag(e: MouseEvent) {
-  isDragging.value = true;
-  startX.value = e.clientX;
-  startWidths.value = { ...panelWidths.value };
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', stopDrag);
 
-  document.addEventListener("mousemove", onDrag);
-  document.addEventListener("mouseup", stopDrag);
-
-  e.preventDefault();
-}
-
-// Drag divider
-function onDrag(e: MouseEvent) {
-  if (!isDragging.value) return;
-
-  const containerWidth =
-    (e.target as HTMLElement).parentElement?.offsetWidth || window.innerWidth;
-  const deltaX = e.clientX - startX.value;
-  const deltaPercent = (deltaX / containerWidth) * 100;
-
-  // Calculate new widths
-  let newLeft = startWidths.value.left + deltaPercent;
-  let newRight = startWidths.value.right - deltaPercent;
-
-  // Constrain widths (min 20%, max 80%)
-  newLeft = Math.max(20, Math.min(80, newLeft));
-  newRight = Math.max(20, Math.min(80, newRight));
-
-  panelWidths.value = { left: newLeft, right: newRight };
-}
-
-// Stop dragging divider
-function stopDrag() {
-  if (isDragging.value) {
-    isDragging.value = false;
-    saveWidths();
+    e.preventDefault();
   }
-  document.removeEventListener("mousemove", onDrag);
-  document.removeEventListener("mouseup", stopDrag);
-}
 
-// State
-const selectedPaperId = ref<number | null>(null);
+  // Drag divider
+  function onDrag(e: MouseEvent) {
+    if (!isDragging.value) return;
 
-// Handle paper selection from document list
-function handlePaperSelect(paperId: number) {
-  selectedPaperId.value = paperId;
-}
+    const containerWidth =
+      (e.target as HTMLElement).parentElement?.offsetWidth || window.innerWidth;
+    const deltaX = e.clientX - startX.value;
+    const deltaPercent = (deltaX / containerWidth) * 100;
 
-// Watch for view changes to clear selection
-watch(
-  () => props.currentView,
-  () => {
-    selectedPaperId.value = null;
-  },
-);
+    // Calculate new widths
+    let newLeft = startWidths.value.left + deltaPercent;
+    let newRight = startWidths.value.right - deltaPercent;
 
-// Cleanup event listeners on unmount
-onUnmounted(() => {
-  document.removeEventListener("mousemove", onDrag);
-  document.removeEventListener("mouseup", stopDrag);
-});
+    // Constrain widths (min 20%, max 80%)
+    newLeft = Math.max(20, Math.min(80, newLeft));
+    newRight = Math.max(20, Math.min(80, newRight));
+
+    panelWidths.value = { left: newLeft, right: newRight };
+  }
+
+  // Stop dragging divider
+  function stopDrag() {
+    if (isDragging.value) {
+      isDragging.value = false;
+      saveWidths();
+    }
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', stopDrag);
+  }
+
+  // State
+  const selectedPaperId = ref<string | null>(null);
+
+  // Handle paper selection from document list
+  function handlePaperSelect(paperId: string) {
+    selectedPaperId.value = paperId;
+  }
+
+  // Watch for view changes to clear selection
+  watch(
+    () => props.currentView,
+    () => {
+      selectedPaperId.value = null;
+    }
+  );
+
+  // Cleanup event listeners on unmount
+  onUnmounted(() => {
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', stopDrag);
+  });
 </script>
 
 <template>
@@ -169,85 +169,85 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.papers-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+  .papers-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-/* Leave space for status bar (36px) */
-.panels-container {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  position: relative;
-}
+  /* Leave space for status bar (36px) */
+  .panels-container {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
 
-.panel {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex-shrink: 0;
-}
+  .panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
 
-.panel-content {
-  flex: 1;
-  overflow: hidden;
-}
+  .panel-content {
+    flex: 1;
+    overflow: hidden;
+  }
 
-.panel-content.scrollable {
-  overflow-y: auto;
-  overflow-x: hidden;
-}
+  .panel-content.scrollable {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 
-/* Divider (Drag Handle) */
-.divider {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  cursor: col-resize;
-  z-index: 10;
-  background: transparent;
-}
+  /* Divider (Drag Handle) */
+  .divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    z-index: 10;
+    background: transparent;
+  }
 
-.divider:hover,
-.divider.dragging {
-  background: rgb(var(--v-theme-primary));
-}
+  .divider:hover,
+  .divider.dragging {
+    background: rgb(var(--v-theme-primary));
+  }
 
-.divider-handle {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  .divider-handle {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-.divider-handle::before {
-  content: "";
-  width: 2px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 1px;
-}
+  .divider-handle::before {
+    content: '';
+    width: 2px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 1px;
+  }
 
-.divider:hover .divider-handle::before,
-.divider.dragging .divider-handle::before {
-  background: rgb(var(--v-theme-on-primary));
-}
+  .divider:hover .divider-handle::before,
+  .divider.dragging .divider-handle::before {
+    background: rgb(var(--v-theme-on-primary));
+  }
 
-/* Panel borders */
-.left-panel {
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-}
+  /* Panel borders */
+  .left-panel {
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+  }
 
-/* Disable Vuetify transitions in this component */
-* {
-  transition: none !important;
-  animation-duration: 0s !important;
-  animation-delay: 0s !important;
-}
+  /* Disable Vuetify transitions in this component */
+  * {
+    transition: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 </style>

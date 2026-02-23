@@ -15,7 +15,7 @@ impl IntoResponse for ApiError {
             AppError::NotFound { .. } => (StatusCode::NOT_FOUND, "NOT_FOUND"),
             AppError::ValidationError { .. } => (StatusCode::BAD_REQUEST, "VALIDATION_ERROR"),
             AppError::InvalidInput { .. } => (StatusCode::BAD_REQUEST, "INVALID_INPUT"),
-            AppError::SeaOrmError(_) => (StatusCode::INTERNAL_SERVER_ERROR, "DATABASE_ERROR"),
+            AppError::SurrealDbError { .. } => (StatusCode::INTERNAL_SERVER_ERROR, "DATABASE_ERROR"),
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR"),
         };
 

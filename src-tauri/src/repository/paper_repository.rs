@@ -374,7 +374,7 @@ impl<'a> PaperRepository<'a> {
         let paper_id = paper_id.to_string();
         let result: Vec<Paper> = self
             .db
-            .query("UPDATE type::thing($id) SET attachments += $attachment, updated_at = time::now()")
+            .query("UPDATE <record> $id SET attachments += [$attachment], updated_at = time::now()")
             .bind(("id", paper_id.clone()))
             .bind(("attachment", attachment))
             .await
@@ -417,7 +417,7 @@ impl<'a> PaperRepository<'a> {
         let result: Vec<Paper> = self
             .db
             .query(
-                "UPDATE type::thing($id) SET attachments = array::filter(attachments, |$a| $a.file_name != $file_name), updated_at = time::now()"
+                "UPDATE <record> $id SET attachments = array::filter(attachments, |$a| $a.file_name != $file_name), updated_at = time::now()"
             )
             .bind(("id", paper_id.clone()))
             .bind(("file_name", file_name))

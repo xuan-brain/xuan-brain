@@ -206,14 +206,11 @@ pub async fn get_paper(
 
     let paper = paper_repo.find_by_id(&id).await?;
     if let Some(paper) = paper {
-        // Fetch authors in a single subquery
+        // Fetch authors using graph traversal
         let author_names: Vec<String> = db
             .query(
                 r#"
-                SELECT VALUE name FROM author 
-                WHERE id IN (SELECT VALUE `out` FROM paper_author WHERE `in` = type::record($paper))
-                ORDER BY (SELECT VALUE author_order FROM paper_author 
-                         WHERE `in` = type::record($paper) AND `out` = author.id)[0]
+                SELECT VALUE name FROM type::record($paper)->paper_author->author
                 "#,
             )
             .bind(("paper", id.clone()))
@@ -232,8 +229,7 @@ pub async fn get_paper(
         let labels: Vec<LabelRow> = db
             .query(
                 r#"
-                SELECT id, name, color FROM label 
-                WHERE id IN (SELECT VALUE `out` FROM paper_label WHERE `in` = type::record($paper))
+                SELECT id, name, color FROM type::record($paper)->paper_label->label
                 "#,
             )
             .bind(("paper", id.clone()))

@@ -89,21 +89,21 @@
     </div>
 
     <!-- Clipping list -->
-    <v-list v-else class="clip-list-items">
-      <v-list-item
+    <div v-else class="clip-list-items">
+      <v-card
         v-for="clipping in clippings"
         :key="clipping.id"
-        :class="{ 'clip-item-selected': selectedId === clipping.id }"
-        class="clip-item"
+        :class="['clip-card', { 'clip-card-selected': selectedId === clipping.id }]"
+        variant="outlined"
         @click="handleClippingClick(clipping)"
       >
-        <!-- Title -->
-        <v-list-item-title class="clip-title">
-          {{ clipping.title }}
-        </v-list-item-title>
+        <v-card-text class="pa-3">
+          <!-- Title -->
+          <div class="clip-title">
+            {{ clipping.title }}
+          </div>
 
-        <!-- Source domain and read status -->
-        <template #subtitle>
+          <!-- Source domain and read status -->
           <div class="clip-subtitle">
             <v-icon size="x-small" class="mr-1">mdi-web</v-icon>
             <span class="text-caption">{{ clipping.source_domain }}</span>
@@ -114,20 +114,20 @@
               size="x-small"
             />
           </div>
-        </template>
 
-        <!-- Excerpt -->
-        <div class="clip-excerpt">
-          {{ truncateExcerpt(clipping.excerpt) }}
-        </div>
+          <!-- Excerpt -->
+          <div class="clip-excerpt">
+            {{ truncateExcerpt(clipping.excerpt) }}
+          </div>
 
-        <!-- Created at -->
-        <div class="clip-meta">
-          <v-icon size="x-small" class="mr-1">mdi-clock-outline</v-icon>
-          <span class="text-caption text-grey">{{ formatRelativeTime(clipping.created_at) }}</span>
-        </div>
-      </v-list-item>
-    </v-list>
+          <!-- Created at -->
+          <div class="clip-meta">
+            <v-icon size="x-small" class="mr-1">mdi-clock-outline</v-icon>
+            <span class="text-caption text-grey">{{ formatRelativeTime(clipping.created_at) }}</span>
+          </div>
+        </v-card-text>
+      </v-card>
+    </div>
   </div>
 </template>
 
@@ -159,34 +159,28 @@
   .clip-list-items {
     flex: 1;
     overflow-y: auto;
-    background-color: transparent;
-    padding: 4px 0;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
-  .clip-item {
+  .clip-card {
     cursor: pointer;
-    border-radius: 8px;
-    margin: 4px 8px;
-    padding: 12px 16px !important;
-    min-height: auto !important;
+    border-radius: 8px !important;
     transition:
       background-color 0.2s ease,
-      box-shadow 0.2s ease;
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
   }
 
-  .clip-item:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+  .clip-card:hover {
+    background-color: rgba(255, 255, 255, 0.04);
   }
 
-  .clip-item-selected {
-    background-color: rgb(var(--v-theme-primary));
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  .clip-item-selected .clip-title,
-  .clip-item-selected .clip-excerpt,
-  .clip-item-selected .clip-meta {
-    color: rgb(var(--v-theme-on-primary));
+  .clip-card-selected {
+    border-color: rgb(var(--v-theme-primary)) !important;
+    background-color: rgba(var(--v-theme-primary), 0.08);
   }
 
   .clip-title {
@@ -199,6 +193,9 @@
     display: flex;
     align-items: center;
     margin-bottom: 6px;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
   }
 
   .clip-excerpt {
@@ -236,15 +233,11 @@
   }
 
   /* Dark theme adjustments */
-  :deep(.v-theme--dark) .clip-item:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+  :deep(.v-theme--dark) .clip-card:hover {
+    background-color: rgba(255, 255, 255, 0.04);
   }
 
-  :deep(.v-theme--light) .clip-item:hover {
-    background-color: rgba(0, 0, 0, 0.04);
-  }
-
-  :deep(.v-theme--light) .clip-item-selected {
-    background-color: rgb(var(--v-theme-primary));
+  :deep(.v-theme--light) .clip-card:hover {
+    background-color: rgba(0, 0, 0, 0.02);
   }
 </style>

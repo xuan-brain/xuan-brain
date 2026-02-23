@@ -227,7 +227,30 @@
     "clipSaved": "Clip saved successfully",
     "clipDeleted": "Clip deleted",
     "clipUpdated": "Clip updated",
-    "imagePaths": "Images"
+    "imagePaths": "Images",
+    "clipDetails": {
+      "readStatus": "Read Status",
+      "read": "Read",
+      "unread": "Unread",
+      "noTags": "No tags",
+      "noNotes": "No notes",
+      "created": "Created",
+      "updated": "Updated",
+      "comments": "Comments",
+      "noComments": "No comments yet",
+      "addComment": "Add a comment...",
+      "addCommentBtn": "Add Comment",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save",
+      "deleteCommentTitle": "Delete Comment",
+      "deleteCommentConfirm": "Are you sure you want to delete this comment?",
+      "commentAdded": "Comment added successfully",
+      "commentUpdated": "Comment updated",
+      "commentDeleted": "Comment deleted",
+      "edited": "(edited)"
+    }
   },
   "duration": "Duration"
 }

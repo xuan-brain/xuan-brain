@@ -1,7 +1,10 @@
 <script setup lang="ts">
   import type { Comment } from '@/lib/api/clips';
   import { addClipComment, deleteClipComment, updateClipComment } from '@/lib/api/clips';
+  import { useI18n } from '@/lib/i18n';
   import { ref } from 'vue';
+
+  const { t } = useI18n();
 
   interface Props {
     clipId: string;
@@ -122,7 +125,7 @@
     <!-- Header -->
     <div class="comments-header">
       <v-icon size="small" start>mdi-comment-multiple</v-icon>
-      <span class="section-title">Comments</span>
+      <span class="section-title">{{ t('clips.clipDetails.comments') }}</span>
       <v-chip size="x-small" color="primary" variant="flat" class="ml-2">
         {{ comments.length }}
       </v-chip>
@@ -132,7 +135,7 @@
     <div class="add-comment-form">
       <v-textarea
         v-model="newComment"
-        placeholder="Add a comment..."
+        :placeholder="t('clips.clipDetails.addComment')"
         rows="2"
         auto-grow
         density="compact"
@@ -150,7 +153,7 @@
           :loading="loading"
           @click="handleAddComment"
         >
-          Add Comment
+          {{ t('clips.clipDetails.addCommentBtn') }}
         </v-btn>
       </div>
     </div>
@@ -172,7 +175,7 @@
                 {{ formatDate(comment.created_at) }}
               </span>
               <span v-if="comment.updated_at !== comment.created_at" class="text-caption text-grey ml-2">
-                (edited)
+                {{ t('clips.clipDetails.edited') }}
               </span>
               <v-spacer />
               <v-btn
@@ -211,7 +214,7 @@
                 :disabled="loading"
                 @click="cancelEdit"
               >
-                Cancel
+                {{ t('clips.clipDetails.cancel') }}
               </v-btn>
               <v-btn
                 size="x-small"
@@ -221,7 +224,7 @@
                 :loading="loading"
                 @click="saveEdit"
               >
-                Save
+                {{ t('clips.clipDetails.save') }}
               </v-btn>
             </div>
           </div>
@@ -232,19 +235,19 @@
     <!-- Empty State -->
     <div v-else class="empty-comments">
       <v-icon size="32" color="grey">mdi-comment-outline</v-icon>
-      <p class="text-caption text-grey mt-2">No comments yet</p>
+      <p class="text-caption text-grey mt-2">{{ t('clips.clipDetails.noComments') }}</p>
     </div>
 
     <!-- Delete Confirmation Dialog -->
     <v-dialog v-model="deleteDialogOpen" max-width="400">
       <v-card>
-        <v-card-title class="text-h6">Delete Comment</v-card-title>
-        <v-card-text>Are you sure you want to delete this comment?</v-card-text>
+        <v-card-title class="text-h6">{{ t('clips.clipDetails.deleteCommentTitle') }}</v-card-title>
+        <v-card-text>{{ t('clips.clipDetails.deleteCommentConfirm') }}</v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteDialogOpen = false">Cancel</v-btn>
+          <v-btn variant="text" @click="deleteDialogOpen = false">{{ t('clips.clipDetails.cancel') }}</v-btn>
           <v-btn color="error" variant="flat" :loading="loading" @click="handleDelete">
-            Delete
+            {{ t('clips.clipDetails.delete') }}
           </v-btn>
         </v-card-actions>
       </v-card>

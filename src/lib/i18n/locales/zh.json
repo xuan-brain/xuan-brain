@@ -227,7 +227,30 @@
     "clipSaved": "剪藏保存成功",
     "clipDeleted": "剪藏已删除",
     "clipUpdated": "剪藏已更新",
-    "imagePaths": "图片"
+    "imagePaths": "图片",
+    "clipDetails": {
+      "readStatus": "阅读状态",
+      "read": "已读",
+      "unread": "未读",
+      "noTags": "暂无标签",
+      "noNotes": "暂无笔记",
+      "created": "创建于",
+      "updated": "更新于",
+      "comments": "评论",
+      "noComments": "暂无评论",
+      "addComment": "添加评论...",
+      "addCommentBtn": "添加评论",
+      "edit": "编辑",
+      "delete": "删除",
+      "cancel": "取消",
+      "save": "保存",
+      "deleteCommentTitle": "删除评论",
+      "deleteCommentConfirm": "确定要删除此评论吗？",
+      "commentAdded": "评论添加成功",
+      "commentUpdated": "评论已更新",
+      "commentDeleted": "评论已删除",
+      "edited": "(已编辑)"
+    }
   },
   "duration": "耗时"
 }

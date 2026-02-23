@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import type { ClippingResponse, Comment } from '@/lib/api/clips';
   import { getClip } from '@/lib/api/clips';
+  import { useI18n } from '@/lib/i18n';
   import { useAppStore } from '@/stores/useAppStore';
   import DOMPurify from 'dompurify';
   import { marked } from 'marked';
@@ -8,6 +9,7 @@
   import ClipComments from './ClipComments.vue';
 
   const appStore = useAppStore();
+  const { t } = useI18n();
 
   interface Tag {
     id: string;
@@ -23,7 +25,6 @@
     author?: string;
     published_date?: string;
     content: string; // Markdown content
-    notes?: string;
     tags: Tag[];
     comments: Comment[];
     read_status: number; // 0 = unread, 1 = read
@@ -64,7 +65,6 @@
       author: api.author ?? undefined,
       published_date: api.published_date ?? undefined,
       content: api.content,
-      notes: api.notes ?? undefined,
       tags: api.tags.map((tag, _) => ({
         id: `${api.id}-${tag}`,
         name: tag,
@@ -242,18 +242,18 @@
         </v-card-text>
       </v-card>
 
-      <!-- Sidebar: Notes, Tags, Read Status, Comments -->
+      <!-- Sidebar: Tags, Read Status, Comments -->
       <v-card class="clip-sidebar" :theme="appStore.currentTheme" variant="flat">
         <v-card-text>
           <!-- Read Status Toggle -->
           <div class="sidebar-section">
             <div class="section-title">
               <v-icon size="small" start>mdi-eye-check</v-icon>
-              Read Status
+              {{ t('clips.clipDetails.readStatus') }}
             </div>
             <v-switch
               v-model="details.read_status"
-              :label="details.read_status === 1 ? 'Read' : 'Unread'"
+              :label="details.read_status === 1 ? t('clips.clipDetails.read') : t('clips.clipDetails.unread')"
               color="success"
               hide-details
               density="compact"
@@ -268,7 +268,7 @@
           <div class="sidebar-section">
             <div class="section-title">
               <v-icon size="small" start>mdi-tag-multiple</v-icon>
-              Tags
+              {{ t('clips.tags') }}
             </div>
             <div class="tags-container">
               <v-chip
@@ -281,24 +281,9 @@
                 {{ tag.name }}
               </v-chip>
               <v-chip v-if="details.tags.length === 0" size="small" color="grey" class="mr-1 mb-1">
-                No tags
+                {{ t('clips.clipDetails.noTags') }}
               </v-chip>
             </div>
-          </div>
-
-          <v-divider class="my-3" />
-
-          <!-- Notes -->
-          <div class="sidebar-section">
-            <div class="section-title">
-              <v-icon size="small" start>mdi-note-text</v-icon>
-              Notes
-            </div>
-            <v-card variant="tonal" density="compact" class="notes-card">
-              <p class="text-body-2 notes-text mb-0">
-                {{ details.notes || 'No notes' }}
-              </p>
-            </v-card>
           </div>
 
           <v-divider class="my-3" />
@@ -319,11 +304,11 @@
         <v-card-text>
           <div class="footer-info">
             <span class="text-caption text-grey">
-              Created: {{ formatDate(details.created_at) }}
+              {{ t('clips.clipDetails.created') }}: {{ formatDate(details.created_at) }}
             </span>
             <v-divider vertical class="mx-2" />
             <span class="text-caption text-grey">
-              Updated: {{ formatDate(details.updated_at) }}
+              {{ t('clips.clipDetails.updated') }}: {{ formatDate(details.updated_at) }}
             </span>
           </div>
         </v-card-text>
@@ -518,15 +503,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-  }
-
-  .notes-card {
-    padding: 12px;
-  }
-
-  .notes-text {
-    white-space: pre-wrap;
-    font-size: 13px;
   }
 
   .clip-footer {

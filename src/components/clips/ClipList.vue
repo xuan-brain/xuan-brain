@@ -1,6 +1,5 @@
 <script setup lang="ts">
   import type { ClippingResponse } from '@/lib/api/clips';
-  import { useAppStore } from '@/stores/useAppStore';
   import { onMounted, ref } from 'vue';
 
   interface Props {
@@ -17,7 +16,6 @@
     select: [clippingId: string];
   }>();
 
-  const appStore = useAppStore();
   const loading = ref(false);
 
   // Format relative time for display
@@ -123,7 +121,9 @@
           <!-- Created at -->
           <div class="clip-meta">
             <v-icon size="x-small" class="mr-1">mdi-clock-outline</v-icon>
-            <span class="text-caption text-grey">{{ formatRelativeTime(clipping.created_at) }}</span>
+            <span class="text-caption text-grey">
+              {{ formatRelativeTime(clipping.created_at) }}
+            </span>
           </div>
         </v-card-text>
       </v-card>
@@ -204,7 +204,6 @@
     line-height: 1.4;
     margin-bottom: 8px;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }

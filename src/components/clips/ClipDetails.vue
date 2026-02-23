@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import type { ClippingResponse } from '@/lib/api/clips';
+  import { getClip } from '@/lib/api/clips';
   import { useAppStore } from '@/stores/useAppStore';
   import DOMPurify from 'dompurify';
   import { marked } from 'marked';
@@ -25,6 +27,7 @@
     read_status: number; // 0 = unread, 1 = read
     created_at: string;
     updated_at: string;
+    image_paths: string[];
   }
 
   interface Props {
@@ -49,34 +52,39 @@
     gfm: true,
   });
 
-  // Load clip details (placeholder for API call)
+  // Convert API response to ClipDetail format
+  function apiToClipDetail(api: ClippingResponse): ClipDetail {
+    return {
+      id: api.id,
+      title: api.title,
+      url: api.url,
+      source_domain: api.source_domain,
+      author: api.author ?? undefined,
+      published_date: api.published_date ?? undefined,
+      content: api.content,
+      notes: api.notes ?? undefined,
+      tags: api.tags.map((tag, _) => ({
+        id: `${api.id}-${tag}`,
+        name: tag,
+        color: 'primary',
+      })),
+      read_status: api.readStatus,
+      created_at: api.created_at,
+      updated_at: api.updated_at,
+      image_paths: api.imagePaths,
+    };
+  }
+
+  // Load clip details from API
   async function loadClipDetails() {
     if (!props.clipId) return;
 
     loading.value = true;
     try {
-      // TODO: Replace with actual API call when available
-      // details.value = await getClip(props.clipId);
-
-      // Placeholder data for now - this will be replaced with API call
-      details.value = {
-        id: props.clipId,
-        title: 'Sample Clip Title',
-        url: 'https://example.com/article',
-        source_domain: 'example.com',
-        author: 'John Doe',
-        published_date: '2024-02-23',
-        content:
-          '# Sample Content\n\nThis is a **markdown** formatted content.\n\n## Section 1\n\nSome text here.\n\n![Sample Image](/clips/images/sample/images/image.png)\n\n## Section 2\n\nMore content.',
-        notes: 'Some notes about this clip',
-        tags: [
-          { id: '1', name: 'AI', color: 'blue' },
-          { id: '2', name: 'Research', color: 'green' },
-        ],
-        read_status: 0,
-        created_at: '2024-02-23T10:00:00Z',
-        updated_at: '2024-02-23T11:00:00Z',
-      };
+      console.info('Loading clip details for:', props.clipId);
+      const apiData = await getClip(props.clipId);
+      details.value = apiToClipDetail(apiData);
+      console.info('Clip details loaded successfully');
     } catch (error) {
       console.error('Failed to load clip details:', error);
     } finally {
@@ -111,7 +119,18 @@
     if (!details.value) return '';
 
     try {
-      const rawHtml = marked.parse(details.value.content) as string;
+      let content = details.value.content;
+
+      // Process image URLs to use the full API path
+      content = content.replace(
+        /!\[([^\]]*)\]\((\/clips\/images\/[^)]+)\)/g,
+        (_match, alt, path) => {
+          const fullUrl = `http://localhost:3030${path}`;
+          return `![${alt}](${fullUrl})`;
+        }
+      );
+
+      const rawHtml = marked.parse(content) as string;
       return DOMPurify.sanitize(rawHtml);
     } catch (error) {
       console.error('Failed to render markdown:', error);

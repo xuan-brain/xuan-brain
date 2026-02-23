@@ -1,7 +1,9 @@
 /**
  * Clipping API functions for managing web content clippings
- * Uses fetch to call REST API at http://localhost:3000/api/clips
+ * Uses Tauri commands for communication with the backend
  */
+
+import { invokeCommand } from '../tauri';
 
 /**
  * Request structure for creating a new clipping
@@ -34,36 +36,22 @@ export interface ClippingResponse {
   tags: string[];
   created_at: string;
   updated_at: string;
-  readStatus: number;
+  read_status: number;
   notes: string | null;
-  imagePaths: string[];
+  image_paths: string[];
 }
 
-const API_BASE_URL = 'http://localhost:3030/api/clips';
-
 /**
- * Create a new clipping
+ * Create a new clipping using Tauri command
  * @param data - Clipping data to create
  * @returns Promise resolving to the created clipping response
  */
 export async function createClip(data: CreateClippingRequest): Promise<ClippingResponse> {
   try {
-    const response = await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+    const result = await invokeCommand<ClippingResponse>('create_clip', {
+      payload: data,
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to create clipping: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`
-      );
-    }
-
-    const result: ClippingResponse = await response.json();
+    console.info('Clipping created successfully:', result.id);
     return result;
   } catch (error) {
     console.error('Error creating clipping:', error);
@@ -74,7 +62,7 @@ export async function createClip(data: CreateClippingRequest): Promise<ClippingR
 }
 
 /**
- * List clippings with optional pagination
+ * List clippings with optional pagination using Tauri command
  * @param params - Optional pagination parameters (limit, offset)
  * @returns Promise resolving to array of clipping responses
  */
@@ -83,31 +71,11 @@ export async function listClips(params?: {
   offset?: number;
 }): Promise<ClippingResponse[]> {
   try {
-    const url = new URL(API_BASE_URL);
-
-    if (params?.limit !== undefined) {
-      url.searchParams.append('limit', params.limit.toString());
-    }
-
-    if (params?.offset !== undefined) {
-      url.searchParams.append('offset', params.offset.toString());
-    }
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const result = await invokeCommand<ClippingResponse[]>('list_clips', {
+      limit: params?.limit,
+      offset: params?.offset,
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to list clippings: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`
-      );
-    }
-
-    const result: ClippingResponse[] = await response.json();
+    console.info('Clippings loaded successfully:', result.length);
     return result;
   } catch (error) {
     console.error('Error listing clippings:', error);
@@ -118,28 +86,17 @@ export async function listClips(params?: {
 }
 
 /**
- * Get a single clipping by ID
+ * Get a single clipping by ID using Tauri command
  * @param id - The clipping ID to retrieve
  * @returns Promise resolving to the clipping response
  */
 export async function getClip(id: string): Promise<ClippingResponse> {
   try {
-    const url = `${API_BASE_URL}/${id}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to get clipping: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`
-      );
+    const result = await invokeCommand<ClippingResponse | null>('get_clip', { id });
+    if (!result) {
+      throw new Error(`Clip not found: ${id}`);
     }
-
-    const result: ClippingResponse = await response.json();
+    console.info('Clip loaded successfully:', id);
     return result;
   } catch (error) {
     console.error(`Error getting clipping ${id}:`, error);

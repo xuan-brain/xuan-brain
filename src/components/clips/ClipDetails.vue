@@ -68,10 +68,10 @@
         name: tag,
         color: 'primary',
       })),
-      read_status: api.readStatus,
+      read_status: api.read_status,
       created_at: api.created_at,
       updated_at: api.updated_at,
-      image_paths: api.imagePaths,
+      image_paths: api.image_paths,
     };
   }
 

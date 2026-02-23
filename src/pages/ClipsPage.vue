@@ -3,7 +3,7 @@
   import ClipList from '@/components/clips/ClipList.vue';
   import type { ClippingResponse } from '@/lib/api/clips';
   import { listClips } from '@/lib/api/clips';
-  import { computed, onMounted, onUnmounted, ref } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
   // Panel widths (in percentage)
   const STORAGE_KEY = 'clips-page-panel-widths';
@@ -115,6 +115,10 @@
     loading.value = true;
     try {
       clippings.value = await listClips();
+      // Auto-select first clip if available and no clip is selected
+      if (clippings.value.length > 0 && !selectedClipId.value) {
+        selectedClipId.value = clippings.value[0].id;
+      }
     } catch (error) {
       console.error('Failed to load clippings:', error);
     } finally {

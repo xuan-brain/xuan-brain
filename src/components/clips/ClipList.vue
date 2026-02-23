@@ -107,8 +107,8 @@
             <span class="text-caption">{{ clipping.source_domain }}</span>
             <v-spacer />
             <v-icon
-              :icon="getReadStatusIcon(clipping.readStatus)"
-              :color="getReadStatusColor(clipping.readStatus)"
+              :icon="getReadStatusIcon(clipping.read_status)"
+              :color="getReadStatusColor(clipping.read_status)"
               size="x-small"
             />
           </div>

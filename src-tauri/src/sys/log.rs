@@ -48,7 +48,7 @@ pub async fn init_logger(log_dir: &PathBuf) -> Result<(WorkerGuard, impl tracing
         .with_thread_ids(true)
         .with_file(true)
         .with_line_number(true)
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .with_span_events(FmtSpan::NONE)
         .with_ansi(true)
         .with_filter(env_filter.clone());
 
@@ -60,7 +60,7 @@ pub async fn init_logger(log_dir: &PathBuf) -> Result<(WorkerGuard, impl tracing
         .with_thread_names(true)
         .with_file(true)
         .with_line_number(true)
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .with_span_events(FmtSpan::NONE)
         .with_ansi(false)
         .with_filter(env_filter);
 
@@ -112,7 +112,7 @@ pub async fn init_logger_with_level(log_dir: &PathBuf, log_level: &str) -> Resul
         .with_thread_names(true)
         .with_file(true)
         .with_line_number(true)
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .with_span_events(FmtSpan::NONE)
         .with_ansi(true)
         .with_filter(env_filter.clone());
 
@@ -124,7 +124,7 @@ pub async fn init_logger_with_level(log_dir: &PathBuf, log_level: &str) -> Resul
         .with_thread_names(true)
         .with_file(true)
         .with_line_number(true)
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .with_span_events(FmtSpan::NONE)
         .with_ansi(false)
         .with_filter(env_filter);
 

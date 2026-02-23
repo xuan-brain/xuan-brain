@@ -9,8 +9,23 @@ use crate::repository::ClippingRepository;
 use crate::surreal::connection::SurrealClient;
 use crate::sys::error::Result;
 
-use super::dtos::ClipDto;
+use super::dtos::{ClipDto, CommentDto};
 use super::utils::record_id_to_string;
+
+/// Convert Clipping comments to CommentDto
+fn comments_to_dto(
+    comments: Vec<crate::surreal::models::Comment>,
+) -> Vec<CommentDto> {
+    comments
+        .into_iter()
+        .map(|c| CommentDto {
+            id: c.id,
+            content: c.content,
+            created_at: c.created_at.to_rfc3339(),
+            updated_at: c.updated_at.to_rfc3339(),
+        })
+        .collect()
+}
 
 /// List all clips with optional pagination
 #[tauri::command]
@@ -45,6 +60,7 @@ pub async fn list_clips(
             notes: c.notes,
             tags: c.tags,
             image_paths: c.image_paths,
+            comments: comments_to_dto(c.comments),
             created_at: c.created_at.to_rfc3339(),
             updated_at: c.updated_at.to_rfc3339(),
         })
@@ -79,6 +95,7 @@ pub async fn get_clip(id: String, db: State<'_, Arc<SurrealClient>>) -> Result<O
                 notes: c.notes,
                 tags: c.tags,
                 image_paths: c.image_paths,
+                comments: comments_to_dto(c.comments),
                 created_at: c.created_at.to_rfc3339(),
                 updated_at: c.updated_at.to_rfc3339(),
             }))

@@ -13,7 +13,7 @@ use crate::surreal::models::{CreateClipping, UpdateClipping};
 use crate::sys::dirs::AppDirs;
 use crate::sys::error::{AppError, Result};
 
-use super::dtos::{CreateClipRequest, CreateClipResponse};
+use super::dtos::{CommentDto, CreateClipRequest, CreateClipResponse};
 use super::utils::{process_markdown_images, record_id_to_string};
 
 /// Create a new clip with image downloading
@@ -46,6 +46,7 @@ pub async fn create_clip(
         thumbnail_url: payload.thumbnail_url.clone(),
         tags: payload.tags.clone(),
         image_paths: Vec::new(),
+        comments: Vec::new(),
     };
 
     let clipping = ClippingRepository::create_clipping(&db, create_clipping).await?;
@@ -80,6 +81,7 @@ pub async fn create_clip(
         notes: None,
         tags: None,
         image_paths: Some(image_paths.clone()),
+        comments: None,
     };
 
     let updated = ClippingRepository::update_clipping(&db, &clip_id, update_clipping).await?;
@@ -104,4 +106,75 @@ pub async fn create_clip(
         source_domain: payload.source_domain,
         image_paths,
     })
+}
+
+/// Add a comment to a clip
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn add_clip_comment(
+    db: State<'_, Arc<SurrealClient>>,
+    clipId: String,
+    content: String,
+) -> Result<CommentDto> {
+    info!("Adding comment to clip: {}", clipId);
+
+    let updated = ClippingRepository::add_comment(&db, &clipId, &content).await?;
+
+    // Find the newly added comment (last one in the array)
+    let comment = updated
+        .comments
+        .last()
+        .ok_or_else(|| AppError::generic("Failed to get added comment".to_string()))?;
+
+    Ok(CommentDto {
+        id: comment.id.clone(),
+        content: comment.content.clone(),
+        created_at: comment.created_at.to_rfc3339(),
+        updated_at: comment.updated_at.to_rfc3339(),
+    })
+}
+
+/// Update a comment in a clip
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn update_clip_comment(
+    db: State<'_, Arc<SurrealClient>>,
+    clipId: String,
+    commentId: String,
+    content: String,
+) -> Result<CommentDto> {
+    info!("Updating comment {} in clip: {}", commentId, clipId);
+
+    let updated =
+        ClippingRepository::update_comment(&db, &clipId, &commentId, &content).await?;
+
+    // Find the updated comment
+    let comment = updated
+        .comments
+        .iter()
+        .find(|c| c.id == commentId)
+        .ok_or_else(|| AppError::not_found("Comment", commentId.to_string()))?;
+
+    Ok(CommentDto {
+        id: comment.id.clone(),
+        content: comment.content.clone(),
+        created_at: comment.created_at.to_rfc3339(),
+        updated_at: comment.updated_at.to_rfc3339(),
+    })
+}
+
+/// Delete a comment from a clip
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn delete_clip_comment(
+    db: State<'_, Arc<SurrealClient>>,
+    clipId: String,
+    commentId: String,
+) -> Result<()> {
+    info!("Deleting comment {} from clip: {}", commentId, clipId);
+
+    ClippingRepository::delete_comment(&db, &clipId, &commentId).await?;
+
+    info!("Successfully deleted comment {} from clip {}", commentId, clipId);
+    Ok(())
 }

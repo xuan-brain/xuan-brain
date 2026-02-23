@@ -2,6 +2,15 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Comment DTO for clip comments
+#[derive(Serialize, Clone)]
+pub struct CommentDto {
+    pub id: String,
+    pub content: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
 /// Response DTO for clip list and detail views
 #[derive(Serialize, Clone)]
 pub struct ClipDto {
@@ -18,6 +27,7 @@ pub struct ClipDto {
     pub notes: Option<String>,
     pub tags: Vec<String>,
     pub image_paths: Vec<String>,
+    pub comments: Vec<CommentDto>,
     pub created_at: String,
     pub updated_at: String,
 }

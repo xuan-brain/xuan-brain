@@ -295,6 +295,7 @@ pub async fn create_clip(
         thumbnail_url: payload.thumbnail_url.clone(),
         tags: payload.tags.clone(),
         image_paths: Vec::new(),
+        comments: Vec::new(),
     };
     let clipping = ClippingRepository::create_clipping(&state.db, create_clipping)
         .await
@@ -324,6 +325,7 @@ pub async fn create_clip(
         notes: None,
         tags: None,
         image_paths: Some(image_paths.clone()),
+        comments: None,
     };
     let updated = ClippingRepository::update_clipping(&state.db, &clip_id, update_clipping)
         .await

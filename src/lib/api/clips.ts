@@ -6,6 +6,16 @@
 import { invokeCommand } from '../tauri';
 
 /**
+ * Comment structure for clip comments
+ */
+export interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
  * Request structure for creating a new clipping
  */
 export interface CreateClippingRequest {
@@ -34,6 +44,7 @@ export interface ClippingResponse {
   excerpt: string | null;
   thumbnail_url: string | null;
   tags: string[];
+  comments: Comment[];
   created_at: string;
   updated_at: string;
   read_status: number;
@@ -78,9 +89,9 @@ export async function listClips(params?: {
     console.info('Clippings loaded successfully:', result.length);
     return result;
   } catch (error) {
-    console.error('Error listing clippings:', error);
+    console.error('Error listing clippings:', JSON.stringify(error, null, 2));
     throw new Error(
-      `Failed to list clippings: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to list clippings: ${error instanceof Error ? error.message : JSON.stringify(error)}`
     );
   }
 }
@@ -102,6 +113,82 @@ export async function getClip(id: string): Promise<ClippingResponse> {
     console.error(`Error getting clipping ${id}:`, error);
     throw new Error(
       `Failed to get clipping: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Add a comment to a clipping
+ * @param clipId - The clipping ID
+ * @param content - The comment content
+ * @returns Promise resolving to the created comment
+ */
+export async function addClipComment(
+  clipId: string,
+  content: string
+): Promise<Comment> {
+  try {
+    const result = await invokeCommand<Comment>('add_clip_comment', {
+      clipId,
+      content,
+    });
+    console.info('Comment added successfully to clip:', clipId);
+    return result;
+  } catch (error) {
+    console.error(`Error adding comment to clipping ${clipId}:`, error);
+    throw new Error(
+      `Failed to add comment: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Update a comment in a clipping
+ * @param clipId - The clipping ID
+ * @param commentId - The comment ID to update
+ * @param content - The new comment content
+ * @returns Promise resolving to the updated comment
+ */
+export async function updateClipComment(
+  clipId: string,
+  commentId: string,
+  content: string
+): Promise<Comment> {
+  try {
+    const result = await invokeCommand<Comment>('update_clip_comment', {
+      clipId,
+      commentId,
+      content,
+    });
+    console.info('Comment updated successfully:', commentId);
+    return result;
+  } catch (error) {
+    console.error(`Error updating comment ${commentId}:`, error);
+    throw new Error(
+      `Failed to update comment: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Delete a comment from a clipping
+ * @param clipId - The clipping ID
+ * @param commentId - The comment ID to delete
+ */
+export async function deleteClipComment(
+  clipId: string,
+  commentId: string
+): Promise<void> {
+  try {
+    await invokeCommand<void>('delete_clip_comment', {
+      clipId,
+      commentId,
+    });
+    console.info('Comment deleted successfully:', commentId);
+  } catch (error) {
+    console.error(`Error deleting comment ${commentId}:`, error);
+    throw new Error(
+      `Failed to delete comment: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 }

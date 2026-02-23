@@ -1,10 +1,11 @@
 <script setup lang="ts">
-  import type { ClippingResponse } from '@/lib/api/clips';
+  import type { ClippingResponse, Comment } from '@/lib/api/clips';
   import { getClip } from '@/lib/api/clips';
   import { useAppStore } from '@/stores/useAppStore';
   import DOMPurify from 'dompurify';
   import { marked } from 'marked';
   import { computed, ref, watch } from 'vue';
+  import ClipComments from './ClipComments.vue';
 
   const appStore = useAppStore();
 
@@ -24,6 +25,7 @@
     content: string; // Markdown content
     notes?: string;
     tags: Tag[];
+    comments: Comment[];
     read_status: number; // 0 = unread, 1 = read
     created_at: string;
     updated_at: string;
@@ -68,6 +70,7 @@
         name: tag,
         color: 'primary',
       })),
+      comments: api.comments,
       read_status: api.read_status,
       created_at: api.created_at,
       updated_at: api.updated_at,
@@ -159,6 +162,16 @@
     emit('clipUpdated', data);
   }
 
+  // Handle comments updated from ClipComments component
+  function handleCommentsUpdated(updatedComments: Comment[]) {
+    if (details.value) {
+      details.value = {
+        ...details.value,
+        comments: updatedComments,
+      };
+    }
+  }
+
   // Watch clip ID changes
   watch(
     () => props.clipId,
@@ -229,7 +242,7 @@
         </v-card-text>
       </v-card>
 
-      <!-- Sidebar: Notes, Tags, Read Status -->
+      <!-- Sidebar: Notes, Tags, Read Status, Comments -->
       <v-card class="clip-sidebar" :theme="appStore.currentTheme" variant="flat">
         <v-card-text>
           <!-- Read Status Toggle -->
@@ -286,6 +299,17 @@
                 {{ details.notes || 'No notes' }}
               </p>
             </v-card>
+          </div>
+
+          <v-divider class="my-3" />
+
+          <!-- Comments -->
+          <div class="sidebar-section">
+            <ClipComments
+              :clip-id="details.id"
+              :comments="details.comments"
+              @comments-updated="handleCommentsUpdated"
+            />
           </div>
         </v-card-text>
       </v-card>

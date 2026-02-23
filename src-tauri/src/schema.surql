@@ -112,6 +112,11 @@ DEFINE FIELD read_status ON clipping TYPE int DEFAULT 0;
 DEFINE FIELD notes ON clipping TYPE option<string>;
 DEFINE FIELD tags ON clipping TYPE array<string>;
 DEFINE FIELD image_paths ON clipping TYPE array<string>;
+DEFINE FIELD comments ON clipping TYPE array<object>;
+DEFINE FIELD comments[*].id ON clipping TYPE string;
+DEFINE FIELD comments[*].content ON clipping TYPE string;
+DEFINE FIELD comments[*].created_at ON clipping TYPE datetime;
+DEFINE FIELD comments[*].updated_at ON clipping TYPE datetime;
 DEFINE FIELD created_at ON clipping TYPE datetime DEFAULT time::now();
 DEFINE FIELD updated_at ON clipping TYPE datetime DEFAULT time::now();
 

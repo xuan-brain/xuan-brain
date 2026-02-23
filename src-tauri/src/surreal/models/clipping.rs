@@ -4,6 +4,15 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use surrealdb_types::{RecordId, SurrealValue};
 
+/// Comment embedded in a clipping
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
+pub struct Comment {
+    pub id: String,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Clipping record representing a web content snippet
 #[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Clipping {
@@ -21,6 +30,8 @@ pub struct Clipping {
     pub notes: Option<String>,
     pub tags: Vec<String>,
     pub image_paths: Vec<String>,
+    #[serde(default)]
+    pub comments: Vec<Comment>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -38,6 +49,8 @@ pub struct CreateClipping {
     pub thumbnail_url: Option<String>,
     pub tags: Vec<String>,
     pub image_paths: Vec<String>,
+    #[serde(default)]
+    pub comments: Vec<Comment>,
 }
 
 /// DTO for updating clipping details
@@ -55,6 +68,7 @@ pub struct UpdateClipping {
     pub notes: Option<String>,
     pub tags: Option<Vec<String>>,
     pub image_paths: Option<Vec<String>>,
+    pub comments: Option<Vec<Comment>>,
 }
 
 impl Clipping {
@@ -75,6 +89,7 @@ impl Clipping {
             notes: None,
             tags: Vec::new(),
             image_paths: Vec::new(),
+            comments: Vec::new(),
             created_at: now,
             updated_at: now,
         }
@@ -103,6 +118,7 @@ impl From<CreateClipping> for Clipping {
             notes: None,
             tags: create.tags,
             image_paths: create.image_paths,
+            comments: create.comments,
             created_at: now,
             updated_at: now,
         }

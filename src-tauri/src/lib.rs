@@ -14,7 +14,9 @@ use std::sync::Arc;
 use crate::command::category_command::{
     create_category, delete_category, load_categories, move_category, reorder_tree, update_category,
 };
-use crate::command::clip_command::{create_clip, get_clip, list_clips};
+use crate::command::clip_command::{
+    add_clip_comment, create_clip, delete_clip_comment, get_clip, list_clips, update_clip_comment,
+};
 use crate::command::config_command::{get_app_config, save_app_config};
 use crate::command::data_folder_command::{
     get_data_folder_info_command, get_default_data_folder, migrate_data_folder_command,
@@ -202,7 +204,10 @@ pub fn run() -> Result<()> {
             // Clip commands
             list_clips,
             get_clip,
-            create_clip
+            create_clip,
+            add_clip_comment,
+            update_clip_comment,
+            delete_clip_comment
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

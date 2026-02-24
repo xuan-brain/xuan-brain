@@ -43,10 +43,7 @@ impl ClippingRepository {
     }
 
     /// Get clipping by ID
-    pub async fn get_clipping_by_id(
-        db: &SurrealClient,
-        id: &str,
-    ) -> Result<Option<Clipping>> {
+    pub async fn get_clipping_by_id(db: &SurrealClient, id: &str) -> Result<Option<Clipping>> {
         // Ensure ID has the 'clipping:' prefix for type::record()
         let record_id = if id.contains(':') {
             id.to_string()
@@ -65,10 +62,7 @@ impl ClippingRepository {
     }
 
     /// Get clipping by URL
-    pub async fn get_clipping_by_url(
-        db: &SurrealClient,
-        url: &str,
-    ) -> Result<Option<Clipping>> {
+    pub async fn get_clipping_by_url(db: &SurrealClient, url: &str) -> Result<Option<Clipping>> {
         let url = url.to_string();
         let result: Vec<Clipping> = db
             .query("SELECT * FROM clipping WHERE url = $url LIMIT 1")
@@ -166,16 +160,12 @@ impl ClippingRepository {
     }
 
     /// Add a comment to a clipping
-    pub async fn add_comment(
-        db: &SurrealClient,
-        clip_id: &str,
-        content: &str,
-    ) -> Result<Clipping> {
-        let record_id = if clip_id.contains(':') {
-            clip_id.to_string()
-        } else {
-            format!("clipping:{}", clip_id)
-        };
+    pub async fn add_comment(db: &SurrealClient, clip_id: &str, content: &str) -> Result<Clipping> {
+        // let record_id = if clip_id.contains(':') {
+        //     clip_id.to_string()
+        // } else {
+        //     format!("clipping:{}", clip_id)
+        // };
 
         // Get current clipping to append comment
         let clipping = Self::get_clipping_by_id(db, clip_id)

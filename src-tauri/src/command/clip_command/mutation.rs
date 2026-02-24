@@ -87,9 +87,7 @@ pub async fn create_clip(
     let updated = ClippingRepository::update_clipping(&db, &clip_id, update_clipping).await?;
 
     if updated.is_none() {
-        warn!(
-            "Failed to update clipping with image paths, but clip was created"
-        );
+        warn!("Failed to update clipping with image paths, but clip was created");
     }
 
     info!(
@@ -113,12 +111,12 @@ pub async fn create_clip(
 #[instrument(skip(db))]
 pub async fn add_clip_comment(
     db: State<'_, Arc<SurrealClient>>,
-    clipId: String,
+    clip_id: String,
     content: String,
 ) -> Result<CommentDto> {
-    info!("Adding comment to clip: {}", clipId);
+    info!("Adding comment to clip: {}", clip_id);
 
-    let updated = ClippingRepository::add_comment(&db, &clipId, &content).await?;
+    let updated = ClippingRepository::add_comment(&db, &clip_id, &content).await?;
 
     // Find the newly added comment (last one in the array)
     let comment = updated
@@ -139,21 +137,20 @@ pub async fn add_clip_comment(
 #[instrument(skip(db))]
 pub async fn update_clip_comment(
     db: State<'_, Arc<SurrealClient>>,
-    clipId: String,
-    commentId: String,
+    clip_id: String,
+    comment_id: String,
     content: String,
 ) -> Result<CommentDto> {
-    info!("Updating comment {} in clip: {}", commentId, clipId);
+    info!("Updating comment {} in clip: {}", comment_id, clip_id);
 
-    let updated =
-        ClippingRepository::update_comment(&db, &clipId, &commentId, &content).await?;
+    let updated = ClippingRepository::update_comment(&db, &clip_id, &comment_id, &content).await?;
 
     // Find the updated comment
     let comment = updated
         .comments
         .iter()
-        .find(|c| c.id == commentId)
-        .ok_or_else(|| AppError::not_found("Comment", commentId.to_string()))?;
+        .find(|c| c.id == comment_id)
+        .ok_or_else(|| AppError::not_found("Comment", comment_id.to_string()))?;
 
     Ok(CommentDto {
         id: comment.id.clone(),
@@ -168,13 +165,16 @@ pub async fn update_clip_comment(
 #[instrument(skip(db))]
 pub async fn delete_clip_comment(
     db: State<'_, Arc<SurrealClient>>,
-    clipId: String,
-    commentId: String,
+    clip_id: String,
+    comment_id: String,
 ) -> Result<()> {
-    info!("Deleting comment {} from clip: {}", commentId, clipId);
+    info!("Deleting comment {} from clip: {}", comment_id, clip_id);
 
-    ClippingRepository::delete_comment(&db, &clipId, &commentId).await?;
+    ClippingRepository::delete_comment(&db, &clip_id, &comment_id).await?;
 
-    info!("Successfully deleted comment {} from clip {}", commentId, clipId);
+    info!(
+        "Successfully deleted comment {} from clip {}",
+        comment_id, clip_id
+    );
     Ok(())
 }

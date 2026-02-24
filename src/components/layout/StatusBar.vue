@@ -3,6 +3,7 @@ import { computed, ref, onMounted } from "vue";
 import { useI18n, setLocale } from "@/lib/i18n";
 import { useAppStore } from "@/stores/useAppStore";
 import { invokeCommand } from "@/lib/tauri";
+import { APP_VERSION } from "@/lib/version";
 
 const { t, locale: localeRef, availableLocales } = useI18n();
 const appStore = useAppStore();
@@ -110,7 +111,7 @@ async function handleGrobidServerSelect(serverId: string) {
   <v-footer height="36" class="status-bar">
     <div class="status-bar-left">
       <span class="mr-4">{{ t("status.documents") }}: 0</span>
-      <span>{{ t("status.version") }}: 0.1.0</span>
+      <span>{{ t("status.version") }}: {{ APP_VERSION }}</span>
     </div>
 
     <div class="status-bar-right">

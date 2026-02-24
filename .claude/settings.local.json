@@ -34,7 +34,8 @@
       "Bash(cargo search:*)",
       "Bash(cargo:*)",
       "Bash(yarn lint:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(node:*)"
     ]
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "xuan-brain",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "AI-driven research literature management desktop application",
   "license": "MIT",
   "type": "module",
@@ -10,8 +10,10 @@
     "format": "prettier --write .",
     "lint": "eslint . --ext .ts,.vue --max-warnings=0",
     "preview": "vite preview",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev --features mcp-bridge"
+    "sync-version": "node scripts/sync-version.js",
+    "tauri": "yarn sync-version && tauri",
+    "tauri:build": "yarn sync-version && tauri build",
+    "tauri:dev": "yarn sync-version && tauri dev --features mcp-bridge"
   },
   "dependencies": {
     "@embedpdf/vue-pdf-viewer": "^2.5.0",

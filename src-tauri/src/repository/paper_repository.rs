@@ -1,434 +1,483 @@
-//! Paper repository for SurrealDB
+//! Paper repository for SQLite using SeaORM
 
-use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::{AttachmentEmbedded, CreatePaper, Paper, UpdatePaper};
-use crate::sys::error::{AppError, Result};
+use sea_orm::*;
 use tracing::info;
 
+use crate::database::entities::{attachment, paper, paper_category};
+use crate::models::{Attachment, CreatePaper, Paper, UpdatePaper};
+use crate::sys::error::{AppError, Result};
+
 /// Repository for Paper operations
-pub struct PaperRepository<'a> {
-    db: &'a SurrealClient,
-}
+pub struct PaperRepository;
 
-impl<'a> PaperRepository<'a> {
-    pub fn new(db: &'a SurrealClient) -> Self {
-        Self { db }
-    }
-
+impl PaperRepository {
     /// Find all non-deleted papers
-    pub async fn find_all(&self) -> Result<Vec<Paper>> {
-        let result: Vec<Paper> = self
-            .db
-            .query("SELECT * FROM paper WHERE deleted_at IS NONE ORDER BY created_at DESC")
+    pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<Paper>> {
+        let papers = paper::Entity::find()
+            .filter(paper::Column::DeletedAt.is_null())
+            .order_by_desc(paper::Column::CreatedAt)
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query papers: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query papers: {}", e)))?;
 
-        info!("Found {} papers", result.len());
-        Ok(result)
+        info!("Found {} papers", papers.len());
+        Ok(papers.into_iter().map(Paper::from).collect())
     }
 
     /// Find all deleted papers (trash)
-    pub async fn find_deleted(&self) -> Result<Vec<Paper>> {
-        let result: Vec<Paper> = self
-            .db
-            .query("SELECT * FROM paper WHERE deleted_at IS NOT NONE ORDER BY deleted_at DESC")
+    pub async fn find_deleted(db: &DatabaseConnection) -> Result<Vec<Paper>> {
+        let papers = paper::Entity::find()
+            .filter(paper::Column::DeletedAt.is_not_null())
+            .order_by_desc(paper::Column::DeletedAt)
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query deleted papers: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query deleted papers: {}", e)))?;
 
-        Ok(result)
+        Ok(papers.into_iter().map(Paper::from).collect())
     }
 
-    /// Find paper by ID (string format like "paper:123")
-    pub async fn find_by_id(&self, id: &str) -> Result<Option<Paper>> {
-        let id = id.to_string();
-        let result: Vec<Paper> = self
-            .db
-            .query("SELECT * FROM <record> $id LIMIT 1")
-            .bind(("id", id))
+    /// Find paper by ID
+    pub async fn find_by_id(db: &DatabaseConnection, id: i64) -> Result<Option<Paper>> {
+        let paper = paper::Entity::find_by_id(id)
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get paper: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to get paper: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        Ok(paper.map(Paper::from))
     }
 
     /// Find paper by DOI
-    pub async fn find_by_doi(&self, doi: &str) -> Result<Option<Paper>> {
-        let doi = doi.to_string();
-        let result: Vec<Paper> = self
-            .db
-            .query("SELECT * FROM paper WHERE doi = $doi LIMIT 1")
-            .bind(("doi", doi))
+    pub async fn find_by_doi(db: &DatabaseConnection, doi: &str) -> Result<Option<Paper>> {
+        let paper = paper::Entity::find()
+            .filter(paper::Column::Doi.eq(doi))
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query paper by DOI: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query paper by DOI: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        Ok(paper.map(Paper::from))
+    }
+
+    /// Find paper by URL
+    pub async fn find_by_url(db: &DatabaseConnection, url: &str) -> Result<Option<Paper>> {
+        let paper = paper::Entity::find()
+            .filter(paper::Column::Url.eq(url))
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to query paper by URL: {}", e)))?;
+
+        Ok(paper.map(Paper::from))
     }
 
     /// Create a new paper
-    pub async fn create(&self, paper: CreatePaper) -> Result<Paper> {
-        let paper = Paper::from(paper);
-        let result: Vec<Paper> = self
-            .db
-            .query("CREATE paper CONTENT $paper")
-            .bind(("paper", paper))
-            .await
-            .map_err(|e| AppError::generic(format!("Failed to create paper: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+    pub async fn create(db: &DatabaseConnection, create: CreatePaper) -> Result<Paper> {
+        let now = chrono::Utc::now();
+        let new_paper = paper::ActiveModel {
+            title: Set(create.title),
+            abstract_text: Set(create.abstract_text),
+            doi: Set(create.doi),
+            publication_year: Set(create.publication_year),
+            publication_date: Set(create.publication_date),
+            journal_name: Set(create.journal_name),
+            conference_name: Set(create.conference_name),
+            volume: Set(create.volume),
+            issue: Set(create.issue),
+            pages: Set(create.pages),
+            url: Set(create.url),
+            citation_count: Set(0),
+            read_status: Set("unread".to_string()),
+            notes: Set(None),
+            attachment_path: Set(create.attachment_path),
+            created_at: Set(now),
+            updated_at: Set(now),
+            deleted_at: Set(None),
+            ..Default::default()
+        };
 
-        result
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::generic("Failed to create paper".to_string()))
+        let result = new_paper
+            .insert(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to create paper: {}", e)))?;
+
+        Ok(Paper::from(result))
     }
 
     /// Update paper
-    pub async fn update(&self, id: &str, update: UpdatePaper) -> Result<Paper> {
-        let id = id.to_string();
-
-        // Build update query dynamically based on provided fields
-        let mut sets = Vec::new();
-        if update.title.is_some() {
-            sets.push("title = $title");
-        }
-        if update.abstract_text.is_some() {
-            sets.push("abstract_text = $abstract_text");
-        }
-        if update.doi.is_some() {
-            sets.push("doi = $doi");
-        }
-        if update.publication_year.is_some() {
-            sets.push("publication_year = $publication_year");
-        }
-        if update.publication_date.is_some() {
-            sets.push("publication_date = $publication_date");
-        }
-        if update.journal_name.is_some() {
-            sets.push("journal_name = $journal_name");
-        }
-        if update.conference_name.is_some() {
-            sets.push("conference_name = $conference_name");
-        }
-        if update.volume.is_some() {
-            sets.push("volume = $volume");
-        }
-        if update.issue.is_some() {
-            sets.push("issue = $issue");
-        }
-        if update.pages.is_some() {
-            sets.push("pages = $pages");
-        }
-        if update.url.is_some() {
-            sets.push("url = $url");
-        }
-        if update.read_status.is_some() {
-            sets.push("read_status = $read_status");
-        }
-        if update.notes.is_some() {
-            sets.push("notes = $notes");
-        }
-        if update.attachment_path.is_some() {
-            sets.push("attachment_path = $attachment_path");
-        }
-        sets.push("updated_at = time::now()");
-
-        let query = format!("UPDATE type::thing($id) SET {}", sets.join(", "));
-
-        let result: Vec<Paper> = self
-            .db
-            .query(&query)
-            .bind(("id", id.clone()))
-            .bind(("title", update.title))
-            .bind(("abstract_text", update.abstract_text))
-            .bind(("doi", update.doi))
-            .bind(("publication_year", update.publication_year))
-            .bind(("publication_date", update.publication_date))
-            .bind(("journal_name", update.journal_name))
-            .bind(("conference_name", update.conference_name))
-            .bind(("volume", update.volume))
-            .bind(("issue", update.issue))
-            .bind(("pages", update.pages))
-            .bind(("url", update.url))
-            .bind(("read_status", update.read_status))
-            .bind(("notes", update.notes))
-            .bind(("attachment_path", update.attachment_path))
+    pub async fn update(db: &DatabaseConnection, id: i64, update: UpdatePaper) -> Result<Paper> {
+        let paper = paper::Entity::find_by_id(id)
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to update paper: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to find paper: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
 
-        result
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::not_found("Paper", id))
+        let mut paper: paper::ActiveModel = paper.into();
+        if let Some(title) = update.title {
+            paper.title = Set(title);
+        }
+        if let Some(abstract_text) = update.abstract_text {
+            paper.abstract_text = Set(Some(abstract_text));
+        }
+        if let Some(doi) = update.doi {
+            paper.doi = Set(Some(doi));
+        }
+        if let Some(publication_year) = update.publication_year {
+            paper.publication_year = Set(Some(publication_year));
+        }
+        if let Some(publication_date) = update.publication_date {
+            paper.publication_date = Set(Some(publication_date));
+        }
+        if let Some(journal_name) = update.journal_name {
+            paper.journal_name = Set(Some(journal_name));
+        }
+        if let Some(conference_name) = update.conference_name {
+            paper.conference_name = Set(Some(conference_name));
+        }
+        if let Some(volume) = update.volume {
+            paper.volume = Set(Some(volume));
+        }
+        if let Some(issue) = update.issue {
+            paper.issue = Set(Some(issue));
+        }
+        if let Some(pages) = update.pages {
+            paper.pages = Set(Some(pages));
+        }
+        if let Some(url) = update.url {
+            paper.url = Set(Some(url));
+        }
+        if let Some(read_status) = update.read_status {
+            paper.read_status = Set(read_status);
+        }
+        if let Some(notes) = update.notes {
+            paper.notes = Set(Some(notes));
+        }
+        if let Some(attachment_path) = update.attachment_path {
+            paper.attachment_path = Set(Some(attachment_path));
+        }
+
+        paper.updated_at = Set(chrono::Utc::now());
+
+        let result = paper
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to update paper: {}", e)))?;
+
+        Ok(Paper::from(result))
     }
 
     /// Soft delete paper (move to trash)
-    pub async fn soft_delete(&self, id: &str) -> Result<()> {
-        let id = id.to_string();
-        self.db
-            .query("UPDATE <record> $id SET deleted_at = time::now()")
-            .bind(("id", id))
+    pub async fn soft_delete(db: &DatabaseConnection, id: i64) -> Result<()> {
+        let paper = paper::Entity::find_by_id(id)
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to soft delete paper: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to find paper: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
+
+        let mut paper: paper::ActiveModel = paper.into();
+        paper.deleted_at = Set(Some(chrono::Utc::now()));
+        paper.update(db).await.map_err(|e| {
+            AppError::generic(format!("Failed to soft delete paper: {}", e))
+        })?;
 
         Ok(())
     }
 
     /// Restore paper from trash
-    pub async fn restore(&self, id: &str) -> Result<()> {
-        let id = id.to_string();
-        self.db
-            .query("UPDATE <record> $id SET deleted_at = NONE")
-            .bind(("id", id))
+    pub async fn restore(db: &DatabaseConnection, id: i64) -> Result<()> {
+        let paper = paper::Entity::find_by_id(id)
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to restore paper: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to find paper: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Paper", id.to_string()))?;
+
+        let mut paper: paper::ActiveModel = paper.into();
+        paper.deleted_at = Set(None);
+        paper.update(db).await.map_err(|e| {
+            AppError::generic(format!("Failed to restore paper: {}", e))
+        })?;
 
         Ok(())
     }
 
     /// Permanently delete paper
-    pub async fn delete(&self, id: &str) -> Result<()> {
-        let id = id.to_string();
-        self.db
-            .query("DELETE type::thing($id)")
-            .bind(("id", id))
+    pub async fn delete(db: &DatabaseConnection, id: i64) -> Result<()> {
+        paper::Entity::delete_by_id(id)
+            .exec(db)
             .await
             .map_err(|e| AppError::generic(format!("Failed to delete paper: {}", e)))?;
 
         Ok(())
     }
 
-    /// Search papers using BM25 full-text search
-    pub async fn search(&self, query: &str) -> Result<Vec<Paper>> {
-        let query_str = query.to_string();
-        let result: Vec<Paper> = self
-            .db
-            .query(
-                r#"
-                SELECT * FROM paper
-                WHERE deleted_at IS NONE
-                AND (title @@ $query OR abstract_text @@ $query)
-                ORDER BY id DESC
-                LIMIT 50
-                "#,
+    /// Search papers using LIKE query (basic search)
+    pub async fn search(db: &DatabaseConnection, query: &str) -> Result<Vec<Paper>> {
+        let pattern = format!("%{}%", query);
+        let papers = paper::Entity::find()
+            .filter(paper::Column::DeletedAt.is_null())
+            .filter(
+                Condition::any()
+                    .add(paper::Column::Title.like(&pattern))
+                    .add(paper::Column::AbstractText.like(&pattern)),
             )
-            .bind(("query", query_str))
+            .order_by_desc(paper::Column::Id)
+            .limit(50)
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to search papers: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get search results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to search papers: {}", e)))?;
 
-        info!("Search for '{}' found {} papers", query, result.len());
-        Ok(result)
+        info!("Search for '{}' found {} papers", query, papers.len());
+        Ok(papers.into_iter().map(Paper::from).collect())
     }
 
     /// Find papers by category
-    pub async fn find_by_category(&self, category_id: &str) -> Result<Vec<Paper>> {
-        let category_id = category_id.to_string();
-        let result: Vec<Paper> = self
-            .db
-            .query(
-                r#"
-                SELECT * FROM paper
-                WHERE deleted_at IS NONE
-                AND id IN (SELECT `in` FROM paper_category WHERE `out` = <record> $category_id)
-                ORDER BY created_at DESC
-                "#,
-            )
-            .bind(("category_id", category_id))
+    pub async fn find_by_category(db: &DatabaseConnection, category_id: i64) -> Result<Vec<Paper>> {
+        // First get paper_category relations
+        let relations = paper_category::Entity::find()
+            .filter(paper_category::Column::CategoryId.eq(category_id))
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query papers by category: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to get paper-category relations: {}", e)))?;
 
-        Ok(result)
-    }
+        let paper_ids: Vec<i64> = relations.iter().map(|r| r.paper_id).collect();
 
-    /// Find paper by URL
-    pub async fn find_by_url(&self, url: &str) -> Result<Option<Paper>> {
-        let url_str = url.to_string();
-        let result: Vec<Paper> = self
-            .db
-            .query("SELECT * FROM paper WHERE url = $url LIMIT 1")
-            .bind(("url", url_str))
+        if paper_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Then get papers by IDs
+        let papers = paper::Entity::find()
+            .filter(paper::Column::Id.is_in(paper_ids))
+            .filter(paper::Column::DeletedAt.is_null())
+            .order_by_desc(paper::Column::CreatedAt)
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query paper by URL: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query papers by category: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        Ok(papers.into_iter().map(Paper::from).collect())
     }
 
     /// Set paper category (replaces existing category)
-    pub async fn set_category(&self, paper_id: &str, category_id: Option<String>) -> Result<()> {
-        let paper_id = paper_id.to_string();
-
+    pub async fn set_category(
+        db: &DatabaseConnection,
+        paper_id: i64,
+        category_id: Option<i64>,
+    ) -> Result<()> {
         // First delete existing category relation
-        self.db
-            .query("DELETE paper_category WHERE `in` = <record> $paper")
-            .bind(("paper", paper_id.clone()))
+        paper_category::Entity::delete_many()
+            .filter(paper_category::Column::PaperId.eq(paper_id))
+            .exec(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to delete paper category: {}", e)))?;
+            .map_err(|e| {
+                AppError::generic(format!("Failed to delete paper category: {}", e))
+            })?;
 
         // Then create new relation if category_id is provided
         if let Some(cat_id) = category_id {
-            let query = format!(
-                "RELATE {}->paper_category->{}",
-                paper_id, cat_id
-            );
-            self.db
-                .query(&query)
-                .await
-                .map_err(|e| AppError::generic(format!("Failed to set paper category: {}", e)))?;
+            let relation = paper_category::ActiveModel {
+                paper_id: Set(paper_id),
+                category_id: Set(cat_id),
+                ..Default::default()
+            };
+            relation.insert(db).await.map_err(|e| {
+                AppError::generic(format!("Failed to set paper category: {}", e))
+            })?;
         }
 
         Ok(())
     }
 
     /// Get paper's category ID
-    pub async fn get_category_id(&self, paper_id: &str) -> Result<Option<String>> {
-        let paper_id = paper_id.to_string();
-        let result: Vec<String> = self
-            .db
-            .query(
-                r#"
-                SELECT VALUE <string>`out` FROM paper_category
-                WHERE `in` = <record> $paper
-                LIMIT 1
-                "#,
-            )
-            .bind(("paper", paper_id))
+    pub async fn get_category_id(db: &DatabaseConnection, paper_id: i64) -> Result<Option<i64>> {
+        let relation = paper_category::Entity::find()
+            .filter(paper_category::Column::PaperId.eq(paper_id))
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get paper category: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to get paper category: {}", e)))?;
 
-        Ok(result.into_iter().next())
-    }
-
-    /// Add author to paper with order
-    pub async fn add_author(&self, paper_id: &str, author_id: &str, order: i32) -> Result<()> {
-        let paper_id = paper_id.to_string();
-        let author_id = author_id.to_string();
-
-        // Use RELATE with author_order field
-        let query = format!(
-            "RELATE {}->paper_author->{} SET author_order = {}",
-            paper_id, author_id, order
-        );
-        self.db
-            .query(&query)
-            .await
-            .map_err(|e| AppError::generic(format!("Failed to add author to paper: {}", e)))?;
-
-        Ok(())
+        Ok(relation.map(|r| r.category_id))
     }
 
     /// Update attachment path
-    pub async fn update_attachment_path(&self, paper_id: &str, path: &str) -> Result<()> {
-        let paper_id = paper_id.to_string();
-        let path = path.to_string();
-        self.db
-            .query("UPDATE type::thing($id) SET attachment_path = $path, updated_at = time::now()")
-            .bind(("id", paper_id))
-            .bind(("path", path))
+    pub async fn update_attachment_path(
+        db: &DatabaseConnection,
+        paper_id: i64,
+        path: &str,
+    ) -> Result<()> {
+        let paper = paper::Entity::find_by_id(paper_id)
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to update attachment path: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to find paper: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
+
+        let mut paper: paper::ActiveModel = paper.into();
+        paper.attachment_path = Set(Some(path.to_string()));
+        paper.updated_at = Set(chrono::Utc::now());
+        paper.update(db).await.map_err(|e| {
+            AppError::generic(format!("Failed to update attachment path: {}", e))
+        })?;
 
         Ok(())
     }
 
-    /// Migrate abstract field to abstract_text for existing records
-    /// This is needed because we changed from `abstract` (serde rename) to `abstract_text`
-    pub async fn migrate_abstract_field(&self) -> Result<u64> {
-        let result: Vec<serde_json::Value> = self
-            .db
-            .query(
-                r#"
-                UPDATE paper SET abstract_text = `abstract` 
-                WHERE `abstract` IS NOT NONE 
-                AND (abstract_text IS NONE OR abstract_text = "")
-                "#
-            )
-            .await
-            .map_err(|e| AppError::generic(format!("Failed to migrate abstract field: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get migration results: {}", e)))?;
-
-        let count = result.len() as u64;
-        info!("Migrated {} papers from abstract to abstract_text", count);
-        Ok(count)
-    }
+    // ==================== Attachment operations ====================
 
     /// Add attachment to paper
-    pub async fn add_attachment(&self, paper_id: &str, attachment: AttachmentEmbedded) -> Result<Paper> {
-        let paper_id = paper_id.to_string();
-        let result: Vec<Paper> = self
-            .db
-            .query("UPDATE <record> $id SET attachments += [$attachment], updated_at = time::now()")
-            .bind(("id", paper_id.clone()))
-            .bind(("attachment", attachment))
-            .await
-            .map_err(|e| AppError::generic(format!("Failed to add attachment: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+    pub async fn add_attachment(
+        db: &DatabaseConnection,
+        paper_id: i64,
+        file_name: Option<String>,
+        file_type: Option<String>,
+        file_size: Option<i64>,
+    ) -> Result<Attachment> {
+        let now = chrono::Utc::now();
+        let new_attachment = attachment::ActiveModel {
+            paper_id: Set(paper_id),
+            file_name: Set(file_name),
+            file_type: Set(file_type),
+            file_size: Set(file_size),
+            created_at: Set(now),
+            ..Default::default()
+        };
 
-        result
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::not_found("Paper", paper_id))
+        let result = new_attachment
+            .insert(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to add attachment: {}", e)))?;
+
+        // Update paper's updated_at
+        Self::touch_paper(db, paper_id).await?;
+
+        Ok(Attachment::from(result))
     }
 
     /// Get all attachments for a paper
-    pub async fn get_attachments(&self, paper_id: &str) -> Result<Vec<AttachmentEmbedded>> {
-        if let Some(paper) = self.find_by_id(paper_id).await? {
-            Ok(paper.attachments)
-        } else {
-            Ok(Vec::new())
-        }
+    pub async fn get_attachments(db: &DatabaseConnection, paper_id: i64) -> Result<Vec<Attachment>> {
+        let attachments = attachment::Entity::find()
+            .filter(attachment::Column::PaperId.eq(paper_id))
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get attachments: {}", e)))?;
+
+        Ok(attachments.into_iter().map(Attachment::from).collect())
     }
 
     /// Find PDF attachment for a paper
-    pub async fn find_pdf_attachment(&self, paper_id: &str) -> Result<Option<AttachmentEmbedded>> {
-        let attachments = self.get_attachments(paper_id).await?;
-        Ok(attachments
-            .into_iter()
-            .find(|a| {
-                let file_type = a.file_type.as_deref().unwrap_or("").to_lowercase();
-                let file_name = a.file_name.as_deref().unwrap_or("");
-                file_type == "pdf" || file_name.ends_with(".pdf")
-            }))
+    pub async fn find_pdf_attachment(
+        db: &DatabaseConnection,
+        paper_id: i64,
+    ) -> Result<Option<Attachment>> {
+        let attachments = Self::get_attachments(db, paper_id).await?;
+        Ok(attachments.into_iter().find(|a| {
+            let file_type = a.file_type.as_deref().unwrap_or("").to_lowercase();
+            let file_name = a.file_name.as_deref().unwrap_or("");
+            file_type == "pdf" || file_name.ends_with(".pdf")
+        }))
+    }
+
+    /// Remove attachment from paper by ID
+    pub async fn remove_attachment(db: &DatabaseConnection, attachment_id: i64) -> Result<()> {
+        // Get attachment to find paper_id
+        let attachment = attachment::Entity::find_by_id(attachment_id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to find attachment: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Attachment", attachment_id.to_string()))?;
+
+        let paper_id = attachment.paper_id;
+
+        // Delete attachment
+        attachment::Entity::delete_by_id(attachment_id)
+            .exec(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to remove attachment: {}", e)))?;
+
+        // Update paper's updated_at
+        Self::touch_paper(db, paper_id).await?;
+
+        Ok(())
     }
 
     /// Remove attachment from paper by file name
-    pub async fn remove_attachment(&self, paper_id: &str, file_name: &str) -> Result<Paper> {
-        let paper_id = paper_id.to_string();
-        let file_name = file_name.to_string();
-        
-        let result: Vec<Paper> = self
-            .db
-            .query(
-                "UPDATE <record> $id SET attachments = array::filter(attachments, |$a| $a.file_name != $file_name), updated_at = time::now()"
-            )
-            .bind(("id", paper_id.clone()))
-            .bind(("file_name", file_name))
+    pub async fn remove_attachment_by_name(
+        db: &DatabaseConnection,
+        paper_id: i64,
+        file_name: &str,
+    ) -> Result<()> {
+        attachment::Entity::delete_many()
+            .filter(attachment::Column::PaperId.eq(paper_id))
+            .filter(attachment::Column::FileName.eq(file_name))
+            .exec(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to remove attachment: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to remove attachment: {}", e)))?;
 
-        result
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::not_found("Paper", paper_id))
+        // Update paper's updated_at
+        Self::touch_paper(db, paper_id).await?;
+
+        Ok(())
+    }
+
+    /// Update paper's updated_at timestamp
+    async fn touch_paper(db: &DatabaseConnection, paper_id: i64) -> Result<()> {
+        let paper = paper::Entity::find_by_id(paper_id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to find paper: {}", e)))?;
+
+        if let Some(paper) = paper {
+            let mut paper: paper::ActiveModel = paper.into();
+            paper.updated_at = Set(chrono::Utc::now());
+            paper.update(db).await.map_err(|e| {
+                AppError::generic(format!("Failed to update paper timestamp: {}", e))
+            })?;
+        }
+
+        Ok(())
+    }
+
+    // ==================== Author operations ====================
+
+    /// Add author to paper
+    pub async fn add_author(
+        db: &DatabaseConnection,
+        paper_id: i64,
+        author_id: i64,
+        author_order: i32,
+    ) -> Result<()> {
+        use crate::database::entities::paper_author;
+
+        let relation = paper_author::ActiveModel {
+            paper_id: Set(paper_id),
+            author_id: Set(author_id),
+            author_order: Set(author_order),
+            is_corresponding: Set(0),
+            ..Default::default()
+        };
+
+        relation
+            .insert(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to add author: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// Add attachment from model
+    pub async fn add_attachment_model(
+        db: &DatabaseConnection,
+        attachment: crate::models::Attachment,
+    ) -> Result<Attachment> {
+        let new_attachment = attachment::ActiveModel {
+            paper_id: Set(attachment.paper_id),
+            file_name: Set(attachment.file_name),
+            file_type: Set(attachment.file_type),
+            file_size: Set(attachment.file_size),
+            created_at: Set(attachment.created_at),
+            ..Default::default()
+        };
+
+        let result = new_attachment
+            .insert(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to add attachment: {}", e)))?;
+
+        Ok(Attachment::from(result))
     }
 }

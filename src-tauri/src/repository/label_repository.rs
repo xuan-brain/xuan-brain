@@ -1,113 +1,82 @@
-//! Label repository for SurrealDB
+//! Label repository for SQLite using SeaORM
 
-use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::{CreateLabel, Label, UpdateLabel};
-use crate::sys::error::{AppError, Result};
-use surrealdb_types::RecordIdKey;
+use sea_orm::*;
 use tracing::info;
 
-/// Convert RecordIdKey to string
-fn record_id_key_to_string(key: &RecordIdKey) -> String {
-    match key {
-        RecordIdKey::String(s) => s.clone(),
-        RecordIdKey::Number(n) => n.to_string(),
-        RecordIdKey::Uuid(u) => u.to_string(),
-        RecordIdKey::Array(_) => "array".to_string(),
-        RecordIdKey::Object(_) => "object".to_string(),
-        RecordIdKey::Range(_) => "range".to_string(),
-    }
-}
+use crate::database::entities::{label, paper_label};
+use crate::models::{CreateLabel, Label, UpdateLabel};
+use crate::sys::error::{AppError, Result};
 
 /// Repository for Label operations
-pub struct LabelRepository<'a> {
-    db: &'a SurrealClient,
-}
+pub struct LabelRepository;
 
-impl<'a> LabelRepository<'a> {
-    pub fn new(db: &'a SurrealClient) -> Self {
-        Self { db }
-    }
-
+impl LabelRepository {
     /// Find all labels
-    pub async fn find_all(&self) -> Result<Vec<Label>> {
-        let result: Vec<Label> = self
-            .db
-            .query("SELECT * FROM label ORDER BY name")
+    pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<Label>> {
+        let labels = label::Entity::find()
+            .order_by_asc(label::Column::Name)
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query labels: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query labels: {}", e)))?;
 
-        info!("Found {} labels", result.len());
-        Ok(result)
+        info!("Found {} labels", labels.len());
+        Ok(labels.into_iter().map(Label::from).collect())
     }
 
-    /// Find label by ID (string format like "label:123")
-    pub async fn find_by_id(&self, id: &str) -> Result<Option<Label>> {
-        let id = id.to_string();
-        let result: Vec<Label> = self
-            .db
-            .query("SELECT * FROM type::record($id) LIMIT 1")
-            .bind(("id", id))
+    /// Find label by ID
+    pub async fn find_by_id(db: &DatabaseConnection, id: i64) -> Result<Option<Label>> {
+        let label = label::Entity::find_by_id(id)
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get label: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to get label: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        Ok(label.map(Label::from))
     }
 
     /// Find label by name
-    pub async fn find_by_name(&self, name: &str) -> Result<Option<Label>> {
-        let name = name.to_string();
-        let result: Vec<Label> = self
-            .db
-            .query("SELECT * FROM label WHERE name = $name LIMIT 1")
-            .bind(("name", name))
+    pub async fn find_by_name(db: &DatabaseConnection, name: &str) -> Result<Option<Label>> {
+        let label = label::Entity::find()
+            .filter(label::Column::Name.eq(name))
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query label by name: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query label by name: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        Ok(label.map(Label::from))
     }
 
     /// Create a new label
-    pub async fn create(&self, label: CreateLabel) -> Result<Label> {
+    pub async fn create(db: &DatabaseConnection, create: CreateLabel) -> Result<Label> {
         // Check if label with same name already exists
-        if (self.find_by_name(&label.name).await?).is_some() {
+        if Self::find_by_name(db, &create.name).await?.is_some() {
             return Err(AppError::validation(
                 "name",
-                format!("Label with name '{}' already exists", label.name),
+                format!("Label with name '{}' already exists", create.name),
             ));
         }
 
-        let label = Label::from(label);
+        let now = chrono::Utc::now();
+        let new_label = label::ActiveModel {
+            name: Set(create.name),
+            color: Set(create.color),
+            document_count: Set(0),
+            created_at: Set(now),
+            ..Default::default()
+        };
 
-        let result: Vec<Label> = self
-            .db
-            .query("CREATE label CONTENT $label")
-            .bind(("label", label))
+        let result = new_label
+            .insert(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to create label: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to create label: {}", e)))?;
 
-        result
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::generic("Failed to create label".to_string()))
+        Ok(Label::from(result))
     }
 
     /// Update label
-    pub async fn update(&self, id: &str, update: UpdateLabel) -> Result<Label> {
-        let id_owned = id.to_string();
-
+    pub async fn update(db: &DatabaseConnection, id: i64, update: UpdateLabel) -> Result<Label> {
+        // Check if another label with same name exists
         if let Some(ref name) = update.name {
-            // Check if another label with same name exists
-            if let Some(existing) = self.find_by_name(name).await? {
-                let existing_id_str = existing.id.as_ref().map(|rid| format!("{}:{}", rid.table, record_id_key_to_string(&rid.key)));
-                if existing_id_str.as_deref() != Some(id) {
+            if let Some(existing) = Self::find_by_name(db, name).await? {
+                if existing.id != id {
                     return Err(AppError::validation(
                         "name",
                         format!("Label with name '{}' already exists", name),
@@ -116,56 +85,42 @@ impl<'a> LabelRepository<'a> {
             }
         }
 
-        let mut sets = Vec::new();
-        if update.name.is_some() {
-            sets.push("name = $name");
-        }
-        if update.color.is_some() {
-            sets.push("color = $color");
-        }
-
-        if sets.is_empty() {
-            return self
-                .find_by_id(id)
-                .await?
-                .ok_or_else(|| AppError::not_found("Label", id_owned));
-        }
-
-        let query = format!("UPDATE type::record($id) SET {}", sets.join(", "));
-
-        let result: Vec<Label> = self
-            .db
-            .query(&query)
-            .bind(("id", id_owned.clone()))
-            .bind(("name", update.name))
-            .bind(("color", update.color))
+        let label = label::Entity::find_by_id(id)
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to update label: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to find label: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Label", id.to_string()))?;
 
-        result
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::not_found("Label", id_owned))
+        let mut label: label::ActiveModel = label.into();
+        if let Some(name) = update.name {
+            label.name = Set(name);
+        }
+        if let Some(color) = update.color {
+            label.color = Set(color);
+        }
+
+        let result = label
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to update label: {}", e)))?;
+
+        Ok(Label::from(result))
     }
 
     /// Delete label
-    pub async fn delete(&self, id: &str) -> Result<()> {
-        let id = id.to_string();
-        // First delete all paper-label relations
-        self.db
-            .query("DELETE paper_label WHERE `out` = type::record($id)")
-            .bind(("id", id.clone()))
+    pub async fn delete(db: &DatabaseConnection, id: i64) -> Result<()> {
+        // First delete all paper-label relations (cascade will handle this, but we do it explicitly for safety)
+        paper_label::Entity::delete_many()
+            .filter(paper_label::Column::LabelId.eq(id))
+            .exec(db)
             .await
             .map_err(|e| {
                 AppError::generic(format!("Failed to delete label relations: {}", e))
             })?;
 
         // Then delete the label
-        self.db
-            .query("DELETE type::record($id)")
-            .bind(("id", id))
+        label::Entity::delete_by_id(id)
+            .exec(db)
             .await
             .map_err(|e| AppError::generic(format!("Failed to delete label: {}", e)))?;
 
@@ -173,91 +128,102 @@ impl<'a> LabelRepository<'a> {
     }
 
     /// Add label to paper
-    pub async fn add_to_paper(&self, paper_id: &str, label_id: &str) -> Result<()> {
-        let paper_id = paper_id.to_string();
-        let label_id = label_id.to_string();
-
-        // Use inline record ID format for RELATE statement
-        // SurrealDB 3.0 requires direct record ID syntax in RELATE
-        let query = format!(
-            "RELATE {}->paper_label->{}",
-            paper_id, label_id
-        );
-        self.db
-            .query(&query)
-            .await
-            .map_err(|e| AppError::generic(format!("Failed to add label to paper: {}", e)))?;
-
-        // Update document count
-        self.db
-            .query(
-                r#"
-                UPDATE type::record($label) SET document_count = array::len(
-                    SELECT VALUE `in` FROM paper_label WHERE `out` = type::record($label)
-                )
-                "#,
-            )
-            .bind(("label", label_id))
+    pub async fn add_to_paper(db: &DatabaseConnection, paper_id: i64, label_id: i64) -> Result<()> {
+        // Check if relation already exists
+        let existing = paper_label::Entity::find()
+            .filter(paper_label::Column::PaperId.eq(paper_id))
+            .filter(paper_label::Column::LabelId.eq(label_id))
+            .one(db)
             .await
             .map_err(|e| {
-                AppError::generic(format!("Failed to update label document count: {}", e))
+                AppError::generic(format!("Failed to check existing relation: {}", e))
             })?;
+
+        if existing.is_none() {
+            let relation = paper_label::ActiveModel {
+                paper_id: Set(paper_id),
+                label_id: Set(label_id),
+                ..Default::default()
+            };
+            relation.insert(db).await.map_err(|e| {
+                AppError::generic(format!("Failed to add label to paper: {}", e))
+            })?;
+        }
+
+        // Update document count
+        Self::update_document_count(db, label_id).await?;
 
         Ok(())
     }
 
     /// Remove label from paper
-    pub async fn remove_from_paper(&self, paper_id: &str, label_id: &str) -> Result<()> {
-        let paper_id = paper_id.to_string();
-        let label_id = label_id.to_string();
-
-        // Use inline record ID format for DELETE statement with WHERE clause
-        let query = format!(
-            "DELETE paper_label WHERE `in` = {} AND `out` = {}",
-            paper_id, label_id
-        );
-        self.db
-            .query(&query)
+    pub async fn remove_from_paper(
+        db: &DatabaseConnection,
+        paper_id: i64,
+        label_id: i64,
+    ) -> Result<()> {
+        paper_label::Entity::delete_many()
+            .filter(paper_label::Column::PaperId.eq(paper_id))
+            .filter(paper_label::Column::LabelId.eq(label_id))
+            .exec(db)
             .await
             .map_err(|e| {
                 AppError::generic(format!("Failed to remove label from paper: {}", e))
             })?;
 
         // Update document count
-        self.db
-            .query(
-                r#"
-                UPDATE type::record($label) SET document_count = array::len(
-                    SELECT VALUE `in` FROM paper_label WHERE `out` = type::record($label)
-                )
-                "#,
-            )
-            .bind(("label", label_id))
-            .await
-            .map_err(|e| {
-                AppError::generic(format!("Failed to update label document count: {}", e))
-            })?;
+        Self::update_document_count(db, label_id).await?;
 
         Ok(())
     }
 
     /// Get labels for a paper
-    pub async fn get_paper_labels(&self, paper_id: &str) -> Result<Vec<Label>> {
-        let paper_id = paper_id.to_string();
-        let result: Vec<Label> = self
-            .db
-            .query(
-                r#"
-                SELECT * FROM label
-                WHERE id IN (SELECT VALUE `out` FROM paper_label WHERE `in` = type::record($paper))
-                "#,
-            )
-            .bind(("paper", paper_id))
+    pub async fn get_paper_labels(db: &DatabaseConnection, paper_id: i64) -> Result<Vec<Label>> {
+        // First get paper_label relations
+        let relations = paper_label::Entity::find()
+            .filter(paper_label::Column::PaperId.eq(paper_id))
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get paper labels: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to get paper-label relations: {}", e)))?;
 
-        Ok(result)
+        let label_ids: Vec<i64> = relations.iter().map(|r| r.label_id).collect();
+
+        if label_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Then get labels by IDs
+        let labels = label::Entity::find()
+            .filter(label::Column::Id.is_in(label_ids))
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get paper labels: {}", e)))?;
+
+        Ok(labels.into_iter().map(Label::from).collect())
+    }
+
+    /// Update document count for a label
+    async fn update_document_count(db: &DatabaseConnection, label_id: i64) -> Result<()> {
+        let count = paper_label::Entity::find()
+            .filter(paper_label::Column::LabelId.eq(label_id))
+            .count(db)
+            .await
+            .map_err(|e| {
+                AppError::generic(format!("Failed to count label documents: {}", e))
+            })?;
+
+        let label = label::Entity::find_by_id(label_id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to find label: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Label", label_id.to_string()))?;
+
+        let mut label: label::ActiveModel = label.into();
+        label.document_count = Set(count as i32);
+        label.update(db).await.map_err(|e| {
+            AppError::generic(format!("Failed to update label document count: {}", e))
+        })?;
+
+        Ok(())
     }
 }

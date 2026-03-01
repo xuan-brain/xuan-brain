@@ -1,24 +1,14 @@
-//! Paper model for SurrealDB
+//! Paper domain model
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use surrealdb_types::{RecordId, SurrealValue};
 
-/// Embedded attachment structure (no id or file_path)
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
-pub struct AttachmentEmbedded {
-    pub file_name: Option<String>,
-    pub file_type: Option<String>,
-    pub file_size: Option<i64>,
-    pub created_at: Option<DateTime<Utc>>,
-}
+use crate::database::entities::paper;
 
 /// Paper record representing a research paper
-/// Note: `abstract` is renamed to `abstract_text` because `abstract` is a Rust keyword
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Paper {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<RecordId>,
+    pub id: i64,
     pub title: String,
     pub abstract_text: Option<String>,
     pub doi: Option<String>,
@@ -37,11 +27,48 @@ pub struct Paper {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub attachments: Vec<AttachmentEmbedded>,
+    #[serde(default)]
+    pub attachments: Vec<Attachment>,
+    #[serde(default)]
+    pub labels: Vec<Label>,
+    #[serde(default)]
+    pub authors: Vec<AuthorWithOrder>,
+}
+
+/// Attachment for a paper
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Attachment {
+    pub id: i64,
+    pub paper_id: i64,
+    pub file_name: Option<String>,
+    pub file_type: Option<String>,
+    pub file_size: Option<i64>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Author with order information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthorWithOrder {
+    pub id: i64,
+    pub name: String,
+    pub affiliation: Option<String>,
+    pub email: Option<String>,
+    pub author_order: i32,
+    pub is_corresponding: bool,
+}
+
+/// Label for papers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Label {
+    pub id: i64,
+    pub name: String,
+    pub color: String,
+    pub document_count: i32,
+    pub created_at: DateTime<Utc>,
 }
 
 /// DTO for creating a new paper
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePaper {
     pub title: String,
     pub abstract_text: Option<String>,
@@ -55,11 +82,10 @@ pub struct CreatePaper {
     pub pages: Option<String>,
     pub url: Option<String>,
     pub attachment_path: Option<String>,
-    pub attachments: Vec<AttachmentEmbedded>,
 }
 
 /// DTO for updating paper details
-#[derive(Debug, Clone, Serialize, Deserialize, Default, SurrealValue)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdatePaper {
     pub title: Option<String>,
     pub abstract_text: Option<String>,
@@ -75,7 +101,6 @@ pub struct UpdatePaper {
     pub read_status: Option<String>,
     pub notes: Option<String>,
     pub attachment_path: Option<String>,
-    pub attachments: Option<Vec<AttachmentEmbedded>>,
 }
 
 impl Paper {
@@ -83,7 +108,7 @@ impl Paper {
     pub fn new(title: String) -> Self {
         let now = Utc::now();
         Self {
-            id: None,
+            id: 0,
             title,
             abstract_text: None,
             doi: None,
@@ -103,6 +128,8 @@ impl Paper {
             updated_at: now,
             deleted_at: None,
             attachments: Vec::new(),
+            labels: Vec::new(),
+            authors: Vec::new(),
         }
     }
 
@@ -116,7 +143,7 @@ impl From<CreatePaper> for Paper {
     fn from(create: CreatePaper) -> Self {
         let now = Utc::now();
         Self {
-            id: None,
+            id: 0,
             title: create.title,
             abstract_text: create.abstract_text,
             doi: create.doi,
@@ -135,7 +162,39 @@ impl From<CreatePaper> for Paper {
             created_at: now,
             updated_at: now,
             deleted_at: None,
-            attachments: create.attachments,
+            attachments: Vec::new(),
+            labels: Vec::new(),
+            authors: Vec::new(),
+        }
+    }
+}
+
+// Conversion from database entity to domain model
+impl From<paper::Model> for Paper {
+    fn from(model: paper::Model) -> Self {
+        Self {
+            id: model.id,
+            title: model.title,
+            abstract_text: model.abstract_text,
+            doi: model.doi,
+            publication_year: model.publication_year,
+            publication_date: model.publication_date,
+            journal_name: model.journal_name,
+            conference_name: model.conference_name,
+            volume: model.volume,
+            issue: model.issue,
+            pages: model.pages,
+            url: model.url,
+            citation_count: model.citation_count,
+            read_status: model.read_status,
+            notes: model.notes,
+            attachment_path: model.attachment_path,
+            created_at: model.created_at,
+            updated_at: model.updated_at,
+            deleted_at: model.deleted_at,
+            attachments: Vec::new(),
+            labels: Vec::new(),
+            authors: Vec::new(),
         }
     }
 }

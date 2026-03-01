@@ -9,21 +9,6 @@ use tracing::{info, warn};
 
 use crate::sys::error::{AppError, Result};
 
-/// Convert RecordId to string
-pub fn record_id_to_string(id: &surrealdb_types::RecordId) -> String {
-    use surrealdb_types::RecordIdKey;
-    format!(
-        "{}:{}",
-        id.table,
-        match &id.key {
-            RecordIdKey::String(s) => s.clone(),
-            RecordIdKey::Number(n) => n.to_string(),
-            RecordIdKey::Uuid(u) => u.to_string(),
-            _ => "unknown".to_string(),
-        }
-    )
-}
-
 /// Extract filename from URL
 fn extract_filename_from_url(url: &str) -> String {
     if let Some(parsed) = url.split('?').next() {

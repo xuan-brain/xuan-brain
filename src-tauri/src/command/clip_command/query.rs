@@ -5,21 +5,21 @@ use std::sync::Arc;
 use tauri::State;
 use tracing::{info, instrument};
 
+use crate::database::DatabaseConnection;
 use crate::repository::ClippingRepository;
-use crate::surreal::connection::SurrealClient;
-use crate::sys::error::Result;
+use crate::sys::error::{AppError, Result};
 
 use super::dtos::{ClipDto, CommentDto};
-use super::utils::record_id_to_string;
 
 /// Convert Clipping comments to CommentDto
 fn comments_to_dto(
-    comments: Vec<crate::surreal::models::Comment>,
+    comments: Vec<crate::models::Comment>,
 ) -> Vec<CommentDto> {
     comments
         .into_iter()
         .map(|c| CommentDto {
-            id: c.id,
+            id: c.id.to_string(),
+            clipping_id: c.clipping_id.to_string(),
             content: c.content,
             created_at: c.created_at.to_rfc3339(),
             updated_at: c.updated_at.to_rfc3339(),
@@ -31,7 +31,7 @@ fn comments_to_dto(
 #[tauri::command]
 #[instrument(skip(db))]
 pub async fn list_clips(
-    db: State<'_, Arc<SurrealClient>>,
+    db: State<'_, Arc<DatabaseConnection>>,
     limit: Option<usize>,
     offset: Option<usize>,
 ) -> Result<Vec<ClipDto>> {
@@ -42,29 +42,29 @@ pub async fn list_clips(
     let offset_val = offset.unwrap_or(0);
     let limit_val = limit.unwrap_or(clippings.len());
 
-    let result: Vec<ClipDto> = clippings
-        .into_iter()
-        .skip(offset_val)
-        .take(limit_val)
-        .map(|c| ClipDto {
-            id: c.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
+    let mut result = Vec::new();
+    for c in clippings.into_iter().skip(offset_val).take(limit_val) {
+        // Get comments for this clipping
+        let comments = ClippingRepository::get_comments(&db, c.id).await.unwrap_or_default();
+        result.push(ClipDto {
+            id: c.id.to_string(),
             title: c.title,
             url: c.url,
             content: c.content,
             source_domain: c.source_domain,
             author: c.author,
-            published_date: c.published_date.map(|d| d.to_rfc3339()),
+            published_date: c.published_date,
             excerpt: c.excerpt,
             thumbnail_url: c.thumbnail_url,
             read_status: c.read_status,
             notes: c.notes,
             tags: c.tags,
             image_paths: c.image_paths,
-            comments: comments_to_dto(c.comments),
+            comments: comments_to_dto(comments),
             created_at: c.created_at.to_rfc3339(),
             updated_at: c.updated_at.to_rfc3339(),
-        })
-        .collect();
+        });
+    }
 
     info!("Fetched {} clips", result.len());
     Ok(result)
@@ -73,29 +73,34 @@ pub async fn list_clips(
 /// Get a single clip by ID
 #[tauri::command]
 #[instrument(skip(db))]
-pub async fn get_clip(id: String, db: State<'_, Arc<SurrealClient>>) -> Result<Option<ClipDto>> {
+pub async fn get_clip(id: String, db: State<'_, Arc<DatabaseConnection>>) -> Result<Option<ClipDto>> {
     info!("Fetching clip with id: {}", id);
 
-    let clipping = ClippingRepository::get_clipping_by_id(&db, &id).await?;
+    let clip_id = id.parse::<i64>()
+        .map_err(|_| AppError::validation("id", "Invalid clip id format"))?;
+
+    let clipping = ClippingRepository::get_clipping_by_id(&db, clip_id).await?;
 
     match clipping {
         Some(c) => {
             info!("Found clip: {}", id);
+            // Get comments for this clipping
+            let comments = ClippingRepository::get_comments(&db, c.id).await.unwrap_or_default();
             Ok(Some(ClipDto {
-                id: c.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
+                id: c.id.to_string(),
                 title: c.title,
                 url: c.url,
                 content: c.content,
                 source_domain: c.source_domain,
                 author: c.author,
-                published_date: c.published_date.map(|d| d.to_rfc3339()),
+                published_date: c.published_date,
                 excerpt: c.excerpt,
                 thumbnail_url: c.thumbnail_url,
                 read_status: c.read_status,
                 notes: c.notes,
                 tags: c.tags,
                 image_paths: c.image_paths,
-                comments: comments_to_dto(c.comments),
+                comments: comments_to_dto(comments),
                 created_at: c.created_at.to_rfc3339(),
                 updated_at: c.updated_at.to_rfc3339(),
             }))

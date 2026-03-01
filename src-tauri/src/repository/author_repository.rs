@@ -1,123 +1,128 @@
-//! Author repository for SurrealDB
+//! Author repository for SQLite using SeaORM
 
-use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::{Author, CreateAuthor};
-use crate::sys::error::{AppError, Result};
+use sea_orm::*;
 use tracing::info;
 
+use crate::database::entities::{author, paper_author};
+use crate::models::{Author, CreateAuthor};
+use crate::sys::error::{AppError, Result};
+
 /// Repository for Author operations
-pub struct AuthorRepository<'a> {
-    db: &'a SurrealClient,
-}
+pub struct AuthorRepository;
 
-impl<'a> AuthorRepository<'a> {
-    pub fn new(db: &'a SurrealClient) -> Self {
-        Self { db }
-    }
-
+impl AuthorRepository {
     /// Find all authors
-    pub async fn find_all(&self) -> Result<Vec<Author>> {
-        let result: Vec<Author> = self
-            .db
-            .query("SELECT * FROM author ORDER BY name")
+    pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<Author>> {
+        let authors = author::Entity::find()
+            .order_by_asc(author::Column::Name)
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query authors: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query authors: {}", e)))?;
 
-        info!("Found {} authors", result.len());
-        Ok(result)
+        info!("Found {} authors", authors.len());
+        Ok(authors.into_iter().map(Author::from).collect())
     }
 
-    /// Find author by ID (string format like "author:123")
-    pub async fn find_by_id(&self, id: &str) -> Result<Option<Author>> {
-        let id = id.to_string();
-        let result: Vec<Author> = self
-            .db
-            .query("SELECT * FROM type::record($id) LIMIT 1")
-            .bind(("id", id))
+    /// Find author by ID
+    pub async fn find_by_id(db: &DatabaseConnection, id: i64) -> Result<Option<Author>> {
+        let author = author::Entity::find_by_id(id)
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get author: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to get author: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        Ok(author.map(Author::from))
     }
 
     /// Create a new author
-    pub async fn create(&self, author: CreateAuthor) -> Result<Author> {
-        let author = Author::from(author);
+    pub async fn create(db: &DatabaseConnection, create: CreateAuthor) -> Result<Author> {
+        let now = chrono::Utc::now();
+        let new_author = author::ActiveModel {
+            name: Set(create.name),
+            affiliation: Set(create.affiliation),
+            email: Set(create.email),
+            created_at: Set(now),
+            ..Default::default()
+        };
 
-        let result: Vec<Author> = self
-            .db
-            .query("CREATE author CONTENT $author")
-            .bind(("author", author))
+        let result = new_author
+            .insert(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to create author: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to create author: {}", e)))?;
 
-        result
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::generic("Failed to create author".to_string()))
+        Ok(Author::from(result))
     }
 
     /// Create or find existing author by name and email
-    pub async fn create_or_find(&self, name: &str, email: Option<&str>) -> Result<Author> {
-        let name = name.to_string();
-        let email = email.map(|s| s.to_string());
-
+    pub async fn create_or_find(
+        db: &DatabaseConnection,
+        name: &str,
+        email: Option<&str>,
+    ) -> Result<Author> {
         // Try to find existing author
-        let result: Vec<Author> = if let Some(ref email_val) = email {
-            self.db
-                .query("SELECT * FROM author WHERE name = $name AND email = $email LIMIT 1")
-                .bind(("name", name.clone()))
-                .bind(("email", email_val.clone()))
+        let existing = if let Some(email_val) = email {
+            author::Entity::find()
+                .filter(author::Column::Name.eq(name))
+                .filter(author::Column::Email.eq(email_val))
+                .one(db)
                 .await
-                .map_err(|e| AppError::generic(format!("Failed to query author: {}", e)))?
-                .take(0)
-                .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?
         } else {
-            self.db
-                .query("SELECT * FROM author WHERE name = $name AND email IS NONE LIMIT 1")
-                .bind(("name", name.clone()))
+            author::Entity::find()
+                .filter(author::Column::Name.eq(name))
+                .filter(author::Column::Email.is_null())
+                .one(db)
                 .await
-                .map_err(|e| AppError::generic(format!("Failed to query author: {}", e)))?
-                .take(0)
-                .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?
-        };
+        }
+        .map_err(|e| AppError::generic(format!("Failed to query author: {}", e)))?;
 
-        if let Some(author) = result.into_iter().next() {
-            return Ok(author);
+        if let Some(author) = existing {
+            return Ok(Author::from(author));
         }
 
         // Create new author
-        self.create(CreateAuthor {
-            name,
-            affiliation: None,
-            email,
-        })
+        Self::create(
+            db,
+            CreateAuthor {
+                name: name.to_string(),
+                affiliation: None,
+                email: email.map(|s| s.to_string()),
+            },
+        )
         .await
     }
 
     /// Get authors for a paper
-    pub async fn get_paper_authors(&self, paper_id: &str) -> Result<Vec<Author>> {
-        let paper_id = paper_id.to_string();
-        let result: Vec<Author> = self
-            .db
-            .query(
-                r#"
-                SELECT * FROM author
-                WHERE id IN (SELECT VALUE `out` FROM paper_author WHERE `in` = type::record($paper))
-                ORDER BY (SELECT VALUE author_order FROM paper_author WHERE `in` = type::record($paper) AND `out` = author.id)[0]
-                "#,
-            )
-            .bind(("paper", paper_id))
+    pub async fn get_paper_authors(db: &DatabaseConnection, paper_id: i64) -> Result<Vec<Author>> {
+        // First get paper_author relations
+        let relations = paper_author::Entity::find()
+            .filter(paper_author::Column::PaperId.eq(paper_id))
+            .order_by_asc(paper_author::Column::AuthorOrder)
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get paper authors: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to get paper-author relations: {}", e)))?;
+
+        let author_ids: Vec<i64> = relations.iter().map(|r| r.author_id).collect();
+
+        if author_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Then get authors by IDs
+        let authors = author::Entity::find()
+            .filter(author::Column::Id.is_in(author_ids))
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get paper authors: {}", e)))?;
+
+        // Sort by author_order from relations
+        let author_map: std::collections::HashMap<i64, Author> = authors
+            .into_iter()
+            .map(|a| (a.id, Author::from(a)))
+            .collect();
+
+        let result: Vec<Author> = relations
+            .into_iter()
+            .filter_map(|r| author_map.get(&r.author_id).cloned())
+            .collect();
 
         Ok(result)
     }

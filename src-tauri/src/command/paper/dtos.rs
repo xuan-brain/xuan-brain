@@ -18,21 +18,6 @@ pub struct AttachmentDto {
     pub created_at: Option<String>,
 }
 
-impl AttachmentDto {
-    pub fn from_embedded(
-        embedded: &crate::surreal::models::paper::AttachmentEmbedded,
-        paper_id: String,
-    ) -> Self {
-        Self {
-            id: String::new(), // Empty string for embedded attachments
-            paper_id,
-            file_name: embedded.file_name.clone(),
-            file_type: embedded.file_type.clone(),
-            created_at: embedded.created_at.map(|dt| dt.to_rfc3339()),
-        }
-    }
-}
-
 #[derive(Serialize)]
 pub struct PdfAttachmentInfo {
     pub file_path: String,

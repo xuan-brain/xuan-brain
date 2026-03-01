@@ -1,14 +1,14 @@
-//! Label model for SurrealDB
+//! Label domain model
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use surrealdb_types::{RecordId, SurrealValue};
+
+use crate::database::entities::label;
 
 /// Label record representing a paper label/tag
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Label {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<RecordId>,
+    pub id: i64,
     pub name: String,
     pub color: String,
     pub document_count: i32,
@@ -16,7 +16,7 @@ pub struct Label {
 }
 
 /// DTO for creating a new label
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateLabel {
     pub name: String,
     #[serde(default = "default_color")]
@@ -24,7 +24,7 @@ pub struct CreateLabel {
 }
 
 /// DTO for updating a label
-#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateLabel {
     pub name: Option<String>,
     pub color: Option<String>,
@@ -37,7 +37,7 @@ fn default_color() -> String {
 impl Label {
     pub fn new(name: String, color: Option<String>) -> Self {
         Self {
-            id: None,
+            id: 0,
             name,
             color: color.unwrap_or_else(default_color),
             document_count: 0,
@@ -49,5 +49,17 @@ impl Label {
 impl From<CreateLabel> for Label {
     fn from(create: CreateLabel) -> Self {
         Self::new(create.name, Some(create.color))
+    }
+}
+
+impl From<label::Model> for Label {
+    fn from(model: label::Model) -> Self {
+        Self {
+            id: model.id,
+            name: model.name,
+            color: model.color,
+            document_count: model.document_count,
+            created_at: model.created_at,
+        }
     }
 }

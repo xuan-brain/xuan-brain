@@ -1,122 +1,111 @@
-//! Keyword repository for SurrealDB
+//! Keyword repository for SQLite using SeaORM
 
-use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::{CreateKeyword, Keyword};
-use crate::sys::error::{AppError, Result};
+use sea_orm::*;
 use tracing::info;
 
+use crate::database::entities::{keyword, paper_keyword};
+use crate::models::{CreateKeyword, Keyword};
+use crate::sys::error::{AppError, Result};
+
 /// Repository for Keyword operations
-pub struct KeywordRepository<'a> {
-    db: &'a SurrealClient,
-}
+pub struct KeywordRepository;
 
-impl<'a> KeywordRepository<'a> {
-    pub fn new(db: &'a SurrealClient) -> Self {
-        Self { db }
-    }
-
+impl KeywordRepository {
     /// Find all keywords
-    pub async fn find_all(&self) -> Result<Vec<Keyword>> {
-        let result: Vec<Keyword> = self
-            .db
-            .query("SELECT * FROM keyword ORDER BY word")
+    pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<Keyword>> {
+        let keywords = keyword::Entity::find()
+            .order_by_asc(keyword::Column::Word)
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query keywords: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query keywords: {}", e)))?;
 
-        info!("Found {} keywords", result.len());
-        Ok(result)
+        info!("Found {} keywords", keywords.len());
+        Ok(keywords.into_iter().map(Keyword::from).collect())
     }
 
-    /// Find keyword by ID (string format like "keyword:123")
-    pub async fn find_by_id(&self, id: &str) -> Result<Option<Keyword>> {
-        let id = id.to_string();
-        let result: Vec<Keyword> = self
-            .db
-            .query("SELECT * FROM type::record($id) LIMIT 1")
-            .bind(("id", id))
+    /// Find keyword by ID
+    pub async fn find_by_id(db: &DatabaseConnection, id: i64) -> Result<Option<Keyword>> {
+        let keyword = keyword::Entity::find_by_id(id)
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get keyword: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to get keyword: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        Ok(keyword.map(Keyword::from))
     }
 
     /// Find keyword by word
-    pub async fn find_by_word(&self, word: &str) -> Result<Option<Keyword>> {
-        let word = word.to_string();
-        let result: Vec<Keyword> = self
-            .db
-            .query("SELECT * FROM keyword WHERE word = $word LIMIT 1")
-            .bind(("word", word))
+    pub async fn find_by_word(db: &DatabaseConnection, word: &str) -> Result<Option<Keyword>> {
+        let keyword = keyword::Entity::find()
+            .filter(keyword::Column::Word.eq(word))
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query keyword by word: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query keyword by word: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        Ok(keyword.map(Keyword::from))
     }
 
     /// Create a new keyword
-    pub async fn create(&self, keyword: CreateKeyword) -> Result<Keyword> {
+    pub async fn create(db: &DatabaseConnection, create: CreateKeyword) -> Result<Keyword> {
         // Check if keyword already exists
-        if (self.find_by_word(&keyword.word).await?).is_some() {
+        if Self::find_by_word(db, &create.word).await?.is_some() {
             return Err(AppError::validation(
                 "word",
-                format!("Keyword '{}' already exists", keyword.word),
+                format!("Keyword '{}' already exists", create.word),
             ));
         }
 
-        let keyword = Keyword::from(keyword);
+        let new_keyword = keyword::ActiveModel {
+            word: Set(create.word),
+            ..Default::default()
+        };
 
-        let result: Vec<Keyword> = self
-            .db
-            .query("CREATE keyword CONTENT $keyword")
-            .bind(("keyword", keyword))
+        let result = new_keyword
+            .insert(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to create keyword: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to create keyword: {}", e)))?;
 
-        result
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::generic("Failed to create keyword".to_string()))
+        Ok(Keyword::from(result))
     }
 
     /// Create or find existing keyword
-    pub async fn create_or_find(&self, word: &str) -> Result<Keyword> {
+    pub async fn create_or_find(db: &DatabaseConnection, word: &str) -> Result<Keyword> {
         // Try to find existing keyword
-        if let Some(keyword) = self.find_by_word(word).await? {
+        if let Some(keyword) = Self::find_by_word(db, word).await? {
             return Ok(keyword);
         }
 
         // Create new keyword
-        self.create(CreateKeyword {
-            word: word.to_string(),
-        })
+        Self::create(
+            db,
+            CreateKeyword {
+                word: word.to_string(),
+            },
+        )
         .await
     }
 
     /// Get keywords for a paper
-    pub async fn get_paper_keywords(&self, paper_id: &str) -> Result<Vec<Keyword>> {
-        let paper_id = paper_id.to_string();
-        let result: Vec<Keyword> = self
-            .db
-            .query(
-                r#"
-                SELECT * FROM keyword
-                WHERE id IN (SELECT VALUE `out` FROM paper_keyword WHERE `in` = type::record($paper))
-                "#,
-            )
-            .bind(("paper", paper_id))
+    pub async fn get_paper_keywords(db: &DatabaseConnection, paper_id: i64) -> Result<Vec<Keyword>> {
+        // First get paper_keyword relations
+        let relations = paper_keyword::Entity::find()
+            .filter(paper_keyword::Column::PaperId.eq(paper_id))
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get paper keywords: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to get paper-keyword relations: {}", e)))?;
 
-        Ok(result)
+        let keyword_ids: Vec<i64> = relations.iter().map(|r| r.keyword_id).collect();
+
+        if keyword_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Then get keywords by IDs
+        let keywords = keyword::Entity::find()
+            .filter(keyword::Column::Id.is_in(keyword_ids))
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get paper keywords: {}", e)))?;
+
+        Ok(keywords.into_iter().map(Keyword::from).collect())
     }
 }

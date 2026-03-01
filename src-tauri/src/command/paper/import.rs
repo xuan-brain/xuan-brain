@@ -132,12 +132,13 @@ pub async fn import_paper_by_doi(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db, app_dirs, app))]
 pub async fn import_paper_by_arxiv_id(
     app: AppHandle,
+    db: State<'_, Arc<DatabaseConnection>>,
+    app_dirs: State<'_, AppDirs>,
     arxiv_id: String,
     category_id: Option<String>,
-    db: State<'_, Arc<DatabaseConnection>>,
 ) -> Result<ImportResultDto> {
     info!("Importing paper with arXiv ID: {}", arxiv_id);
 
@@ -195,7 +196,7 @@ pub async fn import_paper_by_arxiv_id(
             pages: None,
             url: Some(metadata.pdf_url.clone()),
             abstract_text: Some(metadata.summary.clone()),
-            attachment_path: Some(hash_string),
+            attachment_path: Some(hash_string.clone()),
         },
     )
     .await?;
@@ -216,6 +217,59 @@ pub async fn import_paper_by_arxiv_id(
         PaperRepository::set_category(&db, paper_id, Some(cat_id_num)).await?;
     }
 
+    // Download PDF from arXiv
+    let pdf_filename = format!("{}.pdf", metadata.arxiv_id.replace('/', "_"));
+    let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);
+    if !target_dir.exists() {
+        std::fs::create_dir_all(&target_dir).map_err(|e| {
+            AppError::file_system(target_dir.to_string_lossy().to_string(), e.to_string())
+        })?;
+    }
+    let target_path = target_dir.join(&pdf_filename);
+
+    info!("Downloading arXiv PDF from: {}", metadata.pdf_url);
+    info!("Saving to: {:?}", target_path);
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120)) // 2 minutes timeout for large PDFs
+        .build()
+        .map_err(|e| AppError::network_error(&metadata.pdf_url, format!("Failed to create HTTP client: {}", e)))?;
+
+    let response = client
+        .get(&metadata.pdf_url)
+        .send()
+        .await
+        .map_err(|e| AppError::network_error(&metadata.pdf_url, format!("Failed to download PDF: {}", e)))?;
+
+    if !response.status().is_success() {
+        return Err(AppError::network_error(
+            &metadata.pdf_url,
+            format!("Failed to download PDF: HTTP {}", response.status()),
+        ));
+    }
+
+    let pdf_bytes = response
+        .bytes()
+        .await
+        .map_err(|e| AppError::network_error(&metadata.pdf_url, format!("Failed to read PDF content: {}", e)))?;
+
+    std::fs::write(&target_path, &pdf_bytes).map_err(|e| {
+        AppError::file_system(target_path.to_string_lossy().to_string(), e.to_string())
+    })?;
+
+    info!("PDF downloaded successfully: {} bytes", pdf_bytes.len());
+
+    // Create attachment record
+    let file_size = Some(pdf_bytes.len() as i64);
+    PaperRepository::add_attachment(
+        &db,
+        paper_id,
+        Some(pdf_filename.clone()),
+        Some("pdf".to_string()),
+        file_size,
+    )
+    .await?;
+
     let _ = app
         .notification()
         .builder()
@@ -234,8 +288,14 @@ pub async fn import_paper_by_arxiv_id(
             conference_name: paper.conference_name,
             authors: metadata.authors,
             labels: vec![],
-            attachment_count: 0,
-            attachments: vec![],
+            attachment_count: 1,
+            attachments: vec![AttachmentDto {
+                id: String::new(),
+                paper_id: paper_id.to_string(),
+                file_name: Some(pdf_filename),
+                file_type: Some("pdf".to_string()),
+                created_at: None,
+            }],
         }),
     })
 }

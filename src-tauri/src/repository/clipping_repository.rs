@@ -1,266 +1,331 @@
-//! Clipping repository for SurrealDB
+//! Clipping repository for SQLite using SeaORM
 
-use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::{Clipping, Comment, CreateClipping, UpdateClipping};
-use crate::sys::error::{AppError, Result};
-use chrono::Utc;
-use surrealdb_types::uuid::Uuid;
+use sea_orm::*;
 use tracing::info;
+
+use crate::database::entities::{clipping, comment};
+use crate::models::{Clipping, Comment, CreateClipping, UpdateClipping};
+use crate::sys::error::{AppError, Result};
 
 /// Repository for Clipping operations
 pub struct ClippingRepository;
 
 impl ClippingRepository {
-    /// Create a new clipping
-    pub async fn create_clipping(db: &SurrealClient, clipping: CreateClipping) -> Result<Clipping> {
-        let clipping = Clipping::from(clipping);
-        let result: Vec<Clipping> = db
-            .query("CREATE clipping CONTENT $clipping")
-            .bind(("clipping", clipping))
-            .await
-            .map_err(|e| AppError::generic(format!("Failed to create clipping: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+    /// Create a new clipping (alias for create)
+    pub async fn create_clipping(db: &DatabaseConnection, create: CreateClipping) -> Result<Clipping> {
+        Self::create(db, create).await
+    }
 
-        result
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::generic("Failed to create clipping".to_string()))
+    /// Create a new clipping
+    pub async fn create(db: &DatabaseConnection, create: CreateClipping) -> Result<Clipping> {
+        let now = chrono::Utc::now();
+        let tags_json = if create.tags.is_empty() {
+            None
+        } else {
+            Some(serde_json::to_string(&create.tags).unwrap_or_default())
+        };
+        let image_paths_json = if create.image_paths.is_empty() {
+            None
+        } else {
+            Some(serde_json::to_string(&create.image_paths).unwrap_or_default())
+        };
+
+        let new_clipping = clipping::ActiveModel {
+            title: Set(create.title),
+            url: Set(create.url),
+            content: Set(create.content),
+            source_domain: Set(create.source_domain),
+            author: Set(create.author),
+            published_date: Set(create.published_date),
+            excerpt: Set(create.excerpt),
+            thumbnail_url: Set(create.thumbnail_url),
+            read_status: Set(0),
+            notes: Set(None),
+            tags: Set(tags_json),
+            image_paths: Set(image_paths_json),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        };
+
+        let result = new_clipping
+            .insert(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to create clipping: {}", e)))?;
+
+        Ok(Clipping::from(result))
+    }
+
+    /// Get all clippings (alias for find_all)
+    pub async fn get_all_clippings(db: &DatabaseConnection) -> Result<Vec<Clipping>> {
+        Self::find_all(db).await
     }
 
     /// Get all clippings
-    pub async fn get_all_clippings(db: &SurrealClient) -> Result<Vec<Clipping>> {
-        // Use IF/ELSE to handle NONE comments field
-        let result: Vec<Clipping> = db
-            .query("SELECT *, IF comments IS NONE THEN [] ELSE comments END AS comments FROM clipping ORDER BY created_at DESC")
+    pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<Clipping>> {
+        let clippings = clipping::Entity::find()
+            .order_by_desc(clipping::Column::CreatedAt)
+            .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query clippings: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query clippings: {}", e)))?;
 
-        info!("Found {} clippings", result.len());
+        info!("Found {} clippings", clippings.len());
+
+        // Load comments for each clipping
+        let mut result = Vec::new();
+        for c in clippings {
+            let mut clipping = Clipping::from(c);
+            clipping.comments = Self::find_comments(db, clipping.id).await?;
+            result.push(clipping);
+        }
+
         Ok(result)
     }
 
-    /// Get clipping by ID
-    pub async fn get_clipping_by_id(db: &SurrealClient, id: &str) -> Result<Option<Clipping>> {
-        // Ensure ID has the 'clipping:' prefix for type::record()
-        let record_id = if id.contains(':') {
-            id.to_string()
-        } else {
-            format!("clipping:{}", id)
-        };
-        let result: Vec<Clipping> = db
-            .query("SELECT *, IF comments IS NONE THEN [] ELSE comments END AS comments FROM type::record($id) LIMIT 1")
-            .bind(("id", record_id))
-            .await
-            .map_err(|e| AppError::generic(format!("Failed to get clipping: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+    /// Get clipping by ID (alias for find_by_id)
+    pub async fn get_clipping_by_id(db: &DatabaseConnection, id: i64) -> Result<Option<Clipping>> {
+        Self::find_by_id(db, id).await
+    }
 
-        Ok(result.into_iter().next())
+    /// Get clipping by ID
+    pub async fn find_by_id(db: &DatabaseConnection, id: i64) -> Result<Option<Clipping>> {
+        let clipping = clipping::Entity::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get clipping: {}", e)))?;
+
+        if let Some(c) = clipping {
+            let mut clipping = Clipping::from(c);
+            clipping.comments = Self::find_comments(db, clipping.id).await?;
+            Ok(Some(clipping))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Get clipping by URL
-    pub async fn get_clipping_by_url(db: &SurrealClient, url: &str) -> Result<Option<Clipping>> {
-        let url = url.to_string();
-        let result: Vec<Clipping> = db
-            .query("SELECT * FROM clipping WHERE url = $url LIMIT 1")
-            .bind(("url", url))
+    pub async fn find_by_url(db: &DatabaseConnection, url: &str) -> Result<Option<Clipping>> {
+        let clipping = clipping::Entity::find()
+            .filter(clipping::Column::Url.eq(url))
+            .one(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to query clipping by URL: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to query clipping by URL: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        if let Some(c) = clipping {
+            let mut clipping = Clipping::from(c);
+            clipping.comments = Self::find_comments(db, clipping.id).await?;
+            Ok(Some(clipping))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Update clipping (alias for update)
+    pub async fn update_clipping(
+        db: &DatabaseConnection,
+        id: i64,
+        update: UpdateClipping,
+    ) -> Result<Option<Clipping>> {
+        Self::update(db, id, update).await
     }
 
     /// Update clipping
-    pub async fn update_clipping(
-        db: &SurrealClient,
-        id: &str,
-        clipping: UpdateClipping,
+    pub async fn update(
+        db: &DatabaseConnection,
+        id: i64,
+        update: UpdateClipping,
     ) -> Result<Option<Clipping>> {
-        // Ensure ID has the 'clipping:' prefix for type::record()
-        let record_id = if id.contains(':') {
-            id.to_string()
-        } else {
-            format!("clipping:{}", id)
+        let clipping = clipping::Entity::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to find clipping: {}", e)))?;
+
+        let Some(c) = clipping else {
+            return Ok(None);
         };
 
-        // Build update query dynamically based on provided fields
-        let mut sets = Vec::new();
-        if clipping.title.is_some() {
-            sets.push("title = $title");
+        let mut clipping: clipping::ActiveModel = c.into();
+
+        if let Some(title) = update.title {
+            clipping.title = Set(title);
         }
-        if clipping.url.is_some() {
-            sets.push("url = $url");
+        if let Some(url) = update.url {
+            clipping.url = Set(url);
         }
-        if clipping.content.is_some() {
-            sets.push("content = $content");
+        if let Some(content) = update.content {
+            clipping.content = Set(Some(content));
         }
-        if clipping.source_domain.is_some() {
-            sets.push("source_domain = $source_domain");
+        if let Some(source_domain) = update.source_domain {
+            clipping.source_domain = Set(Some(source_domain));
         }
-        if clipping.author.is_some() {
-            sets.push("author = $author");
+        if let Some(author) = update.author {
+            clipping.author = Set(Some(author));
         }
-        if clipping.published_date.is_some() {
-            sets.push("published_date = $published_date");
+        if let Some(published_date) = update.published_date {
+            clipping.published_date = Set(Some(published_date));
         }
-        if clipping.excerpt.is_some() {
-            sets.push("excerpt = $excerpt");
+        if let Some(excerpt) = update.excerpt {
+            clipping.excerpt = Set(Some(excerpt));
         }
-        if clipping.thumbnail_url.is_some() {
-            sets.push("thumbnail_url = $thumbnail_url");
+        if let Some(thumbnail_url) = update.thumbnail_url {
+            clipping.thumbnail_url = Set(Some(thumbnail_url));
         }
-        if clipping.read_status.is_some() {
-            sets.push("read_status = $read_status");
+        if let Some(read_status) = update.read_status {
+            clipping.read_status = Set(read_status);
         }
-        if clipping.notes.is_some() {
-            sets.push("notes = $notes");
+        if let Some(notes) = update.notes {
+            clipping.notes = Set(Some(notes));
         }
-        if clipping.tags.is_some() {
-            sets.push("tags = $tags");
+        if let Some(tags) = update.tags {
+            let tags_json = if tags.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_string(&tags).unwrap_or_default())
+            };
+            clipping.tags = Set(tags_json);
         }
-        if clipping.image_paths.is_some() {
-            sets.push("image_paths = $image_paths");
-        }
-        if clipping.comments.is_some() {
-            sets.push("comments = $comments");
+        if let Some(image_paths) = update.image_paths {
+            let image_paths_json = if image_paths.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_string(&image_paths).unwrap_or_default())
+            };
+            clipping.image_paths = Set(image_paths_json);
         }
 
-        // Always update updated_at
-        sets.push("updated_at = time::now()");
+        clipping.updated_at = Set(chrono::Utc::now());
 
-        let query = format!("UPDATE type::record($id) SET {}", sets.join(", "));
-
-        let result: Vec<Clipping> = db
-            .query(&query)
-            .bind(("id", record_id.clone()))
-            .bind(("title", clipping.title))
-            .bind(("url", clipping.url))
-            .bind(("content", clipping.content))
-            .bind(("source_domain", clipping.source_domain))
-            .bind(("author", clipping.author))
-            .bind(("published_date", clipping.published_date))
-            .bind(("excerpt", clipping.excerpt))
-            .bind(("thumbnail_url", clipping.thumbnail_url))
-            .bind(("read_status", clipping.read_status))
-            .bind(("notes", clipping.notes))
-            .bind(("tags", clipping.tags))
-            .bind(("image_paths", clipping.image_paths))
-            .bind(("comments", clipping.comments))
+        let result = clipping
+            .update(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to update clipping: {}", e)))?
-            .take(0)
-            .map_err(|e| AppError::generic(format!("Failed to get results: {}", e)))?;
+            .map_err(|e| AppError::generic(format!("Failed to update clipping: {}", e)))?;
 
-        Ok(result.into_iter().next())
+        let mut clipping = Clipping::from(result);
+        clipping.comments = Self::find_comments(db, clipping.id).await?;
+        Ok(Some(clipping))
+    }
+
+    // ==================== Comment operations ====================
+
+    /// Get comments for a clipping (public method)
+    pub async fn get_comments(db: &DatabaseConnection, clipping_id: i64) -> Result<Vec<Comment>> {
+        Self::find_comments(db, clipping_id).await
+    }
+
+    /// Find comments for a clipping
+    async fn find_comments(db: &DatabaseConnection, clipping_id: i64) -> Result<Vec<Comment>> {
+        let comments = comment::Entity::find()
+            .filter(comment::Column::ClippingId.eq(clipping_id))
+            .order_by_asc(comment::Column::CreatedAt)
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get comments: {}", e)))?;
+
+        Ok(comments.into_iter().map(Comment::from).collect())
     }
 
     /// Add a comment to a clipping
-    pub async fn add_comment(db: &SurrealClient, clip_id: &str, content: &str) -> Result<Clipping> {
-        // let record_id = if clip_id.contains(':') {
-        //     clip_id.to_string()
-        // } else {
-        //     format!("clipping:{}", clip_id)
-        // };
-
-        // Get current clipping to append comment
-        let clipping = Self::get_clipping_by_id(db, clip_id)
-            .await?
-            .ok_or_else(|| AppError::not_found("Clipping", clip_id.to_string()))?;
-
-        let now = Utc::now();
-        let new_comment = Comment {
-            id: Uuid::new_v4().to_string(),
-            content: content.to_string(),
-            created_at: now,
-            updated_at: now,
-        };
-
-        let mut comments = clipping.comments;
-        comments.push(new_comment);
-
-        // Update with new comments array
-        let update = UpdateClipping {
-            comments: Some(comments),
-            ..Default::default()
-        };
-
-        Self::update_clipping(db, clip_id, update)
-            .await?
-            .ok_or_else(|| AppError::generic("Failed to add comment".to_string()))
-    }
-
-    /// Update a comment in a clipping
-    pub async fn update_comment(
-        db: &SurrealClient,
-        clip_id: &str,
-        comment_id: &str,
+    pub async fn add_comment(
+        db: &DatabaseConnection,
+        clipping_id: i64,
         content: &str,
-    ) -> Result<Clipping> {
-        // Get current clipping
-        let clipping = Self::get_clipping_by_id(db, clip_id)
-            .await?
-            .ok_or_else(|| AppError::not_found("Clipping", clip_id.to_string()))?;
+    ) -> Result<Comment> {
+        // Verify clipping exists
+        let clipping_exists = clipping::Entity::find_by_id(clipping_id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to find clipping: {}", e)))?
+            .is_some();
 
-        // Find and update the comment
-        let mut comments = clipping.comments;
-        let mut found = false;
-        let now = Utc::now();
-
-        for comment in &mut comments {
-            if comment.id == comment_id {
-                comment.content = content.to_string();
-                comment.updated_at = now;
-                found = true;
-                break;
-            }
+        if !clipping_exists {
+            return Err(AppError::not_found("Clipping", clipping_id.to_string()));
         }
 
-        if !found {
-            return Err(AppError::not_found("Comment", comment_id.to_string()));
-        }
-
-        // Update with modified comments array
-        let update = UpdateClipping {
-            comments: Some(comments),
+        let now = chrono::Utc::now();
+        let new_comment = comment::ActiveModel {
+            clipping_id: Set(clipping_id),
+            content: Set(content.to_string()),
+            created_at: Set(now),
+            updated_at: Set(now),
             ..Default::default()
         };
 
-        Self::update_clipping(db, clip_id, update)
-            .await?
-            .ok_or_else(|| AppError::generic("Failed to update comment".to_string()))
+        let result = new_comment
+            .insert(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to add comment: {}", e)))?;
+
+        // Update clipping's updated_at
+        Self::touch_clipping(db, clipping_id).await?;
+
+        Ok(Comment::from(result))
     }
 
-    /// Delete a comment from a clipping
-    pub async fn delete_comment(
-        db: &SurrealClient,
-        clip_id: &str,
-        comment_id: &str,
-    ) -> Result<Clipping> {
-        // Get current clipping
-        let clipping = Self::get_clipping_by_id(db, clip_id)
-            .await?
-            .ok_or_else(|| AppError::not_found("Clipping", clip_id.to_string()))?;
+    /// Update a comment
+    pub async fn update_comment(
+        db: &DatabaseConnection,
+        comment_id: i64,
+        content: &str,
+    ) -> Result<Comment> {
+        let comment = comment::Entity::find_by_id(comment_id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to find comment: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Comment", comment_id.to_string()))?;
 
-        // Remove the comment
-        let comments: Vec<Comment> = clipping
-            .comments
-            .into_iter()
-            .filter(|c| c.id != comment_id)
-            .collect();
+        let clipping_id = comment.clipping_id;
 
-        // Update with modified comments array
-        let update = UpdateClipping {
-            comments: Some(comments),
-            ..Default::default()
-        };
+        let mut comment: comment::ActiveModel = comment.into();
+        comment.content = Set(content.to_string());
+        comment.updated_at = Set(chrono::Utc::now());
 
-        Self::update_clipping(db, clip_id, update)
-            .await?
-            .ok_or_else(|| AppError::generic("Failed to delete comment".to_string()))
+        let result = comment
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to update comment: {}", e)))?;
+
+        // Update clipping's updated_at
+        Self::touch_clipping(db, clipping_id).await?;
+
+        Ok(Comment::from(result))
+    }
+
+    /// Delete a comment
+    pub async fn delete_comment(db: &DatabaseConnection, comment_id: i64) -> Result<()> {
+        let comment = comment::Entity::find_by_id(comment_id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to find comment: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Comment", comment_id.to_string()))?;
+
+        let clipping_id = comment.clipping_id;
+
+        comment::Entity::delete_by_id(comment_id)
+            .exec(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to delete comment: {}", e)))?;
+
+        // Update clipping's updated_at
+        Self::touch_clipping(db, clipping_id).await?;
+
+        Ok(())
+    }
+
+    /// Update clipping's updated_at timestamp
+    async fn touch_clipping(db: &DatabaseConnection, clipping_id: i64) -> Result<()> {
+        let clipping = clipping::Entity::find_by_id(clipping_id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to find clipping: {}", e)))?;
+
+        if let Some(clipping) = clipping {
+            let mut clipping: clipping::ActiveModel = clipping.into();
+            clipping.updated_at = Set(chrono::Utc::now());
+            clipping.update(db).await.map_err(|e| {
+                AppError::generic(format!("Failed to update clipping timestamp: {}", e))
+            })?;
+        }
+
+        Ok(())
     }
 }

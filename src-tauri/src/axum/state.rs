@@ -2,18 +2,18 @@ use std::sync::Arc;
 
 use tauri::AppHandle;
 
-use crate::surreal::connection::SurrealClient;
+use crate::database::DatabaseConnection;
 use crate::sys::dirs::AppDirs;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Arc<SurrealClient>,
+    pub db: Arc<DatabaseConnection>,
     pub app_dirs: AppDirs,
     pub app_handle: Option<Arc<AppHandle>>,
 }
 
 impl AppState {
-    pub fn new(db: Arc<SurrealClient>, app_dirs: AppDirs) -> Self {
+    pub fn new(db: Arc<DatabaseConnection>, app_dirs: AppDirs) -> Self {
         Self {
             db,
             app_dirs,
@@ -22,7 +22,7 @@ impl AppState {
     }
 
     pub fn new_with_handle(
-        db: Arc<SurrealClient>,
+        db: Arc<DatabaseConnection>,
         app_dirs: AppDirs,
         app_handle: AppHandle,
     ) -> Self {

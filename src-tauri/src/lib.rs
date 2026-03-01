@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 mod axum;
 mod command;
+mod database;
 mod llm;
+mod models;
 mod papers;
 mod repository;
 mod service;
-mod surreal;
 mod sys;
 
 use std::path::PathBuf;
@@ -32,7 +33,8 @@ use crate::command::paper::{
     update_paper_category, update_paper_details,
 };
 use crate::command::search_command::{search_papers, search_papers_with_score};
-use crate::surreal::connection::{init_surreal_connection, SurrealClient};
+use crate::database::connection::init_sqlite_connection;
+use crate::database::DatabaseConnection;
 use crate::sys::error::Result;
 use futures::executor::block_on;
 use tauri::Manager;
@@ -83,30 +85,30 @@ pub fn run() -> Result<()> {
             app_handle.manage(log_guard);
             app_handle.manage(app_dirs.clone());
 
-            // Initialize SurrealDB only (no SQLite)
+            // Initialize SQLite database
             let app_handle_for_axum = app.handle().clone();
-            let app_dirs_for_surreal = app_dirs.clone();
-            let data_dir = app_dirs_for_surreal.data.clone();
+            let app_dirs_for_db = app_dirs.clone();
+            let data_dir = app_dirs_for_db.data.clone();
 
-            let surreal_result = tauri::async_runtime::block_on(async move {
-                init_surreal_connection(PathBuf::from(&data_dir)).await
+            let db_result = tauri::async_runtime::block_on(async move {
+                init_sqlite_connection(PathBuf::from(&data_dir)).await
             });
 
-            match surreal_result {
-                Ok(surreal_db) => {
-                    info!("SurrealDB connection initialized");
-                    let surreal_arc: Arc<SurrealClient> = Arc::new(surreal_db);
-                    app_handle.manage(surreal_arc.clone());
+            match db_result {
+                Ok(db) => {
+                    info!("SQLite connection initialized");
+                    let db_arc: Arc<DatabaseConnection> = db;
+                    app_handle.manage(db_arc.clone());
 
-                    // Start Axum API server with SurrealDB
+                    // Start Axum API server with SQLite
                     crate::axum::start_axum_server_with_handle(
-                        surreal_arc,
-                        app_dirs_for_surreal,
+                        db_arc,
+                        app_dirs_for_db,
                         app_handle_for_axum,
                     );
                 }
                 Err(e) => {
-                    tracing::error!("Failed to initialize SurrealDB connection: {}", e);
+                    tracing::error!("Failed to initialize SQLite connection: {}", e);
                     return Err(Box::new(e));
                 }
             }
@@ -189,7 +191,7 @@ pub fn run() -> Result<()> {
             save_pdf_with_annotations,
             get_app_config,
             save_app_config,
-            // SurrealDB-based search commands
+            // Search commands
             search_papers,
             search_papers_with_score,
             // Data folder commands

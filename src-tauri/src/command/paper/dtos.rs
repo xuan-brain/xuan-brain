@@ -18,19 +18,15 @@ pub struct AttachmentDto {
     pub created_at: Option<String>,
 }
 
-impl AttachmentDto {
-    pub fn from_embedded(
-        embedded: &crate::surreal::models::paper::AttachmentEmbedded,
-        paper_id: String,
-    ) -> Self {
-        Self {
-            id: String::new(), // Empty string for embedded attachments
-            paper_id,
-            file_name: embedded.file_name.clone(),
-            file_type: embedded.file_type.clone(),
-            created_at: embedded.created_at.map(|dt| dt.to_rfc3339()),
-        }
-    }
+/// Result DTO for paper import operations
+#[derive(Serialize)]
+pub struct ImportResultDto {
+    /// Whether the paper already exists in the database
+    pub already_exists: bool,
+    /// Message describing the result
+    pub message: String,
+    /// The paper data (None if already exists)
+    pub paper: Option<PaperDto>,
 }
 
 #[derive(Serialize)]
@@ -93,6 +89,10 @@ pub struct PaperDetailDto {
     pub labels: Vec<LabelDto>,
     pub category_id: Option<String>,
     pub category_name: Option<String>,
+    pub attachments: Vec<AttachmentDto>,
+    pub attachment_count: usize,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

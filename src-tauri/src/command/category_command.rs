@@ -1,45 +1,27 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use surrealdb_types::RecordIdKey;
 use tauri::{AppHandle, State};
 use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
+use crate::database::DatabaseConnection;
+use crate::models::{CreateCategory, UpdateCategory};
 use crate::repository::{CategoryRepository, TreeNodeData};
-use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::{CreateCategory, UpdateCategory};
 use crate::sys::error::Result;
-
-/// Convert RecordId to string
-fn record_id_to_string(id: &surrealdb_types::RecordId) -> String {
-    format!("{}:{}", id.table, record_id_key_to_string(&id.key))
-}
-
-fn record_id_key_to_string(key: &RecordIdKey) -> String {
-    match key {
-        RecordIdKey::String(s) => s.clone(),
-        RecordIdKey::Number(n) => n.to_string(),
-        RecordIdKey::Uuid(u) => u.to_string(),
-        RecordIdKey::Array(_) => "array".to_string(),
-        RecordIdKey::Object(_) => "object".to_string(),
-        RecordIdKey::Range(_) => "range".to_string(),
-    }
-}
 
 #[tauri::command]
 #[instrument(skip(db))]
-pub async fn load_categories(db: State<'_, Arc<SurrealClient>>) -> Result<Vec<CategoryDto>> {
+pub async fn load_categories(db: State<'_, Arc<DatabaseConnection>>) -> Result<Vec<CategoryDto>> {
     info!("Loading all categories");
-    let repo = CategoryRepository::new(&db);
-    let categories = repo.find_all().await?;
+    let categories = CategoryRepository::find_all(&db).await?;
 
     let result: Vec<CategoryDto> = categories
         .into_iter()
         .map(|c| CategoryDto {
-            id: c.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
+            id: c.id.to_string(),
             name: c.name,
-            parent_id: c.parent.map(|rid| record_id_to_string(&rid)),
+            parent_id: c.parent_id.map(|id| id.to_string()),
             sort_order: c.sort_order,
         })
         .collect();
@@ -52,7 +34,7 @@ pub async fn load_categories(db: State<'_, Arc<SurrealClient>>) -> Result<Vec<Ca
 #[instrument(skip(db, app))]
 pub async fn create_category(
     app: AppHandle,
-    db: State<'_, Arc<SurrealClient>>,
+    db: State<'_, Arc<DatabaseConnection>>,
     name: String,
     parent_id: Option<String>,
 ) -> Result<()> {
@@ -60,19 +42,21 @@ pub async fn create_category(
         "Creating category '{}' with parent_id: {:?}",
         name, parent_id
     );
-    let repo = CategoryRepository::new(&db);
 
-    // Get max sort order for siblings
-    let _sort_order = repo.get_max_sort_order(parent_id.as_deref()).await?;
+    let parent_id_num = parent_id
+        .map(|s| s.parse::<i64>())
+        .transpose()
+        .map_err(|_| crate::sys::error::AppError::validation("parent_id", "Invalid parent_id format"))?;
 
     let create_data = CreateCategory {
         name: name.clone(),
-        parent_id: parent_id.clone(),
+        parent_id: parent_id_num,
     };
 
-    repo.create(create_data).await?;
+    CategoryRepository::create(&db, create_data).await?;
 
-    let _ = app.notification()
+    let _ = app
+        .notification()
         .builder()
         .title("Category Created")
         .body(format!("Category '{}' created successfully", name))
@@ -86,14 +70,19 @@ pub async fn create_category(
 #[instrument(skip(db, app))]
 pub async fn delete_category(
     app: AppHandle,
-    db: State<'_, Arc<SurrealClient>>,
+    db: State<'_, Arc<DatabaseConnection>>,
     id: String,
 ) -> Result<()> {
     info!("Deleting category with id={}", id);
-    let repo = CategoryRepository::new(&db);
-    repo.delete_with_descendants(&id).await?;
 
-    let _ = app.notification()
+    let id_num = id
+        .parse::<i64>()
+        .map_err(|_| crate::sys::error::AppError::validation("id", "Invalid id format"))?;
+
+    CategoryRepository::delete(&db, id_num).await?;
+
+    let _ = app
+        .notification()
         .builder()
         .title("Category Deleted")
         .body(format!("Category with id {} deleted successfully", id))
@@ -107,18 +96,28 @@ pub async fn delete_category(
 #[instrument(skip(db, app))]
 pub async fn update_category(
     app: AppHandle,
-    db: State<'_, Arc<SurrealClient>>,
+    db: State<'_, Arc<DatabaseConnection>>,
     id: String,
     name: String,
 ) -> Result<()> {
     info!("Updating category id={} to name '{}'", id, name);
-    let repo = CategoryRepository::new(&db);
-    repo.update(&id, UpdateCategory {
-        name: Some(name.clone()),
-        sort_order: None,
-    }).await?;
 
-    let _ = app.notification()
+    let id_num = id
+        .parse::<i64>()
+        .map_err(|_| crate::sys::error::AppError::validation("id", "Invalid id format"))?;
+
+    CategoryRepository::update(
+        &db,
+        id_num,
+        UpdateCategory {
+            name: Some(name.clone()),
+            sort_order: None,
+        },
+    )
+    .await?;
+
+    let _ = app
+        .notification()
         .builder()
         .title("Category Updated")
         .body(format!("Category updated to '{}'", name))
@@ -132,7 +131,7 @@ pub async fn update_category(
 #[instrument(skip(db, app))]
 pub async fn move_category(
     app: AppHandle,
-    db: State<'_, Arc<SurrealClient>>,
+    db: State<'_, Arc<DatabaseConnection>>,
     dragged_id: String,
     target_id: Option<String>,
     position: String, // "above" | "below" | "child"
@@ -141,15 +140,25 @@ pub async fn move_category(
         "Moving category {} to {:?} (position: {})",
         dragged_id, target_id, position
     );
-    let repo = CategoryRepository::new(&db);
+
+    let dragged_id_num = dragged_id
+        .parse::<i64>()
+        .map_err(|_| crate::sys::error::AppError::validation("dragged_id", "Invalid id format"))?;
 
     // Determine new parent based on position
     let new_parent_id = match (target_id.as_ref(), position.as_str()) {
-        (Some(tid), "child") => Some(tid.clone()),
+        (Some(tid), "child") => {
+            Some(tid.parse::<i64>().map_err(|_| {
+                crate::sys::error::AppError::validation("target_id", "Invalid id format")
+            })?)
+        }
         (Some(tid), "above" | "below") => {
             // Get target's parent
-            if let Some(target) = repo.find_by_id(tid).await? {
-                target.parent.map(|rid| record_id_to_string(&rid))
+            let target_id_num = tid.parse::<i64>().map_err(|_| {
+                crate::sys::error::AppError::validation("target_id", "Invalid id format")
+            })?;
+            if let Some(target) = CategoryRepository::find_by_id(&db, target_id_num).await? {
+                target.parent_id
             } else {
                 None
             }
@@ -157,9 +166,10 @@ pub async fn move_category(
         _ => None,
     };
 
-    repo.move_to(&dragged_id, new_parent_id).await?;
+    CategoryRepository::move_to_parent(&db, dragged_id_num, new_parent_id).await?;
 
-    let _ = app.notification()
+    let _ = app
+        .notification()
         .builder()
         .title("Category Moved")
         .body("Category structure updated successfully")
@@ -173,33 +183,21 @@ pub async fn move_category(
 #[instrument(skip(db, app))]
 pub async fn reorder_tree(
     app: AppHandle,
-    db: State<'_, Arc<SurrealClient>>,
+    db: State<'_, Arc<DatabaseConnection>>,
     tree_data: Vec<TreeNodeDto>,
 ) -> Result<()> {
     info!(
         "Reordering tree based on new structure, {} root nodes",
         tree_data.len()
     );
-    let repo = CategoryRepository::new(&db);
 
     // Convert TreeNodeDto to TreeNodeData
-    let nodes: Vec<TreeNodeData> = tree_data.iter().map(|n| TreeNodeData {
-        id: n.id.clone(),
-        name: n.name.clone(),
-        children: n.children.as_ref().map(|c| c.iter().map(|child| TreeNodeData {
-            id: child.id.clone(),
-            name: child.name.clone(),
-            children: child.children.as_ref().map(|cc| cc.iter().map(|ccc| TreeNodeData {
-                id: ccc.id.clone(),
-                name: ccc.name.clone(),
-                children: None,
-            }).collect()),
-        }).collect()),
-    }).collect();
+    let nodes = convert_tree_nodes(&tree_data);
 
-    repo.rebuild_tree_from_structure(&nodes).await?;
+    CategoryRepository::rebuild_tree_from_structure(&db, &nodes).await?;
 
-    let _ = app.notification()
+    let _ = app
+        .notification()
         .builder()
         .title("Categories Reordered")
         .body("Category tree reordered successfully")
@@ -207,6 +205,17 @@ pub async fn reorder_tree(
 
     info!("Tree reordered successfully");
     Ok(())
+}
+
+/// Convert TreeNodeDto to TreeNodeData recursively
+fn convert_tree_nodes(dtos: &[TreeNodeDto]) -> Vec<TreeNodeData> {
+    dtos.iter()
+        .map(|n| TreeNodeData {
+            id: n.id.parse::<i64>().unwrap_or(0),
+            name: n.name.clone(),
+            children: convert_tree_nodes(&n.children),
+        })
+        .collect()
 }
 
 // DTO for frontend
@@ -224,6 +233,6 @@ pub struct CategoryDto {
 pub struct TreeNodeDto {
     pub id: String,
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub children: Option<Vec<TreeNodeDto>>,
+    #[serde(default)]
+    pub children: Vec<TreeNodeDto>,
 }

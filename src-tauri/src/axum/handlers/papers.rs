@@ -11,22 +11,11 @@ use utoipa::ToSchema;
 
 use crate::axum::error::ApiError;
 use crate::axum::state::AppState;
+use crate::models::CreatePaper;
 use crate::papers::importer::html::{extract_paper_from_html, HtmlImportError};
 use crate::repository::{AuthorRepository, PaperRepository};
-use crate::surreal::models::CreatePaper;
 use crate::sys::config::AppConfig;
 use crate::sys::error::AppError;
-
-/// RecordId to string helper
-fn record_id_to_string(id: &surrealdb_types::RecordId) -> String {
-    use surrealdb_types::RecordIdKey;
-    format!("{}:{}", id.table, match &id.key {
-        RecordIdKey::String(s) => s.clone(),
-        RecordIdKey::Number(n) => n.to_string(),
-        RecordIdKey::Uuid(u) => u.to_string(),
-        _ => "unknown".to_string(),
-    })
-}
 
 /// List all papers
 ///
@@ -42,14 +31,13 @@ fn record_id_to_string(id: &surrealdb_types::RecordId) -> String {
 pub async fn list_papers(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<serde_json::Value>>, ApiError> {
-    let repo = PaperRepository::new(&state.db);
-    let papers = repo.find_all().await.map_err(ApiError)?;
+    let papers = PaperRepository::find_all(&state.db).await.map_err(ApiError)?;
 
     let result: Vec<serde_json::Value> = papers
         .into_iter()
         .map(|p| {
             serde_json::json!({
-                "id": p.id.as_ref().map(record_id_to_string).unwrap_or_default(),
+                "id": p.id.to_string(),
                 "title": p.title,
                 "abstract": p.abstract_text,
                 "doi": p.doi,
@@ -72,7 +60,7 @@ pub async fn list_papers(
     path = "/api/papers/{id}",
     tag = "papers",
     params(
-        ("id" = String, Path, description = "Paper ID (e.g., 'paper:abc123')")
+        ("id" = String, Path, description = "Paper ID")
     ),
     responses(
         (status = 200, description = "Paper details", body = serde_json::Value),
@@ -83,12 +71,14 @@ pub async fn get_paper(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let repo = PaperRepository::new(&state.db);
-    let paper = repo.find_by_id(&id).await.map_err(ApiError)?;
+    let paper_id = id.parse::<i64>()
+        .map_err(|_| ApiError(AppError::validation("id", "Invalid paper id format")))?;
+
+    let paper = PaperRepository::find_by_id(&state.db, paper_id).await.map_err(ApiError)?;
 
     match paper {
         Some(p) => Ok(Json(serde_json::json!({
-            "id": p.id.as_ref().map(record_id_to_string).unwrap_or_default(),
+            "id": p.id.to_string(),
             "title": p.title,
             "abstract": p.abstract_text,
             "doi": p.doi,
@@ -196,13 +186,10 @@ pub async fn import_paper_from_html(
         }
     };
 
-    let paper_repo = PaperRepository::new(&state.db);
-    let author_repo = AuthorRepository::new(&state.db);
-
     // 4. Check for duplicates by DOI
     if let Some(ref doi) = metadata.doi {
         if !doi.is_empty() {
-            if let Some(_existing) = paper_repo.find_by_doi(doi).await.map_err(ApiError)? {
+            if let Some(_existing) = PaperRepository::find_by_doi(&state.db, doi).await.map_err(ApiError)? {
                 return Ok(Json(ImportHtmlResponse {
                     success: false,
                     paper: None,
@@ -215,7 +202,7 @@ pub async fn import_paper_from_html(
     // 5. Check for duplicates by URL
     if let Some(ref url) = metadata.url {
         if !url.is_empty() {
-            if let Some(_existing) = paper_repo.find_by_url(url).await.map_err(ApiError)? {
+            if let Some(_existing) = PaperRepository::find_by_url(&state.db, url).await.map_err(ApiError)? {
                 return Ok(Json(ImportHtmlResponse {
                     success: false,
                     paper: None,
@@ -231,7 +218,7 @@ pub async fn import_paper_from_html(
     let hash_string = format!("{:x}", hasher.finalize());
 
     // 7. Create paper
-    let paper = paper_repo.create(CreatePaper {
+    let paper = PaperRepository::create(&state.db, CreatePaper {
         title: metadata.title.clone(),
         doi: metadata.doi.filter(|d| !d.is_empty()),
         publication_year: metadata.publication_year.and_then(|y| i32::try_from(y).ok()),
@@ -244,10 +231,9 @@ pub async fn import_paper_from_html(
         url: metadata.url.filter(|u| !u.is_empty()),
         abstract_text: metadata.abstract_text,
         attachment_path: Some(hash_string),
-        attachments: vec![],
     }).await.map_err(ApiError)?;
 
-    let paper_id = paper.id.as_ref().map(record_id_to_string).unwrap_or_default();
+    let paper_id = paper.id;
     info!("Created paper with id: {}", paper_id);
 
     // 8. Add authors
@@ -256,9 +242,9 @@ pub async fn import_paper_from_html(
             continue;
         }
 
-        let author = author_repo.create_or_find(author_name.trim(), None).await.map_err(ApiError)?;
-        let author_id = author.id.as_ref().map(record_id_to_string).unwrap_or_default();
-        paper_repo.add_author(&paper_id, &author_id, order as i32).await.map_err(ApiError)?;
+        let author = AuthorRepository::create_or_find(&state.db, author_name.trim(), None).await.map_err(ApiError)?;
+        let author_id = author.id;
+        PaperRepository::add_author(&state.db, paper_id, author_id, order as i32).await.map_err(ApiError)?;
     }
 
     info!(
@@ -271,7 +257,7 @@ pub async fn import_paper_from_html(
         let _ = app_handle.emit(
             "paper:imported",
             serde_json::json!({
-                "id": paper_id,
+                "id": paper_id.to_string(),
                 "title": paper.title,
             }),
         );
@@ -282,7 +268,7 @@ pub async fn import_paper_from_html(
     Ok(Json(ImportHtmlResponse {
         success: true,
         paper: Some(serde_json::json!({
-            "id": paper_id,
+            "id": paper_id.to_string(),
             "title": paper.title,
             "publication_year": paper.publication_year,
             "journal_name": paper.journal_name,

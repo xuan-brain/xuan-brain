@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
 use serde::Serialize;
-use surrealdb_types::RecordIdKey;
 use tauri::{AppHandle, State};
 use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
+use crate::database::DatabaseConnection;
+use crate::models::{CreateLabel, UpdateLabel};
 use crate::repository::LabelRepository;
-use crate::surreal::connection::SurrealClient;
-use crate::surreal::models::{CreateLabel, UpdateLabel};
 use crate::sys::error::Result;
 
 #[derive(Serialize)]
@@ -19,35 +18,16 @@ pub struct LabelResponse {
     pub document_count: i32,
 }
 
-/// Convert RecordId to string
-fn record_id_to_string(id: &surrealdb_types::RecordId) -> String {
-    format!("{}:{}", id.table, record_id_key_to_string(&id.key))
-}
-
-fn record_id_key_to_string(key: &RecordIdKey) -> String {
-    match key {
-        RecordIdKey::String(s) => s.clone(),
-        RecordIdKey::Number(n) => n.to_string(),
-        RecordIdKey::Uuid(u) => u.to_string(),
-        RecordIdKey::Array(_) => "array".to_string(),
-        RecordIdKey::Object(_) => "object".to_string(),
-        RecordIdKey::Range(_) => "range".to_string(),
-    }
-}
-
 #[tauri::command]
 #[instrument(skip(db))]
-pub async fn get_all_labels(
-    db: State<'_, Arc<SurrealClient>>,
-) -> Result<Vec<LabelResponse>> {
+pub async fn get_all_labels(db: State<'_, Arc<DatabaseConnection>>) -> Result<Vec<LabelResponse>> {
     info!("Fetching all labels");
-    let repo = LabelRepository::new(&db);
-    let labels = repo.find_all().await?;
+    let labels = LabelRepository::find_all(&db).await?;
 
     let result: Vec<LabelResponse> = labels
         .into_iter()
         .map(|l| LabelResponse {
-            id: l.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
+            id: l.id.to_string(),
             name: l.name,
             color: l.color,
             document_count: l.document_count,
@@ -62,13 +42,12 @@ pub async fn get_all_labels(
 #[instrument(skip(db, app))]
 pub async fn create_label(
     app: AppHandle,
-    db: State<'_, Arc<SurrealClient>>,
+    db: State<'_, Arc<DatabaseConnection>>,
     name: String,
     color: String,
 ) -> Result<LabelResponse> {
     info!("Creating label '{}' with color '{}'", name, color);
-    let repo = LabelRepository::new(&db);
-    let label = repo.create(CreateLabel { name: name.clone(), color }).await?;
+    let label = LabelRepository::create(&db, CreateLabel { name: name.clone(), color }).await?;
 
     let _ = app
         .notification()
@@ -79,7 +58,7 @@ pub async fn create_label(
 
     info!("Label created successfully");
     Ok(LabelResponse {
-        id: label.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
+        id: label.id.to_string(),
         name: label.name,
         color: label.color,
         document_count: label.document_count,
@@ -90,14 +69,19 @@ pub async fn create_label(
 #[instrument(skip(db, app))]
 pub async fn update_label(
     app: AppHandle,
-    db: State<'_, Arc<SurrealClient>>,
+    db: State<'_, Arc<DatabaseConnection>>,
     id: String,
     name: Option<String>,
     color: Option<String>,
 ) -> Result<LabelResponse> {
     info!("Updating label id {}", id);
-    let repo = LabelRepository::new(&db);
-    let updated_label = repo.update(&id, UpdateLabel { name, color }).await?;
+
+    let id_num = id
+        .parse::<i64>()
+        .map_err(|_| crate::sys::error::AppError::validation("id", "Invalid id format"))?;
+
+    let updated_label =
+        LabelRepository::update(&db, id_num, UpdateLabel { name, color }).await?;
 
     let _ = app
         .notification()
@@ -111,7 +95,7 @@ pub async fn update_label(
 
     info!("Label updated successfully");
     Ok(LabelResponse {
-        id: updated_label.id.map(|rid| record_id_to_string(&rid)).unwrap_or_default(),
+        id: updated_label.id.to_string(),
         name: updated_label.name,
         color: updated_label.color,
         document_count: updated_label.document_count,
@@ -122,14 +106,19 @@ pub async fn update_label(
 #[instrument(skip(db, app))]
 pub async fn delete_label(
     app: AppHandle,
-    db: State<'_, Arc<SurrealClient>>,
+    db: State<'_, Arc<DatabaseConnection>>,
     id: String,
 ) -> Result<()> {
     info!("Deleting label with id: {}", id);
-    let repo = LabelRepository::new(&db);
-    repo.delete(&id).await?;
 
-    let _ = app.notification()
+    let id_num = id
+        .parse::<i64>()
+        .map_err(|_| crate::sys::error::AppError::validation("id", "Invalid id format"))?;
+
+    LabelRepository::delete(&db, id_num).await?;
+
+    let _ = app
+        .notification()
         .builder()
         .title("Label Deleted")
         .body(format!("Label with id {} deleted successfully", id))

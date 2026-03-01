@@ -1,4 +1,4 @@
-//! Repository layer for SurrealDB
+//! Repository layer for SQLite using SeaORM
 //!
 //! Provides data access abstraction for all entities.
 

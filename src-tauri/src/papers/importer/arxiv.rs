@@ -322,6 +322,47 @@ mod tests {
         );
     }
 
+    /// Test to print detailed arXiv metadata for inspection
+    #[tokio::test]
+    async fn test_print_arxiv_metadata_detail() {
+        // Use a well-known arXiv paper
+        let arxiv_id = "2301.07041"; // Attention Is All You Need paper (or similar famous paper)
+
+        println!("\n========== arXiv Metadata Test ==========");
+        println!("Fetching arXiv ID: {}", arxiv_id);
+
+        let result = fetch_arxiv_metadata(arxiv_id).await;
+
+        match result {
+            Ok(metadata) => {
+                println!("\n--- Successfully fetched metadata ---");
+                println!("arXiv ID: {}", metadata.arxiv_id);
+                println!("Title: {}", metadata.title);
+                println!("Authors ({}):", metadata.authors.len());
+                for (i, author) in metadata.authors.iter().enumerate() {
+                    println!("  {}. {}", i + 1, author);
+                }
+                println!("Published: {}", metadata.published);
+                println!("Updated: {}", metadata.updated);
+                println!("Primary Category: {}", metadata.primary_category);
+                println!("Categories: {:?}", metadata.categories);
+                println!("PDF URL: {}", metadata.pdf_url);
+                println!("DOI: {:?}", metadata.doi);
+                println!("Journal Ref: {:?}", metadata.journal_ref);
+                println!("Summary (first 300 chars):");
+                println!(
+                    "  {}...",
+                    metadata.summary.chars().take(300).collect::<String>()
+                );
+            }
+            Err(e) => {
+                println!("Error fetching arXiv: {}", e);
+                // Don't panic, just print the error
+            }
+        }
+        println!("========== End arXiv Test ==========\n");
+    }
+
     #[tokio::test]
     async fn test_fetch_invalid_arxiv_id() {
         let result = fetch_arxiv_metadata("9999.99999").await;

@@ -17,24 +17,9 @@ use utoipa::ToSchema;
 
 use crate::axum::error::ApiError;
 use crate::axum::state::AppState;
+use crate::models::{Clipping, CreateClipping, UpdateClipping};
 use crate::repository::ClippingRepository;
-use crate::surreal::models::{Clipping, CreateClipping, UpdateClipping};
 use crate::sys::error::AppError;
-
-/// Convert RecordId to string helper
-fn record_id_to_string(id: &surrealdb_types::RecordId) -> String {
-    use surrealdb_types::RecordIdKey;
-    format!(
-        "{}:{}",
-        id.table,
-        match &id.key {
-            RecordIdKey::String(s) => s.clone(),
-            RecordIdKey::Number(n) => n.to_string(),
-            RecordIdKey::Uuid(u) => u.to_string(),
-            _ => "unknown".to_string(),
-        }
-    )
-}
 
 /// Query parameters for list_clips endpoint
 #[derive(Debug, Deserialize, ToSchema)]
@@ -49,8 +34,8 @@ pub struct ClippingResponse {
     pub id: String,
     pub title: String,
     pub url: String,
-    pub content: String,
-    pub source_domain: String,
+    pub content: Option<String>,
+    pub source_domain: Option<String>,
     pub author: Option<String>,
     pub published_date: Option<String>,
     pub excerpt: Option<String>,
@@ -66,16 +51,13 @@ pub struct ClippingResponse {
 impl From<Clipping> for ClippingResponse {
     fn from(clipping: Clipping) -> Self {
         Self {
-            id: clipping
-                .id
-                .map(|rid| record_id_to_string(&rid))
-                .unwrap_or_default(),
+            id: clipping.id.to_string(),
             title: clipping.title,
             url: clipping.url,
             content: clipping.content,
             source_domain: clipping.source_domain,
             author: clipping.author,
-            published_date: clipping.published_date.map(|d| d.to_rfc3339()),
+            published_date: clipping.published_date,
             excerpt: clipping.excerpt,
             thumbnail_url: clipping.thumbnail_url,
             read_status: clipping.read_status,
@@ -124,7 +106,7 @@ pub async fn list_clips(
     path = "/api/clips/{id}",
     tag = "clips",
     params(
-        ("id" = String, Path, description = "Clipping ID (e.g., 'clipping:abc123')")
+        ("id" = String, Path, description = "Clipping ID")
     ),
     responses(
         (status = 200, description = "Clipping details", body = ClippingResponse),
@@ -136,7 +118,10 @@ pub async fn get_clip(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<ClippingResponse>, ApiError> {
-    let clipping = ClippingRepository::get_clipping_by_id(&state.db, &id)
+    let clip_id = id.parse::<i64>()
+        .map_err(|_| ApiError(AppError::validation("id", "Invalid clipping id format")))?;
+
+    let clipping = ClippingRepository::get_clipping_by_id(&state.db, clip_id)
         .await
         .map_err(ApiError)?;
     match clipping {
@@ -283,29 +268,19 @@ pub async fn create_clip(
     let create_clipping = CreateClipping {
         title: payload.title.clone(),
         url: payload.url.clone(),
-        content: sanitized_content.clone(),
-        source_domain: payload.source_domain.clone(),
+        content: Some(sanitized_content.clone()),
+        source_domain: Some(payload.source_domain.clone()),
         author: payload.author.clone(),
-        published_date: payload
-            .published_date
-            .as_ref()
-            .and_then(|d| chrono::DateTime::parse_from_rfc3339(d).ok())
-            .map(|dt| dt.with_timezone(&chrono::Utc)),
+        published_date: payload.published_date.clone(),
         excerpt: payload.excerpt.clone(),
         thumbnail_url: payload.thumbnail_url.clone(),
         tags: payload.tags.clone(),
         image_paths: Vec::new(),
-        comments: Vec::new(),
     };
     let clipping = ClippingRepository::create_clipping(&state.db, create_clipping)
         .await
         .map_err(ApiError)?;
-    let clip_id = clipping
-        .id
-        .as_ref()
-        .map(record_id_to_string)
-        .and_then(|s| s.split(':').next_back().map(String::from))
-        .unwrap_or_else(|| chrono::Utc::now().timestamp().to_string());
+    let clip_id = clipping.id.to_string();
     let (processed_content, image_paths) =
         process_markdown_images(sanitized_content, &clip_id, &state.app_dirs.files)
             .await
@@ -325,9 +300,10 @@ pub async fn create_clip(
         notes: None,
         tags: None,
         image_paths: Some(image_paths.clone()),
-        comments: None,
     };
-    let updated = ClippingRepository::update_clipping(&state.db, &clip_id, update_clipping)
+    let clip_id_num = clip_id.parse::<i64>()
+        .map_err(|_| AppError::validation("id", "Invalid clipping id format"))?;
+    let updated = ClippingRepository::update_clipping(&state.db, clip_id_num, update_clipping)
         .await
         .map_err(ApiError)?;
     if updated.is_none() {

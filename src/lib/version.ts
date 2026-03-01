@@ -4,4 +4,4 @@
  *
  * DO NOT EDIT MANUALLY - changes will be overwritten
  */
-export const APP_VERSION = '0.1.4';
+export const APP_VERSION = '0.1.5';

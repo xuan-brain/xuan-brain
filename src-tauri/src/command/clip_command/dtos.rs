@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Clone)]
 pub struct CommentDto {
     pub id: String,
+    pub clipping_id: String,
     pub content: String,
     pub created_at: String,
     pub updated_at: String,
@@ -17,8 +18,8 @@ pub struct ClipDto {
     pub id: String,
     pub title: String,
     pub url: String,
-    pub content: String,
-    pub source_domain: String,
+    pub content: Option<String>,
+    pub source_domain: Option<String>,
     pub author: Option<String>,
     pub published_date: Option<String>,
     pub excerpt: Option<String>,
@@ -53,7 +54,7 @@ pub struct CreateClipResponse {
     pub id: String,
     pub title: String,
     pub url: String,
-    pub content: String,
-    pub source_domain: String,
+    pub content: Option<String>,
+    pub source_domain: Option<String>,
     pub image_paths: Vec<String>,
 }

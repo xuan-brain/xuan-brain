@@ -11,6 +11,14 @@
     color: string;
   }
 
+  interface Attachment {
+    id: string;
+    paper_id: string;
+    file_name?: string;
+    file_type?: string;
+    created_at?: string;
+  }
+
   interface CategoryNode {
     id: string;
     name: string;
@@ -38,6 +46,10 @@
     labels: Label[];
     category_id?: string;
     category_name?: string;
+    attachments: Attachment[];
+    attachment_count: number;
+    created_at?: string;
+    updated_at?: string;
   }
 
   interface Props {
@@ -337,12 +349,10 @@
       </div>
 
       <!-- Title -->
-      <div class="detail-section">
-        <h2 class="paper-title">{{ details.title }}</h2>
-      </div>
+      <h2 class="paper-title">{{ details.title }}</h2>
 
-      <!-- Metadata Tags -->
-      <div class="metadata-tags">
+      <!-- Tags Row -->
+      <div class="tags-row">
         <!-- Category -->
         <template v-if="addingCategory">
           <v-select
@@ -350,66 +360,45 @@
             :items="treeCategories"
             item-title="name"
             item-value="id"
-            label="Select Category"
             density="compact"
             variant="outlined"
             hide-details
-            auto
+            style="max-width: 150px"
             @update:model-value="handleSetCategory"
-          >
-            <template v-if="details.category_id" #append-inner>
-              <v-icon @click.stop="addingCategory = false">mdi-close</v-icon>
-            </template>
-          </v-select>
+          />
         </template>
         <v-chip
           v-else-if="details.category_name"
+          size="small"
           color="orange"
           class="clickable"
           @click="addingCategory = true"
         >
-          <v-icon start size="small">mdi-folder-open</v-icon>
+          <v-icon start size="x-small">mdi-folder</v-icon>
           {{ details.category_name }}
         </v-chip>
-        <v-chip v-else class="clickable dashed" @click="addingCategory = true">
-          <v-icon start size="small">mdi-plus</v-icon>
-          {{ t('dialog.addCategory') || 'Add Category' }}
-        </v-chip>
-
-        <!-- Year -->
-        <v-chip v-if="details.publication_year" size="small">
-          {{ details.publication_year }}
-        </v-chip>
-
-        <!-- Journal/Conference -->
-        <v-chip v-if="details.journal_name || details.conference_name" color="blue" size="small">
-          {{ details.journal_name || details.conference_name }}
+        <v-chip v-else size="small" variant="outlined" class="clickable" @click="addingCategory = true">
+          <v-icon start size="x-small">mdi-plus</v-icon>
+          Category
         </v-chip>
 
         <!-- Read Status -->
         <v-chip
           v-if="details.read_status"
-          :color="details.read_status === 'read' ? 'success' : 'default'"
           size="small"
+          :color="details.read_status === 'read' ? 'success' : details.read_status === 'reading' ? 'primary' : 'default'"
         >
           {{ details.read_status }}
         </v-chip>
-      </div>
 
-      <!-- Authors -->
-      <div class="authors">
-        <span class="text-body-2 text-grey">{{ details.authors?.join(', ') }}</span>
-      </div>
-
-      <!-- Labels -->
-      <div class="labels-section">
+        <!-- Labels -->
         <v-chip
           v-for="label in details.labels"
           :key="label.id"
           :color="label.color"
-          closable
           size="small"
-          class="mr-2 mb-2"
+          closable
+          class="mr-1"
           @click:close="handleRemoveLabel(label.id)"
         >
           {{ label.name }}
@@ -421,85 +410,112 @@
             :items="availableLabels"
             item-title="name"
             item-value="id"
-            label="Select label"
             density="compact"
             variant="outlined"
             hide-details
-            auto
-            style="max-width: 150px"
+            style="max-width: 120px"
             @update:model-value="handleAddLabel"
-          >
-            <template #append-inner>
-              <v-icon @click.stop="addingLabel = false">mdi-close</v-icon>
-            </template>
-          </v-select>
+          />
         </template>
-        <v-chip
-          v-else
-          class="clickable dashed"
-          @click="
-            addingLabel = true;
-            loadLabels();
-          "
-        >
-          <v-icon start size="small">mdi-plus</v-icon>
-          {{ t('dialog.addTag') || 'Add Tag' }}
+        <v-chip v-else size="small" variant="outlined" class="clickable" @click="addingLabel = true; loadLabels()">
+          <v-icon start size="x-small">mdi-tag-plus</v-icon>
+          Tag
         </v-chip>
       </div>
 
-      <!-- DOI/URL -->
-      <div v-if="details.doi || details.url" class="links-section">
-        <div v-if="details.doi" class="link-item">
-          <span class="text-caption text-grey">DOI:</span>
-          <a
-            :href="`https://doi.org/${details.doi}`"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-caption"
-          >
-            {{ details.doi }}
-          </a>
-        </div>
-        <div v-if="details.url" class="link-item">
-          <span class="text-caption text-grey">URL:</span>
-          <a :href="details.url" target="_blank" rel="noopener noreferrer" class="text-caption">
-            {{ details.url }}
-          </a>
-        </div>
-      </div>
-
-      <v-divider class="my-3" />
+      <!-- Properties Table -->
+      <table class="props-table">
+        <tbody>
+          <tr v-if="details.authors?.length">
+            <td class="prop-label">Authors</td>
+            <td class="prop-value">
+              <div v-for="(author, i) in details.authors" :key="i" class="author-line">
+                {{ author }}
+              </div>
+            </td>
+          </tr>
+          <tr v-if="details.journal_name">
+            <td class="prop-label">Journal</td>
+            <td class="prop-value">{{ details.journal_name }}</td>
+          </tr>
+          <tr v-if="details.conference_name">
+            <td class="prop-label">Conference</td>
+            <td class="prop-value">{{ details.conference_name }}</td>
+          </tr>
+          <tr v-if="details.publication_year">
+            <td class="prop-label">Year</td>
+            <td class="prop-value">{{ details.publication_year }}</td>
+          </tr>
+          <tr v-if="details.publication_date">
+            <td class="prop-label">Date</td>
+            <td class="prop-value">{{ details.publication_date }}</td>
+          </tr>
+          <tr v-if="details.volume || details.issue || details.pages">
+            <td class="prop-label">Volume</td>
+            <td class="prop-value">
+              <span v-if="details.volume">{{ details.volume }}</span>
+              <span v-if="details.issue"> ({{ details.issue }})</span>
+              <span v-if="details.pages">, pp.{{ details.pages }}</span>
+            </td>
+          </tr>
+          <tr v-if="details.doi">
+            <td class="prop-label">DOI</td>
+            <td class="prop-value">
+              <a :href="`https://doi.org/${details.doi}`" target="_blank" class="link">{{ details.doi }}</a>
+            </td>
+          </tr>
+          <tr v-if="details.url">
+            <td class="prop-label">URL</td>
+            <td class="prop-value">
+              <a :href="details.url" target="_blank" class="link">{{ details.url }}</a>
+            </td>
+          </tr>
+          <tr v-if="details.attachments?.length">
+            <td class="prop-label">Files</td>
+            <td class="prop-value">
+              <div v-for="att in details.attachments" :key="att.id" class="file-item">
+                <v-icon size="small" :color="att.file_type === 'pdf' ? 'error' : 'grey'">
+                  {{ att.file_type === 'pdf' ? 'mdi-file-pdf-box' : 'mdi-file-document-outline' }}
+                </v-icon>
+                <span>{{ att.file_name }}</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="prop-label">Citations</td>
+            <td class="prop-value">{{ details.citation_count || 0 }}</td>
+          </tr>
+        </tbody>
+      </table>
 
       <!-- Abstract -->
-      <div v-if="details.abstract_text" class="detail-section">
-        <div class="section-label">Abstract</div>
-        <p class="text-body-2 abstract-text">{{ details.abstract_text }}</p>
+      <div v-if="details.abstract_text" class="content-section">
+        <div class="section-title">Abstract</div>
+        <p class="section-text">{{ details.abstract_text }}</p>
       </div>
 
       <!-- Notes -->
-      <div v-if="details.notes" class="detail-section">
-        <div class="section-label">Notes</div>
-        <v-card variant="tonal" density="compact" class="notes-card">
-          <p class="text-body-2 notes-text mb-0">{{ details.notes }}</p>
-        </v-card>
+      <div v-if="details.notes" class="content-section">
+        <div class="section-title">Notes</div>
+        <p class="section-text notes">{{ details.notes }}</p>
       </div>
 
-      <!-- Footer info -->
-      <div class="footer-info">
-        <span class="text-caption text-grey">
-          ID: {{ details.id }} | Citations: {{ details.citation_count || 0 }}
-        </span>
+      <!-- Footer -->
+      <div class="footer">
+        <span>ID: {{ details.id }}</span>
+        <span v-if="details.created_at">Created: {{ new Date(details.created_at).toLocaleDateString() }}</span>
+        <span v-if="details.updated_at">Updated: {{ new Date(details.updated_at).toLocaleDateString() }}</span>
       </div>
     </div>
 
     <!-- Edit mode -->
     <div v-else-if="details" class="edit-view">
       <div class="header-actions">
-        <v-btn @click="cancelEdit" :disabled="actionLoading" variant="tonal">
+        <v-btn @click="cancelEdit" :disabled="actionLoading" variant="tonal" size="small">
           <v-icon start>mdi-close</v-icon>
           Cancel
         </v-btn>
-        <v-btn color="primary" @click="saveChanges" :loading="actionLoading">
+        <v-btn color="primary" @click="saveChanges" :loading="actionLoading" size="small">
           <v-icon start>mdi-content-save</v-icon>
           Save
         </v-btn>
@@ -514,11 +530,11 @@
           variant="outlined"
           :disabled="actionLoading"
           auto-grow
-          class="title-input"
+          class="mb-3"
         />
 
-        <!-- Metadata Row -->
-        <v-row class="form-row">
+        <!-- Basic Info -->
+        <v-row dense>
           <v-col cols="6">
             <v-select
               v-model="editForm.category_id"
@@ -529,6 +545,7 @@
               variant="outlined"
               :disabled="actionLoading"
               clearable
+              density="compact"
             />
           </v-col>
           <v-col cols="3">
@@ -538,26 +555,29 @@
               type="number"
               variant="outlined"
               :disabled="actionLoading"
+              density="compact"
             />
           </v-col>
           <v-col cols="3">
             <v-select
               v-model="editForm.read_status"
-              label="Read Status"
+              label="Status"
               :items="readStatusOptions"
               variant="outlined"
               :disabled="actionLoading"
+              density="compact"
             />
           </v-col>
         </v-row>
 
-        <v-row class="form-row">
+        <v-row dense>
           <v-col cols="6">
             <v-text-field
               v-model="editForm.journal_name"
               label="Journal"
               variant="outlined"
               :disabled="actionLoading"
+              density="compact"
             />
           </v-col>
           <v-col cols="6">
@@ -566,78 +586,80 @@
               label="Conference"
               variant="outlined"
               :disabled="actionLoading"
+              density="compact"
             />
           </v-col>
         </v-row>
 
-        <!-- Additional Fields -->
-        <div class="additional-fields">
-          <v-row>
-            <v-col cols="6">
-              <v-text-field
-                v-model="editForm.doi"
-                label="DOI"
-                variant="outlined"
-                :disabled="actionLoading"
-                prepend-inner-icon="mdi-identifier"
-              />
-            </v-col>
-            <v-col cols="6">
-              <v-text-field
-                v-model="editForm.url"
-                label="URL"
-                variant="outlined"
-                :disabled="actionLoading"
-                prepend-inner-icon="mdi-link"
-              />
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="4">
-              <v-text-field
-                v-model="editForm.volume"
-                label="Volume"
-                variant="outlined"
-                :disabled="actionLoading"
-              />
-            </v-col>
-            <v-col cols="4">
-              <v-text-field
-                v-model="editForm.issue"
-                label="Issue"
-                variant="outlined"
-                :disabled="actionLoading"
-              />
-            </v-col>
-            <v-col cols="4">
-              <v-text-field
-                v-model="editForm.pages"
-                label="Pages"
-                variant="outlined"
-                :disabled="actionLoading"
-              />
-            </v-col>
-          </v-row>
-        </div>
+        <v-row dense>
+          <v-col cols="4">
+            <v-text-field
+              v-model="editForm.volume"
+              label="Volume"
+              variant="outlined"
+              :disabled="actionLoading"
+              density="compact"
+            />
+          </v-col>
+          <v-col cols="4">
+            <v-text-field
+              v-model="editForm.issue"
+              label="Issue"
+              variant="outlined"
+              :disabled="actionLoading"
+              density="compact"
+            />
+          </v-col>
+          <v-col cols="4">
+            <v-text-field
+              v-model="editForm.pages"
+              label="Pages"
+              variant="outlined"
+              :disabled="actionLoading"
+              density="compact"
+            />
+          </v-col>
+        </v-row>
+
+        <v-row dense>
+          <v-col cols="6">
+            <v-text-field
+              v-model="editForm.doi"
+              label="DOI"
+              variant="outlined"
+              :disabled="actionLoading"
+              density="compact"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-text-field
+              v-model="editForm.url"
+              label="URL"
+              variant="outlined"
+              :disabled="actionLoading"
+              density="compact"
+            />
+          </v-col>
+        </v-row>
 
         <!-- Abstract -->
         <v-textarea
           v-model="editForm.abstract_text"
           label="Abstract"
-          rows="5"
+          rows="4"
           variant="outlined"
           :disabled="actionLoading"
           auto-grow
+          class="mt-2"
         />
 
         <!-- Notes -->
         <v-textarea
           v-model="editForm.notes"
           label="Notes"
-          rows="4"
+          rows="3"
           variant="outlined"
           :disabled="actionLoading"
-          placeholder="Add notes..."
           auto-grow
         />
       </div>
@@ -661,122 +683,178 @@
 
   .no-selection {
     height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .details-view,
   .edit-view {
-    height: 100%;
     display: flex;
     flex-direction: column;
+    height: 100%;
   }
 
   .header-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
   }
 
   .paper-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    margin: 0 0 16px 0;
     line-height: 1.4;
+    margin: 0 0 12px 0;
+    color: rgba(0, 0, 0, 0.87);
   }
 
-  .metadata-tags {
+  :global([data-theme='dark']) .paper-title {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .tags-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-
-  .metadata-tags .v-chip {
-    height: 24px;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 16px;
   }
 
   .clickable {
     cursor: pointer;
   }
 
-  .dashed {
-    border-style: dashed !important;
-    background-color: transparent !important;
-  }
-
-  .authors {
+  /* Properties Table */
+  .props-table {
+    width: 100%;
+    border-collapse: collapse;
     margin-bottom: 16px;
-  }
-
-  .labels-section {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-
-  .links-section {
-    margin-bottom: 16px;
-  }
-
-  .link-item {
-    margin-bottom: 4px;
-  }
-
-  .link-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .detail-section {
-    margin-bottom: 20px;
-  }
-
-  .section-label {
-    font-weight: 500;
-    margin-bottom: 8px;
     font-size: 14px;
   }
 
-  .abstract-text {
-    white-space: pre-wrap;
-    line-height: 1.6;
+  .props-table td {
+    padding: 8px 0;
+    vertical-align: top;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.15);
   }
 
-  .notes-card {
-    padding: 12px;
+  .props-table tr:last-child td {
+    border-bottom: none;
   }
 
-  .notes-text {
-    white-space: pre-wrap;
+  .prop-label {
+    width: 80px;
+    color: rgba(0, 0, 0, 0.87);
+    font-weight: 700;
+    white-space: nowrap;
     font-size: 13px;
   }
 
-  .footer-info {
-    margin-top: auto;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  :global([data-theme='dark']) .prop-label {
+    color: rgba(255, 255, 255, 0.9);
   }
 
+  .prop-value {
+    color: rgba(0, 0, 0, 0.87);
+    word-break: break-word;
+    font-weight: 500;
+  }
+
+  :global([data-theme='dark']) .prop-value {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .author-line {
+    line-height: 1.8;
+  }
+
+  .prop-sub {
+    color: rgba(0, 0, 0, 0.5);
+    font-size: 13px;
+  }
+
+  :global([data-theme='dark']) .prop-sub {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .link {
+    color: #1976d2;
+    text-decoration: none;
+  }
+
+  :global([data-theme='dark']) .link {
+    color: #64b5f6;
+  }
+
+  .link:hover {
+    text-decoration: underline;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+  }
+
+  /* Content Sections */
+  .content-section {
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  :global([data-theme='dark']) .section-title {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .section-text {
+    font-size: 14px;
+    line-height: 1.7;
+    margin: 0;
+    white-space: pre-wrap;
+    color: rgba(0, 0, 0, 0.8);
+  }
+
+  :global([data-theme='dark']) .section-text {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .section-text.notes {
+    padding: 10px 12px;
+    background: rgba(25, 118, 210, 0.08);
+    border-radius: 6px;
+    border-left: 3px solid #1976d2;
+  }
+
+  :global([data-theme='dark']) .section-text.notes {
+    background: rgba(100, 181, 246, 0.1);
+    border-left-color: #64b5f6;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: auto;
+    padding-top: 12px;
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: rgba(0, 0, 0, 0.5);
+    border-top: 1px solid rgba(128, 128, 128, 0.15);
+  }
+
+  :global([data-theme='dark']) .footer {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Edit Form */
   .edit-form {
     flex: 1;
-  }
-
-  .form-row {
-    margin-bottom: 0;
-  }
-
-  .additional-fields {
-    margin-bottom: 16px;
-    padding: 12px;
-    background-color: rgba(var(--v-theme-surface-variant), 0.3);
-    border-radius: 8px;
-  }
-
-  .title-input :deep(.v-field__input) {
-    font-size: 16px;
-    font-weight: 500;
+    overflow-y: auto;
   }
 </style>

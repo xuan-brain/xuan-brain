@@ -89,6 +89,10 @@ pub struct PaperDetailDto {
     pub labels: Vec<LabelDto>,
     pub category_id: Option<String>,
     pub category_name: Option<String>,
+    pub attachments: Vec<AttachmentDto>,
+    pub attachment_count: usize,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

@@ -159,6 +159,20 @@ pub async fn get_paper(
             None
         };
 
+        // Get attachments
+        let attachments = PaperRepository::get_attachments(&db, paper.id).await?;
+        let attachment_dtos: Vec<AttachmentDto> = attachments
+            .iter()
+            .map(|a| AttachmentDto {
+                id: a.id.to_string(),
+                paper_id: paper.id.to_string(),
+                file_name: a.file_name.clone(),
+                file_type: a.file_type.clone(),
+                created_at: Some(a.created_at.to_rfc3339()),
+            })
+            .collect();
+        let attachment_count = attachment_dtos.len();
+
         Ok(Some(PaperDetailDto {
             id: paper.id.to_string(),
             title: paper.title,
@@ -179,6 +193,10 @@ pub async fn get_paper(
             labels: label_dtos,
             category_id: category_id.map(|id| id.to_string()),
             category_name,
+            attachments: attachment_dtos,
+            attachment_count,
+            created_at: Some(paper.created_at.to_rfc3339()),
+            updated_at: Some(paper.updated_at.to_rfc3339()),
         }))
     } else {
         info!("Paper id {} not found", id);

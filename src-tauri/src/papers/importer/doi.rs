@@ -241,6 +241,52 @@ mod tests {
         println!("URL: {:?}", metadata.url);
     }
 
+    /// Test to print detailed DOI metadata for inspection
+    #[tokio::test]
+    async fn test_print_doi_metadata_detail() {
+        // Use a well-known DOI
+        let doi = "10.1016/j.precisioneng.2019.10.013";
+
+        println!("\n========== DOI Metadata Test ==========");
+        println!("Fetching DOI: {}", doi);
+
+        let result = fetch_doi_metadata(doi).await;
+
+        match result {
+            Ok(metadata) => {
+                println!("\n--- Successfully fetched metadata ---");
+                println!("DOI: {}", metadata.doi);
+                println!("Title: {}", metadata.title);
+                println!("Authors ({}):", metadata.authors.len());
+                for (i, author) in metadata.authors.iter().enumerate() {
+                    println!("  {}. {}", i + 1, author);
+                }
+                println!("Publication Year: {:?}", metadata.publication_year);
+                println!("Journal Name: {:?}", metadata.journal_name);
+                println!("Volume: {:?}", metadata.volume);
+                println!("Issue: {:?}", metadata.issue);
+                println!("Pages: {:?}", metadata.pages);
+                println!("Publisher: {:?}", metadata.publisher);
+                println!("URL: {:?}", metadata.url);
+                println!(
+                    "Abstract: {:?}",
+                    metadata.abstract_text.as_ref().map(|s| {
+                        if s.len() > 200 {
+                            format!("{}...", &s[..200])
+                        } else {
+                            s.clone()
+                        }
+                    })
+                );
+            }
+            Err(e) => {
+                println!("Error fetching DOI: {}", e);
+                panic!("Test failed: {:?}", e);
+            }
+        }
+        println!("========== End DOI Test ==========\n");
+    }
+
     #[test]
     fn test_is_valid_doi() {
         // Valid DOIs

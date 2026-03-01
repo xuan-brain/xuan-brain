@@ -18,6 +18,17 @@ pub struct AttachmentDto {
     pub created_at: Option<String>,
 }
 
+/// Result DTO for paper import operations
+#[derive(Serialize)]
+pub struct ImportResultDto {
+    /// Whether the paper already exists in the database
+    pub already_exists: bool,
+    /// Message describing the result
+    pub message: String,
+    /// The paper data (None if already exists)
+    pub paper: Option<PaperDto>,
+}
+
 #[derive(Serialize)]
 pub struct PdfAttachmentInfo {
     pub file_path: String,

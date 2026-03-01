@@ -3,6 +3,7 @@ use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 use reqwest::multipart;
 use std::path::Path;
+use std::time::Duration;
 use tokio::fs;
 use tracing::info;
 
@@ -34,15 +35,21 @@ pub async fn process_header_document(file_path: &Path, server_url: &str) -> Resu
 
     let form = multipart::Form::new().part("input", file_part);
 
-    // 2. Send request
-    let client = reqwest::Client::builder().no_proxy().build().map_err(|e| {
-        AppError::network_error(server_url, format!("Failed to create client: {}", e))
-    })?;
+    // 2. Send request with timeout
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(Duration::from_secs(60)) // 60 seconds timeout
+        .build()
+        .map_err(|e| {
+            AppError::network_error(server_url, format!("Failed to create client: {}", e))
+        })?;
 
     let url = format!(
         "{}/api/processHeaderDocument",
         server_url.trim_end_matches('/')
     );
+
+    info!("Sending PDF to GROBID server: {}", url);
 
     let response = client
         .post(&url)
@@ -50,16 +57,22 @@ pub async fn process_header_document(file_path: &Path, server_url: &str) -> Resu
         .multipart(form)
         .send()
         .await
-        .map_err(|e| AppError::network_error(&url, format!("GROBID request failed: {}", e)))?;
+        .map_err(|e| {
+            info!("GROBID request failed: {}", e);
+            AppError::network_error(&url, format!("GROBID request failed: {}", e))
+        })?;
 
     if !response.status().is_success() {
+        let status = response.status();
+        info!("GROBID returned non-success status: {}", status);
         return Err(AppError::network_error(
             &url,
-            format!("GROBID returned status: {}", response.status()),
+            format!("GROBID returned status: {}", status),
         ));
     }
 
     let xml_content = response.text().await.map_err(|e| {
+        info!("Failed to read GROBID response: {}", e);
         AppError::network_error(&url, format!("Failed to read GROBID response: {}", e))
     })?;
 

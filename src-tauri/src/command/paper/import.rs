@@ -28,7 +28,7 @@ pub async fn import_paper_by_doi(
     doi: String,
     category_id: Option<String>,
     db: State<'_, Arc<DatabaseConnection>>,
-) -> Result<PaperDto> {
+) -> Result<ImportResultDto> {
     info!("Importing paper with DOI: {}", doi);
 
     // Fetch metadata from DOI
@@ -44,14 +44,20 @@ pub async fn import_paper_by_doi(
     })?;
 
     // Check if paper already exists
-    if PaperRepository::find_by_doi(&db, &metadata.doi)
-        .await?
-        .is_some()
-    {
-        return Err(AppError::validation(
-            "doi",
-            format!("Paper with DOI {} already exists", metadata.doi),
-        ));
+    if let Some(existing_paper) = PaperRepository::find_by_doi(&db, &metadata.doi).await? {
+        info!("Paper with DOI {} already exists: {}", metadata.doi, existing_paper.title);
+        let _ = app
+            .notification()
+            .builder()
+            .title("Paper Already Exists")
+            .body(format!("Paper '{}' is already in your library", existing_paper.title))
+            .show();
+
+        return Ok(ImportResultDto {
+            already_exists: true,
+            message: format!("Paper '{}' is already in your library", existing_paper.title),
+            paper: None,
+        });
     }
 
     // Calculate attachment path hash
@@ -69,9 +75,9 @@ pub async fn import_paper_by_doi(
             publication_date: None,
             journal_name: metadata.journal_name.clone(),
             conference_name: None,
-            volume: None,
-            issue: None,
-            pages: None,
+            volume: metadata.volume.clone(),
+            issue: metadata.issue.clone(),
+            pages: metadata.pages.clone(),
             url: metadata.url.clone(),
             abstract_text: metadata.abstract_text.clone(),
             attachment_path: Some(hash_string),
@@ -81,12 +87,11 @@ pub async fn import_paper_by_doi(
 
     let paper_id = paper.id;
 
-    // Add authors
+    // Add authors and create paper-author relations
     for (order, author_name) in metadata.authors.iter().enumerate() {
         let author = AuthorRepository::create_or_find(&db, author_name, None).await?;
-        // Note: Need to implement add_author in PaperRepository for SQLite
-        // For now, this will need a separate paper_author relation creation
-        let _ = (order, author.id);
+        // Create paper-author relation
+        PaperRepository::add_author(&db, paper_id, author.id, order as i32).await?;
     }
 
     // Link category if provided
@@ -109,16 +114,20 @@ pub async fn import_paper_by_doi(
         .body(format!("Paper '{}' imported successfully", paper.title))
         .show();
 
-    Ok(PaperDto {
-        id: paper_id.to_string(),
-        title: paper.title,
-        publication_year: paper.publication_year,
-        journal_name: paper.journal_name,
-        conference_name: paper.conference_name,
-        authors: metadata.authors,
-        labels: vec![],
-        attachment_count: 0,
-        attachments: vec![],
+    Ok(ImportResultDto {
+        already_exists: false,
+        message: format!("Paper '{}' imported successfully", paper.title),
+        paper: Some(PaperDto {
+            id: paper_id.to_string(),
+            title: paper.title,
+            publication_year: paper.publication_year,
+            journal_name: paper.journal_name,
+            conference_name: paper.conference_name,
+            authors: metadata.authors,
+            labels: vec![],
+            attachment_count: 0,
+            attachments: vec![],
+        }),
     })
 }
 
@@ -129,7 +138,7 @@ pub async fn import_paper_by_arxiv_id(
     arxiv_id: String,
     category_id: Option<String>,
     db: State<'_, Arc<DatabaseConnection>>,
-) -> Result<PaperDto> {
+) -> Result<ImportResultDto> {
     info!("Importing paper with arXiv ID: {}", arxiv_id);
 
     let metadata = fetch_arxiv_metadata(&arxiv_id).await.map_err(|e| match e {
@@ -148,11 +157,20 @@ pub async fn import_paper_by_arxiv_id(
 
     // Check if paper already exists by DOI
     if let Some(doi) = &metadata.doi {
-        if PaperRepository::find_by_doi(&db, doi).await?.is_some() {
-            return Err(AppError::validation(
-                "doi",
-                format!("Paper with DOI {} already exists", doi),
-            ));
+        if let Some(existing_paper) = PaperRepository::find_by_doi(&db, doi).await? {
+            info!("Paper with DOI {} already exists: {}", doi, existing_paper.title);
+            let _ = app
+                .notification()
+                .builder()
+                .title("Paper Already Exists")
+                .body(format!("Paper '{}' is already in your library", existing_paper.title))
+                .show();
+
+            return Ok(ImportResultDto {
+                already_exists: true,
+                message: format!("Paper '{}' is already in your library", existing_paper.title),
+                paper: None,
+            });
         }
     }
 
@@ -184,8 +202,11 @@ pub async fn import_paper_by_arxiv_id(
 
     let paper_id = paper.id;
 
-    for author_name in metadata.authors.iter() {
-        let _author = AuthorRepository::create_or_find(&db, author_name, None).await?;
+    // Add authors and create paper-author relations
+    for (order, author_name) in metadata.authors.iter().enumerate() {
+        let author = AuthorRepository::create_or_find(&db, author_name, None).await?;
+        // Create paper-author relation
+        PaperRepository::add_author(&db, paper_id, author.id, order as i32).await?;
     }
 
     if let Some(cat_id) = category_id {
@@ -202,16 +223,20 @@ pub async fn import_paper_by_arxiv_id(
         .body(format!("Paper '{}' imported successfully", paper.title))
         .show();
 
-    Ok(PaperDto {
-        id: paper_id.to_string(),
-        title: paper.title,
-        publication_year: paper.publication_year,
-        journal_name: paper.journal_name,
-        conference_name: paper.conference_name,
-        authors: metadata.authors,
-        labels: vec![],
-        attachment_count: 0,
-        attachments: vec![],
+    Ok(ImportResultDto {
+        already_exists: false,
+        message: format!("Paper '{}' imported successfully", paper.title),
+        paper: Some(PaperDto {
+            id: paper_id.to_string(),
+            title: paper.title,
+            publication_year: paper.publication_year,
+            journal_name: paper.journal_name,
+            conference_name: paper.conference_name,
+            authors: metadata.authors,
+            labels: vec![],
+            attachment_count: 0,
+            attachments: vec![],
+        }),
     })
 }
 
@@ -222,7 +247,7 @@ pub async fn import_paper_by_pmid(
     pmid: String,
     category_id: Option<String>,
     db: State<'_, Arc<DatabaseConnection>>,
-) -> Result<PaperDto> {
+) -> Result<ImportResultDto> {
     info!("Importing paper with PMID: {}", pmid);
 
     let metadata = fetch_pubmed_metadata(&pmid).await.map_err(|e| match e {
@@ -243,11 +268,20 @@ pub async fn import_paper_by_pmid(
     })?;
 
     if let Some(doi) = &metadata.doi {
-        if PaperRepository::find_by_doi(&db, doi).await?.is_some() {
-            return Err(AppError::validation(
-                "doi",
-                format!("Paper with DOI {} already exists", doi),
-            ));
+        if let Some(existing_paper) = PaperRepository::find_by_doi(&db, doi).await? {
+            info!("Paper with DOI {} already exists: {}", doi, existing_paper.title);
+            let _ = app
+                .notification()
+                .builder()
+                .title("Paper Already Exists")
+                .body(format!("Paper '{}' is already in your library", existing_paper.title))
+                .show();
+
+            return Ok(ImportResultDto {
+                already_exists: true,
+                message: format!("Paper '{}' is already in your library", existing_paper.title),
+                paper: None,
+            });
         }
     }
 
@@ -276,8 +310,11 @@ pub async fn import_paper_by_pmid(
 
     let paper_id = paper.id;
 
-    for author_name in metadata.authors.iter() {
-        let _author = AuthorRepository::create_or_find(&db, author_name, None).await?;
+    // Add authors and create paper-author relations
+    for (order, author_name) in metadata.authors.iter().enumerate() {
+        let author = AuthorRepository::create_or_find(&db, author_name, None).await?;
+        // Create paper-author relation
+        PaperRepository::add_author(&db, paper_id, author.id, order as i32).await?;
     }
 
     if let Some(cat_id) = category_id {
@@ -294,16 +331,20 @@ pub async fn import_paper_by_pmid(
         .body(format!("Paper '{}' imported successfully", paper.title))
         .show();
 
-    Ok(PaperDto {
-        id: paper_id.to_string(),
-        title: paper.title,
-        publication_year: paper.publication_year,
-        journal_name: paper.journal_name,
-        conference_name: paper.conference_name,
-        authors: metadata.authors,
-        labels: vec![],
-        attachment_count: 0,
-        attachments: vec![],
+    Ok(ImportResultDto {
+        already_exists: false,
+        message: format!("Paper '{}' imported successfully", paper.title),
+        paper: Some(PaperDto {
+            id: paper_id.to_string(),
+            title: paper.title,
+            publication_year: paper.publication_year,
+            journal_name: paper.journal_name,
+            conference_name: paper.conference_name,
+            authors: metadata.authors,
+            labels: vec![],
+            attachment_count: 0,
+            attachments: vec![],
+        }),
     })
 }
 
@@ -315,7 +356,7 @@ pub async fn import_paper_by_pdf(
     app_dirs: State<'_, AppDirs>,
     file_path: String,
     category_id: Option<String>,
-) -> Result<PaperDto> {
+) -> Result<ImportResultDto> {
     info!("Importing paper from PDF: {}", file_path);
     let path = PathBuf::from(&file_path);
     if !path.exists() {
@@ -333,11 +374,31 @@ pub async fn import_paper_by_pdf(
         .map(|s| s.url.clone())
         .unwrap_or_else(|| "https://kermitt2-grobid.hf.space".to_string());
 
+    info!("Using GROBID server: {}", grobid_url);
+
+    // Try to get metadata from GROBID, but don't fail the whole import if it fails
     let metadata_result = process_header_document(&path, &grobid_url).await;
 
     let (title, metadata) = match metadata_result {
-        Ok(m) if !m.title.is_empty() => (m.title.clone(), m),
-        _ => {
+        Ok(m) if !m.title.is_empty() => {
+            info!("Successfully extracted metadata from GROBID");
+            (m.title.clone(), m)
+        }
+        Ok(m) => {
+            info!("GROBID returned empty title, using filename");
+            let filename = path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let m = crate::papers::importer::grobid::GrobidMetadata {
+                title: filename.clone(),
+                ..m
+            };
+            (filename, m)
+        }
+        Err(e) => {
+            info!("GROBID extraction failed: {}, using filename as title", e);
             let filename = path
                 .file_stem()
                 .unwrap_or_default()
@@ -351,8 +412,31 @@ pub async fn import_paper_by_pdf(
         }
     };
 
+    info!("Using title: {}", title);
+
+    // Check if paper already exists by DOI (if available)
+    if let Some(ref doi) = metadata.doi {
+        if let Some(existing_paper) = PaperRepository::find_by_doi(&db, doi).await? {
+            info!("Paper with DOI {} already exists: {}", doi, existing_paper.title);
+            let _ = app
+                .notification()
+                .builder()
+                .title("Paper Already Exists")
+                .body(format!("Paper '{}' is already in your library", existing_paper.title))
+                .show();
+
+            return Ok(ImportResultDto {
+                already_exists: true,
+                message: format!("Paper '{}' is already in your library", existing_paper.title),
+                paper: None,
+            });
+        }
+    }
+
     let target_filename = path.file_name().unwrap().to_string_lossy().to_string();
     let hash_string = calculate_attachment_hash(&title);
+
+    info!("Creating paper record with hash: {}", hash_string);
 
     let paper = PaperRepository::create(
         &db,
@@ -374,9 +458,13 @@ pub async fn import_paper_by_pdf(
     .await?;
 
     let paper_id = paper.id;
+    info!("Created paper with ID: {}", paper_id);
 
-    for author_name in metadata.authors.iter() {
-        let _author = AuthorRepository::create_or_find(&db, author_name, None).await?;
+    // Add authors and create paper-author relations
+    for (order, author_name) in metadata.authors.iter().enumerate() {
+        let author = AuthorRepository::create_or_find(&db, author_name, None).await?;
+        // Create paper-author relation
+        PaperRepository::add_author(&db, paper_id, author.id, order as i32).await?;
     }
 
     if let Some(cat_id) = category_id {
@@ -394,12 +482,18 @@ pub async fn import_paper_by_pdf(
         })?;
     }
     let target_path = target_dir.join(&target_filename);
+
+    info!("Copying PDF to: {:?}", target_path);
+
     std::fs::copy(&path, &target_path).map_err(|e| {
         AppError::file_system(target_path.to_string_lossy().to_string(), e.to_string())
     })?;
 
     // Create attachment record
     let file_size = std::fs::metadata(&target_path).ok().map(|m| m.len() as i64);
+
+    info!("Creating attachment record");
+
     PaperRepository::add_attachment(
         &db,
         paper_id,
@@ -409,6 +503,8 @@ pub async fn import_paper_by_pdf(
     )
     .await?;
 
+    info!("PDF import completed successfully");
+
     let _ = app
         .notification()
         .builder()
@@ -416,21 +512,25 @@ pub async fn import_paper_by_pdf(
         .body(format!("Paper '{}' imported successfully", paper.title))
         .show();
 
-    Ok(PaperDto {
-        id: paper_id.to_string(),
-        title: paper.title,
-        publication_year: paper.publication_year,
-        journal_name: paper.journal_name,
-        conference_name: paper.conference_name,
-        authors: metadata.authors,
-        labels: vec![],
-        attachment_count: 1,
-        attachments: vec![AttachmentDto {
-            id: String::new(),
-            paper_id: paper_id.to_string(),
-            file_name: Some(target_filename),
-            file_type: Some("pdf".to_string()),
-            created_at: None,
-        }],
+    Ok(ImportResultDto {
+        already_exists: false,
+        message: format!("Paper '{}' imported successfully", paper.title),
+        paper: Some(PaperDto {
+            id: paper_id.to_string(),
+            title: paper.title,
+            publication_year: paper.publication_year,
+            journal_name: paper.journal_name,
+            conference_name: paper.conference_name,
+            authors: metadata.authors,
+            labels: vec![],
+            attachment_count: 1,
+            attachments: vec![AttachmentDto {
+                id: String::new(),
+                paper_id: paper_id.to_string(),
+                file_name: Some(target_filename),
+                file_type: Some("pdf".to_string()),
+                created_at: None,
+            }],
+        }),
     })
 }

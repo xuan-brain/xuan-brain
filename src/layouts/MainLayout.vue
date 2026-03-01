@@ -149,8 +149,16 @@
 
         <v-spacer />
 
-        <!-- Settings at bottom -->
+        <!-- Bottom navigation: Import and Settings -->
         <v-list density="compact">
+          <v-list-item
+            prepend-icon="mdi-book-plus-multiple"
+            value="import"
+            :title="t('navigation.import')"
+            rounded="lg"
+            :active="currentRoute === '/import'"
+            @click="navigateTo('/import')"
+          />
           <v-list-item
             prepend-icon="mdi-cog"
             value="settings"

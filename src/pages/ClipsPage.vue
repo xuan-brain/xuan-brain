@@ -3,7 +3,7 @@
   import ClipList from '@/components/clips/ClipList.vue';
   import type { ClippingResponse } from '@/lib/api/clips';
   import { listClips } from '@/lib/api/clips';
-  import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
 
   // Panel widths (in percentage)
   const STORAGE_KEY = 'clips-page-panel-widths';

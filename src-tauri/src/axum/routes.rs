@@ -39,6 +39,15 @@ pub fn create_router(state: AppState) -> Router {
             "/api/categories",
             get(handlers::categories::list_categories),
         )
+        .route(
+            "/api/categories/tree",
+            get(handlers::categories::get_category_tree),
+        )
+        .route(
+            "/api/categories/selected",
+            get(handlers::categories::get_selected_category)
+                .put(handlers::categories::set_selected_category),
+        )
         // Labels
         .route("/api/labels", get(handlers::labels::list_labels))
         // Swagger UI (always available for debugging)

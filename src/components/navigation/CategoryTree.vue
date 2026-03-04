@@ -113,15 +113,27 @@
   }
 
   // Handle node selection
-  function handleNodeClick(node: CategoryNode) {
+  async function handleNodeClick(node: CategoryNode) {
     if (selectedId.value === node.id) {
       // If already selected, deselect all
       selectedId.value = null;
       emit('categorySelect', null);
+      // Sync to backend
+      try {
+        await invokeCommand('set_selected_category', { categoryId: null });
+      } catch (error) {
+        console.error('Failed to sync category selection to backend:', error);
+      }
     } else {
       // Select the clicked node
       selectedId.value = node.id;
       emit('categorySelect', node.id);
+      // Sync to backend
+      try {
+        await invokeCommand('set_selected_category', { categoryId: node.id });
+      } catch (error) {
+        console.error('Failed to sync category selection to backend:', error);
+      }
     }
   }
 

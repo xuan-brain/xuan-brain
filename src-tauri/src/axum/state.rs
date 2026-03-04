@@ -1,3 +1,4 @@
+use std::sync::atomic::AtomicI64;
 use std::sync::Arc;
 
 use tauri::AppHandle;
@@ -10,6 +11,8 @@ pub struct AppState {
     pub db: Arc<DatabaseConnection>,
     pub app_dirs: AppDirs,
     pub app_handle: Option<Arc<AppHandle>>,
+    /// Currently selected category ID (-1 means none selected)
+    pub selected_category_id: Arc<AtomicI64>,
 }
 
 impl AppState {
@@ -18,6 +21,7 @@ impl AppState {
             db,
             app_dirs,
             app_handle: None,
+            selected_category_id: Arc::new(AtomicI64::new(-1)),
         }
     }
 
@@ -30,6 +34,7 @@ impl AppState {
             db,
             app_dirs,
             app_handle: Some(Arc::new(app_handle)),
+            selected_category_id: Arc::new(AtomicI64::new(-1)),
         }
     }
 }

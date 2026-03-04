@@ -13,7 +13,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::command::category_command::{
-    create_category, delete_category, load_categories, move_category, reorder_tree, update_category,
+    create_category, delete_category, get_selected_category, load_categories, move_category,
+    reorder_tree, set_selected_category, update_category,
 };
 use crate::command::clip_command::{
     add_clip_comment, create_clip, delete_clip_comment, get_clip, list_clips, update_clip_comment,
@@ -33,6 +34,7 @@ use crate::command::paper::{
     update_paper_category, update_paper_details,
 };
 use crate::command::search_command::{search_papers, search_papers_with_score};
+use crate::axum::state::SelectedCategoryState;
 use crate::database::connection::init_sqlite_connection;
 use crate::database::DatabaseConnection;
 use crate::sys::error::Result;
@@ -100,11 +102,16 @@ pub fn run() -> Result<()> {
                     let db_arc: Arc<DatabaseConnection> = db;
                     app_handle.manage(db_arc.clone());
 
+                    // Create and register shared selected category state
+                    let selected_category_state = SelectedCategoryState::new();
+                    app_handle.manage(selected_category_state.clone());
+
                     // Start Axum API server with SQLite
                     crate::axum::start_axum_server_with_handle(
                         db_arc,
                         app_dirs_for_db,
                         app_handle_for_axum,
+                        selected_category_state,
                     );
                 }
                 Err(e) => {
@@ -166,6 +173,8 @@ pub fn run() -> Result<()> {
             update_category,
             move_category,
             reorder_tree,
+            set_selected_category,
+            get_selected_category,
             get_all_papers,
             get_deleted_papers,
             get_papers_by_category,

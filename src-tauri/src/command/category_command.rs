@@ -5,6 +5,7 @@ use tauri::{AppHandle, State};
 use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
+use crate::axum::state::SelectedCategoryState;
 use crate::database::DatabaseConnection;
 use crate::models::{CreateCategory, UpdateCategory};
 use crate::repository::{CategoryRepository, TreeNodeData};
@@ -235,4 +236,43 @@ pub struct TreeNodeDto {
     pub name: String,
     #[serde(default)]
     pub children: Vec<TreeNodeDto>,
+}
+
+/// Set the selected category
+///
+/// Stores the selected category ID in shared state.
+/// Pass None to deselect.
+#[tauri::command]
+#[instrument(skip(selected_category))]
+pub async fn set_selected_category(
+    selected_category: State<'_, SelectedCategoryState>,
+    category_id: Option<String>,
+) -> Result<()> {
+    let id = match category_id {
+        Some(id_str) => {
+            let id = id_str
+                .parse::<i64>()
+                .map_err(|_| crate::sys::error::AppError::validation("category_id", "Invalid category ID format"))?;
+            Some(id)
+        }
+        None => None,
+    };
+
+    selected_category.set(id);
+    info!("Selected category set to: {:?}", id);
+    Ok(())
+}
+
+/// Get the selected category
+///
+/// Returns the currently selected category ID, or None if no selection.
+#[tauri::command]
+#[instrument(skip(selected_category))]
+pub async fn get_selected_category(
+    selected_category: State<'_, SelectedCategoryState>,
+) -> Result<Option<String>> {
+    let id = selected_category.get();
+    let result = id.map(|i| i.to_string());
+    info!("Getting selected category: {:?}", result);
+    Ok(result)
 }

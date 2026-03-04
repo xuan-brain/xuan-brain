@@ -1,5 +1,4 @@
 use axum::{extract::State, http::StatusCode, Json};
-use std::sync::atomic::Ordering;
 use utoipa::ToSchema;
 
 use crate::axum::error::ApiError;
@@ -133,16 +132,10 @@ pub async fn get_category_tree(
 pub async fn get_selected_category(
     State(state): State<AppState>,
 ) -> Result<Json<SelectedCategoryResponse>, ApiError> {
-    let selected_id = state.selected_category_id.load(Ordering::SeqCst);
+    let selected_id = state.selected_category.get();
 
-    let response = if selected_id < 0 {
-        SelectedCategoryResponse {
-            selected_category_id: None,
-        }
-    } else {
-        SelectedCategoryResponse {
-            selected_category_id: Some(selected_id.to_string()),
-        }
+    let response = SelectedCategoryResponse {
+        selected_category_id: selected_id.map(|id| id.to_string()),
     };
 
     Ok(Json(response))
@@ -183,12 +176,12 @@ pub async fn set_selected_category(
                     return Err(ApiError(AppError::not_found("Category", id_str)));
                 }
             }
-            id
+            Some(id)
         }
-        None => -1, // -1 means no selection
+        None => None,
     };
 
-    state.selected_category_id.store(id_value, Ordering::SeqCst);
+    state.selected_category.set(id_value);
 
     Ok(StatusCode::OK)
 }

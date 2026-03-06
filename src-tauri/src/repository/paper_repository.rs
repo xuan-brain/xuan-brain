@@ -90,6 +90,9 @@ impl PaperRepository {
             created_at: Set(now),
             updated_at: Set(now),
             deleted_at: Set(None),
+            publisher: Set(create.publisher),
+            issn: Set(create.issn),
+            language: Set(create.language),
             ..Default::default()
         };
 
@@ -151,6 +154,16 @@ impl PaperRepository {
         }
         if let Some(attachment_path) = update.attachment_path {
             paper.attachment_path = Set(Some(attachment_path));
+        }
+        // New fields for Zotero import support
+        if let Some(publisher) = update.publisher {
+            paper.publisher = Set(Some(publisher));
+        }
+        if let Some(issn) = update.issn {
+            paper.issn = Set(Some(issn));
+        }
+        if let Some(language) = update.language {
+            paper.language = Set(Some(language));
         }
 
         paper.updated_at = Set(chrono::Utc::now());

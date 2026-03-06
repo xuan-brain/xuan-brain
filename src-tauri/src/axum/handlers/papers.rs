@@ -231,6 +231,9 @@ pub async fn import_paper_from_html(
         url: metadata.url.filter(|u| !u.is_empty()),
         abstract_text: metadata.abstract_text,
         attachment_path: Some(hash_string),
+        publisher: None,
+        issn: None,
+        language: None,
     }).await.map_err(ApiError)?;
 
     let paper_id = paper.id;

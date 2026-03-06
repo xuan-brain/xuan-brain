@@ -81,6 +81,9 @@ pub async fn import_paper_by_doi(
             url: metadata.url.clone(),
             abstract_text: metadata.abstract_text.clone(),
             attachment_path: Some(hash_string),
+            publisher: metadata.publisher.clone(),
+            issn: None,
+            language: None,
         },
     )
     .await?;
@@ -141,6 +144,9 @@ pub async fn import_paper_by_doi(
             labels: vec![],
             attachment_count: 0,
             attachments: vec![],
+            publisher: paper.publisher,
+            issn: paper.issn,
+            language: paper.language,
         }),
     })
 }
@@ -211,6 +217,9 @@ pub async fn import_paper_by_arxiv_id(
             url: Some(metadata.pdf_url.clone()),
             abstract_text: Some(metadata.summary.clone()),
             attachment_path: Some(hash_string.clone()),
+            publisher: None,
+            issn: None,
+            language: None,
         },
     )
     .await?;
@@ -310,6 +319,9 @@ pub async fn import_paper_by_arxiv_id(
                 file_type: Some("pdf".to_string()),
                 created_at: None,
             }],
+            publisher: paper.publisher,
+            issn: paper.issn,
+            language: paper.language,
         }),
     })
 }
@@ -378,6 +390,9 @@ pub async fn import_paper_by_pmid(
             url: Some(pubmed_url),
             abstract_text: metadata.abstract_text.clone(),
             attachment_path: Some(hash_string),
+            publisher: None,
+            issn: None,
+            language: None,
         },
     )
     .await?;
@@ -432,6 +447,9 @@ pub async fn import_paper_by_pmid(
             labels: vec![],
             attachment_count: 0,
             attachments: vec![],
+            publisher: paper.publisher,
+            issn: paper.issn,
+            language: paper.language,
         }),
     })
 }
@@ -541,6 +559,9 @@ pub async fn import_paper_by_pdf(
             url: None,
             abstract_text: metadata.abstract_text.clone(),
             attachment_path: Some(hash_string.clone()),
+            publisher: None,
+            issn: None,
+            language: None,
         },
     )
     .await?;
@@ -619,6 +640,9 @@ pub async fn import_paper_by_pdf(
                 file_type: Some("pdf".to_string()),
                 created_at: None,
             }],
+            publisher: paper.publisher,
+            issn: paper.issn,
+            language: paper.language,
         }),
     })
 }

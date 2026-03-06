@@ -572,7 +572,7 @@ impl MigrationTrait for Migration {
 
 // Paper table
 #[derive(Iden)]
-enum Paper {
+pub enum Paper {
     Table,
     Id,
     Title,
@@ -593,6 +593,10 @@ enum Paper {
     CreatedAt,
     UpdatedAt,
     DeletedAt,
+    // New fields for Zotero import support
+    Publisher,
+    Issn,
+    Language,
 }
 
 // Author table

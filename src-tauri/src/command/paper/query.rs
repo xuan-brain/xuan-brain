@@ -59,6 +59,9 @@ pub async fn get_all_papers(db: State<'_, Arc<DatabaseConnection>>) -> Result<Ve
             labels: label_dtos,
             attachment_count: attachment_dtos.len(),
             attachments: attachment_dtos,
+            publisher: paper.publisher,
+            issn: paper.issn,
+            language: paper.language,
         });
     }
 
@@ -113,6 +116,9 @@ pub async fn get_deleted_papers(db: State<'_, Arc<DatabaseConnection>>) -> Resul
             labels: label_dtos,
             attachment_count: attachment_dtos.len(),
             attachments: attachment_dtos,
+            publisher: paper.publisher,
+            issn: paper.issn,
+            language: paper.language,
         });
     }
 
@@ -197,6 +203,9 @@ pub async fn get_paper(
             attachment_count,
             created_at: Some(paper.created_at.to_rfc3339()),
             updated_at: Some(paper.updated_at.to_rfc3339()),
+            publisher: paper.publisher,
+            issn: paper.issn,
+            language: paper.language,
         }))
     } else {
         info!("Paper id {} not found", id);
@@ -257,6 +266,9 @@ pub async fn get_papers_by_category(
             labels: label_dtos,
             attachment_count: attachment_dtos.len(),
             attachments: attachment_dtos,
+            publisher: paper.publisher,
+            issn: paper.issn,
+            language: paper.language,
         });
     }
 

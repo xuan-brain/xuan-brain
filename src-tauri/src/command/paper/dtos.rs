@@ -66,6 +66,10 @@ pub struct PaperDto {
     pub labels: Vec<LabelDto>,
     pub attachment_count: usize,
     pub attachments: Vec<AttachmentDto>,
+    // New fields for Zotero import support
+    pub publisher: Option<String>,
+    pub issn: Option<String>,
+    pub language: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -93,6 +97,10 @@ pub struct PaperDetailDto {
     pub attachment_count: usize,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    // New fields for Zotero import support
+    pub publisher: Option<String>,
+    pub issn: Option<String>,
+    pub language: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -110,4 +118,8 @@ pub struct UpdatePaperDto {
     pub abstract_text: Option<String>,
     pub notes: Option<String>,
     pub read_status: Option<String>,
+    // New fields for Zotero import support
+    pub publisher: Option<String>,
+    pub issn: Option<String>,
+    pub language: Option<String>,
 }

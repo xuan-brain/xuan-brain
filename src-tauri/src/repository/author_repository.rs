@@ -4,7 +4,7 @@ use sea_orm::*;
 use tracing::info;
 
 use crate::database::entities::{author, paper_author};
-use crate::models::{Author, CreateAuthor};
+use crate::models::{Author, AuthorNameParser, AuthorNameParts, CreateAuthor};
 use crate::sys::error::{AppError, Result};
 
 /// Repository for Author operations
@@ -14,7 +14,7 @@ impl AuthorRepository {
     /// Find all authors
     pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<Author>> {
         let authors = author::Entity::find()
-            .order_by_asc(author::Column::Name)
+            .order_by_asc(author::Column::FirstName)
             .all(db)
             .await
             .map_err(|e| AppError::generic(format!("Failed to query authors: {}", e)))?;
@@ -37,7 +37,8 @@ impl AuthorRepository {
     pub async fn create(db: &DatabaseConnection, create: CreateAuthor) -> Result<Author> {
         let now = chrono::Utc::now();
         let new_author = author::ActiveModel {
-            name: Set(create.name),
+            first_name: Set(create.first_name),
+            last_name: Set(create.last_name),
             affiliation: Set(create.affiliation),
             email: Set(create.email),
             created_at: Set(now),
@@ -52,27 +53,68 @@ impl AuthorRepository {
         Ok(Author::from(result))
     }
 
-    /// Create or find existing author by name and email
+    /// Create or find existing author by full name and email
+    /// This method parses the full name and is used for sources that only provide full names (e.g., arXiv)
     pub async fn create_or_find(
         db: &DatabaseConnection,
-        name: &str,
+        full_name: &str,
         email: Option<&str>,
     ) -> Result<Author> {
-        // Try to find existing author
-        let existing = if let Some(email_val) = email {
-            author::Entity::find()
-                .filter(author::Column::Name.eq(name))
-                .filter(author::Column::Email.eq(email_val))
-                .one(db)
-                .await
-        } else {
-            author::Entity::find()
-                .filter(author::Column::Name.eq(name))
-                .filter(author::Column::Email.is_null())
-                .one(db)
-                .await
+        let name_parts = AuthorNameParser::parse(full_name);
+        Self::create_or_find_by_parts(db, &name_parts, email).await
+    }
+
+    /// Create or find existing author by structured name parts
+    /// This is used for sources that provide given/family names separately (e.g., DOI, PubMed)
+    pub async fn create_or_find_from_parts(
+        db: &DatabaseConnection,
+        given_name: Option<&str>,
+        family_name: Option<&str>,
+        email: Option<&str>,
+    ) -> Result<Author> {
+        let name_parts = AuthorNameParser::from_parts(given_name, family_name);
+        Self::create_or_find_by_parts(db, &name_parts, email).await
+    }
+
+    /// Internal method to create or find by name parts
+    async fn create_or_find_by_parts(
+        db: &DatabaseConnection,
+        name_parts: &AuthorNameParts,
+        email: Option<&str>,
+    ) -> Result<Author> {
+        // Skip if first_name is empty
+        if name_parts.first_name.is_empty() {
+            return Err(AppError::generic("Author first_name cannot be empty"));
         }
-        .map_err(|e| AppError::generic(format!("Failed to query author: {}", e)))?;
+
+        // Build query based on whether last_name and email exist
+        let mut query = author::Entity::find()
+            .filter(author::Column::FirstName.eq(&name_parts.first_name));
+
+        // Handle last_name (can be None or Some)
+        match &name_parts.last_name {
+            Some(last) if !last.is_empty() => {
+                query = query.filter(author::Column::LastName.eq(last));
+            }
+            _ => {
+                query = query.filter(author::Column::LastName.is_null());
+            }
+        }
+
+        // Handle email
+        match email {
+            Some(email_val) => {
+                query = query.filter(author::Column::Email.eq(email_val));
+            }
+            None => {
+                query = query.filter(author::Column::Email.is_null());
+            }
+        }
+
+        let existing = query
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to query author: {}", e)))?;
 
         if let Some(author) = existing {
             return Ok(Author::from(author));
@@ -82,7 +124,8 @@ impl AuthorRepository {
         Self::create(
             db,
             CreateAuthor {
-                name: name.to_string(),
+                first_name: name_parts.first_name.clone(),
+                last_name: name_parts.last_name.clone(),
                 affiliation: None,
                 email: email.map(|s| s.to_string()),
             },
@@ -90,7 +133,7 @@ impl AuthorRepository {
         .await
     }
 
-    /// Get authors for a paper
+    /// Get authors for a paper, ordered by author_order
     pub async fn get_paper_authors(db: &DatabaseConnection, paper_id: i64) -> Result<Vec<Author>> {
         // First get paper_author relations
         let relations = paper_author::Entity::find()
@@ -98,7 +141,9 @@ impl AuthorRepository {
             .order_by_asc(paper_author::Column::AuthorOrder)
             .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get paper-author relations: {}", e)))?;
+            .map_err(|e| {
+                AppError::generic(format!("Failed to get paper-author relations: {}", e))
+            })?;
 
         let author_ids: Vec<i64> = relations.iter().map(|r| r.author_id).collect();
 

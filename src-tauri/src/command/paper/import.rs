@@ -88,8 +88,15 @@ pub async fn import_paper_by_doi(
     let paper_id = paper.id;
 
     // Add authors and create paper-author relations
-    for (order, author_name) in metadata.authors.iter().enumerate() {
-        let author = AuthorRepository::create_or_find(&db, author_name, None).await?;
+    // DOI provides given/family names separately, so use create_or_find_from_parts
+    for (order, author_parts) in metadata.authors.iter().enumerate() {
+        let author = AuthorRepository::create_or_find_from_parts(
+            &db,
+            author_parts.given.as_deref(),
+            author_parts.family.as_deref(),
+            None,
+        )
+        .await?;
         // Create paper-author relation
         PaperRepository::add_author(&db, paper_id, author.id, order as i32).await?;
     }
@@ -114,6 +121,13 @@ pub async fn import_paper_by_doi(
         .body(format!("Paper '{}' imported successfully", paper.title))
         .show();
 
+    // Convert DoiAuthor to string for DTO
+    let author_names: Vec<String> = metadata
+        .authors
+        .iter()
+        .filter_map(|a| a.full_name.clone())
+        .collect();
+
     Ok(ImportResultDto {
         already_exists: false,
         message: format!("Paper '{}' imported successfully", paper.title),
@@ -123,7 +137,7 @@ pub async fn import_paper_by_doi(
             publication_year: paper.publication_year,
             journal_name: paper.journal_name,
             conference_name: paper.conference_name,
-            authors: metadata.authors,
+            authors: author_names,
             labels: vec![],
             attachment_count: 0,
             attachments: vec![],
@@ -371,8 +385,15 @@ pub async fn import_paper_by_pmid(
     let paper_id = paper.id;
 
     // Add authors and create paper-author relations
-    for (order, author_name) in metadata.authors.iter().enumerate() {
-        let author = AuthorRepository::create_or_find(&db, author_name, None).await?;
+    // PubMed provides ForeName/LastName separately, so use create_or_find_from_parts
+    for (order, author_parts) in metadata.authors.iter().enumerate() {
+        let author = AuthorRepository::create_or_find_from_parts(
+            &db,
+            author_parts.fore_name.as_deref(),
+            author_parts.last_name.as_deref(),
+            None,
+        )
+        .await?;
         // Create paper-author relation
         PaperRepository::add_author(&db, paper_id, author.id, order as i32).await?;
     }
@@ -391,6 +412,13 @@ pub async fn import_paper_by_pmid(
         .body(format!("Paper '{}' imported successfully", paper.title))
         .show();
 
+    // Convert PubmedAuthor to string for DTO
+    let author_names: Vec<String> = metadata
+        .authors
+        .iter()
+        .filter_map(|a| a.full_name.clone())
+        .collect();
+
     Ok(ImportResultDto {
         already_exists: false,
         message: format!("Paper '{}' imported successfully", paper.title),
@@ -400,7 +428,7 @@ pub async fn import_paper_by_pmid(
             publication_year: paper.publication_year,
             journal_name: paper.journal_name,
             conference_name: paper.conference_name,
-            authors: metadata.authors,
+            authors: author_names,
             labels: vec![],
             attachment_count: 0,
             attachments: vec![],

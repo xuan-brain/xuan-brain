@@ -36,7 +36,7 @@ pub async fn get_all_papers(db: State<'_, Arc<DatabaseConnection>>) -> Result<Ve
 
         // Get authors
         let authors = AuthorRepository::get_paper_authors(&db, paper.id).await?;
-        let author_names: Vec<String> = authors.iter().map(|a| a.name.clone()).collect();
+        let author_names: Vec<String> = authors.iter().map(|a| a.full_name()).collect();
 
         // Get labels
         let labels = LabelRepository::get_paper_labels(&db, paper.id).await?;
@@ -90,7 +90,7 @@ pub async fn get_deleted_papers(db: State<'_, Arc<DatabaseConnection>>) -> Resul
 
         // Get authors
         let authors = AuthorRepository::get_paper_authors(&db, paper.id).await?;
-        let author_names: Vec<String> = authors.iter().map(|a| a.name.clone()).collect();
+        let author_names: Vec<String> = authors.iter().map(|a| a.full_name()).collect();
 
         // Get labels
         let labels = LabelRepository::get_paper_labels(&db, paper.id).await?;
@@ -136,7 +136,7 @@ pub async fn get_paper(
     if let Some(paper) = paper {
         // Get authors
         let authors = AuthorRepository::get_paper_authors(&db, paper.id).await?;
-        let author_names: Vec<String> = authors.iter().map(|a| a.name.clone()).collect();
+        let author_names: Vec<String> = authors.iter().map(|a| a.full_name()).collect();
 
         // Get labels
         let labels = LabelRepository::get_paper_labels(&db, paper.id).await?;
@@ -234,7 +234,7 @@ pub async fn get_papers_by_category(
 
         // Get authors
         let authors = AuthorRepository::get_paper_authors(&db, paper.id).await?;
-        let author_names: Vec<String> = authors.iter().map(|a| a.name.clone()).collect();
+        let author_names: Vec<String> = authors.iter().map(|a| a.full_name()).collect();
 
         // Get labels
         let labels = LabelRepository::get_paper_labels(&db, paper.id).await?;

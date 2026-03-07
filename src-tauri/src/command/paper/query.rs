@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use serde::Serialize;
 use tauri::State;
 use tracing::{info, instrument};
 
@@ -11,6 +12,25 @@ use crate::sys::error::{AppError, Result};
 
 use super::dtos::*;
 use super::utils::parse_id;
+
+/// DTO for paper count
+#[derive(Serialize)]
+pub struct PaperCountDto {
+    pub total: i64,
+    pub deleted: i64,
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn get_paper_count(db: State<'_, Arc<DatabaseConnection>>) -> Result<PaperCountDto> {
+    info!("Getting paper count");
+
+    let total = PaperRepository::count(&db).await?;
+    let deleted = PaperRepository::count_deleted(&db).await?;
+
+    info!("Paper count: {} total, {} deleted", total, deleted);
+    Ok(PaperCountDto { total, deleted })
+}
 
 #[tauri::command]
 #[instrument(skip(db))]

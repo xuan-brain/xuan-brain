@@ -135,10 +135,40 @@
     "importByPubmed": "从 PubMed 导入文献",
     "pubmedDescription": "输入 PubMed ID（PMID）或 URL 来导入文献。",
     "pubmedPlaceholder": "例如：12345678 或 https://pubmed.ncbi.nlm.nih.gov/12345678/",
+    "pdfDescription": "从您的计算机导入 PDF 文件",
     "doiRequired": "DOI 不能为空",
     "arxivRequired": "arXiv ID 不能为空",
     "pmidRequired": "PMID 不能为空",
-    "import": "导入"
+    "import": "导入",
+    "importFromZotero": "从 Zotero 导入",
+    "zoteroDescription": "从 Zotero RDF 导出文件导入文献和 PDF"
+  },
+  "zotero": {
+    "title": "从 Zotero 导入",
+    "selectRdfFile": "选择 Zotero RDF 文件",
+    "browseFiles": "浏览文件",
+    "clickToBrowse": "点击浏览或拖放文件",
+    "import": "导入",
+    "importCompleted": "导入完成",
+    "imported": "已导入",
+    "skipped": "已跳过（重复）",
+    "failed": "失败",
+    "moreErrors": "... 还有 {count} 个错误",
+    "errors": "错误详情",
+    "importedPapers": "已导入文献",
+    "info": "将您的 Zotero 文库导出为 RDF 格式，然后在此处选择 .rdf 文件。同一文件夹中的 PDF 附件将自动导入。",
+    "importing": "正在导入",
+    "processing": "处理中...",
+    "preparing": "正在准备..."
+  },
+  "welcome": {
+    "title": "欢迎使用璇玑",
+    "description": "您的文献库目前是空的。开始导入文献来构建您的个人知识库吧！",
+    "zoteroTip": "如果您之前使用 Zotero 管理文献，可以直接导入 Zotero 的 RDF 导出文件，快速迁移您的文献库。",
+    "dontShowAgain": "不再显示此提示",
+    "later": "稍后再说",
+    "importZotero": "导入 Zotero",
+    "otherImport": "其他导入方式"
   },
   "settings": {
     "appearance": "外观",

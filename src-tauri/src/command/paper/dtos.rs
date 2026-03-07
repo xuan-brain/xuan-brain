@@ -123,3 +123,20 @@ pub struct UpdatePaperDto {
     pub issn: Option<String>,
     pub language: Option<String>,
 }
+
+/// Result DTO for batch import operations (e.g., Zotero RDF import)
+#[derive(Serialize)]
+pub struct BatchImportResultDto {
+    /// Total number of items processed
+    pub total: usize,
+    /// Number of items successfully imported
+    pub imported: usize,
+    /// Number of items skipped (duplicates)
+    pub skipped: usize,
+    /// Number of items that failed to import
+    pub failed: usize,
+    /// List of successfully imported papers
+    pub papers: Vec<PaperDto>,
+    /// List of error messages
+    pub errors: Vec<String>,
+}

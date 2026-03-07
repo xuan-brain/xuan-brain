@@ -1,6 +1,9 @@
 <script setup lang="ts">
   import Navigation from '@/components/navigation/Navigation.vue';
+  import WelcomeImportDialog from '@/components/dialogs/WelcomeImportDialog.vue';
+  import ImportZoteroDialog from '@/components/dialogs/ImportZoteroDialog.vue';
   import { useI18n } from '@/lib/i18n';
+  import { invokeCommand } from '@/lib/tauri';
   import { computed, onMounted, onUnmounted, ref } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -17,6 +20,11 @@
   // Current view state (library, favorites, trash)
   const currentView = ref<'library' | 'favorites' | 'trash'>('library');
 
+  // Welcome import dialog state
+  const showWelcomeDialog = ref(false);
+  const showZoteroDialog = ref(false);
+  const hasCheckedPapers = ref(false);
+
   // Handle category selection from navigation
   function handleCategorySelect(categoryId: string | null) {
     selectedCategory.value = categoryId;
@@ -29,6 +37,47 @@
     if (view !== 'library') {
       selectedCategory.value = null;
     }
+  }
+
+  // Check paper count on mount
+  async function checkPaperCount() {
+    // Only check once per session
+    if (hasCheckedPapers.value) return;
+
+    // Check if user has disabled the welcome dialog
+    const hideWelcome = localStorage.getItem('hide-welcome-import-dialog');
+    if (hideWelcome === 'true') {
+      hasCheckedPapers.value = true;
+      return;
+    }
+
+    try {
+      const result = await invokeCommand<{ total: number; deleted: number }>('get_paper_count');
+      console.info('Paper count:', result);
+
+      // Show welcome dialog if no papers
+      if (result.total === 0) {
+        showWelcomeDialog.value = true;
+      }
+    } catch (error) {
+      console.error('Failed to get paper count:', error);
+    } finally {
+      hasCheckedPapers.value = true;
+    }
+  }
+
+  // Handle welcome dialog actions
+  function handleImportZotero() {
+    showZoteroDialog.value = true;
+  }
+
+  function handleGoToImport() {
+    router.push('/import');
+  }
+
+  function handleZoteroImportSuccess() {
+    // Refresh the paper list by emitting an event or reloading
+    console.info('Zotero import successful');
   }
 
   // Navigation menu items
@@ -71,6 +120,9 @@
         categoryDrawerWidth.value = width;
       }
     }
+
+    // Check paper count and show welcome dialog if needed
+    checkPaperCount();
   });
 
   // Save width to localStorage
@@ -189,6 +241,19 @@
     <div class="main-content">
       <router-view :selected-category="selectedCategory" :current-view="currentView" />
     </div>
+
+    <!-- Welcome import dialog (shown when no papers exist) -->
+    <WelcomeImportDialog
+      v-model="showWelcomeDialog"
+      @import-zotero="handleImportZotero"
+      @go-to-import="handleGoToImport"
+    />
+
+    <!-- Zotero import dialog -->
+    <ImportZoteroDialog
+      v-model="showZoteroDialog"
+      @success="handleZoteroImportSuccess"
+    />
   </div>
 </template>
 

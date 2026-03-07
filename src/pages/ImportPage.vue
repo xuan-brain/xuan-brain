@@ -5,6 +5,7 @@ import ImportByDoiDialog from '@/components/dialogs/ImportByDoiDialog.vue';
 import ImportByArxivDialog from '@/components/dialogs/ImportByArxivDialog.vue';
 import ImportByPubmedDialog from '@/components/dialogs/ImportByPubmedDialog.vue';
 import ImportPdfDialog from '@/components/dialogs/ImportPdfDialog.vue';
+import ImportZoteroDialog from '@/components/dialogs/ImportZoteroDialog.vue';
 
 const { t } = useI18n();
 
@@ -13,6 +14,7 @@ const showDoiDialog = ref(false);
 const showArxivDialog = ref(false);
 const showPubmedDialog = ref(false);
 const showPdfDialog = ref(false);
+const showZoteroDialog = ref(false);
 
 // Import options
 const importOptions = [
@@ -41,8 +43,15 @@ const importOptions = [
     id: 'pdf',
     icon: 'mdi-file-pdf-box',
     title: 'toolbar.importPdf',
-    description: 'Import PDF file from your computer',
+    description: 'toolbar.pdfDescription',
     color: 'error',
+  },
+  {
+    id: 'zotero',
+    icon: 'mdi-database-import',
+    title: 'toolbar.importFromZotero',
+    description: 'toolbar.zoteroDescription',
+    color: 'indigo',
   },
 ];
 
@@ -59,6 +68,9 @@ function handleImportClick(id: string) {
       break;
     case 'pdf':
       showPdfDialog.value = true;
+      break;
+    case 'zotero':
+      showZoteroDialog.value = true;
       break;
   }
 }
@@ -111,6 +123,10 @@ function handleImportSuccess() {
     />
     <ImportPdfDialog
       v-model="showPdfDialog"
+      @success="handleImportSuccess"
+    />
+    <ImportZoteroDialog
+      v-model="showZoteroDialog"
       @success="handleImportSuccess"
     />
   </div>

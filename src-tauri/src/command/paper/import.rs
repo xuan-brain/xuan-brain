@@ -1,25 +1,38 @@
-//! Import operations for papers (DOI, arXiv, PMID, PDF)
+//! Import operations for papers (DOI, arXiv, PMID, PDF, Zotero RDF)
 
-use std::path::PathBuf;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use tauri::{AppHandle, State};
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
 use crate::database::DatabaseConnection;
-use crate::models::CreatePaper;
+use crate::models::{CreateCategory, CreatePaper};
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
 use crate::papers::importer::grobid::process_header_document;
 use crate::papers::importer::pubmed::{fetch_pubmed_metadata, PubmedError};
-use crate::repository::{AuthorRepository, PaperRepository};
+use crate::papers::importer::zotero_rdf::{parse_rdf_file, ZoteroRdfError};
+use crate::models::CreateLabel;
+use crate::repository::{AuthorRepository, CategoryRepository, LabelRepository, PaperRepository};
 use crate::sys::config::AppConfig;
 use crate::sys::dirs::AppDirs;
 use crate::sys::error::{AppError, Result};
 
 use super::dtos::*;
 use super::utils::calculate_attachment_hash;
+
+/// Progress event DTO for Zotero import
+#[derive(Clone, Serialize)]
+pub struct ZoteroImportProgress {
+    pub current: usize,
+    pub total: usize,
+    pub current_title: String,
+    pub status: String, // "parsing", "importing", "completed", "error"
+}
 
 #[tauri::command]
 #[instrument(skip(db, app))]
@@ -645,4 +658,378 @@ pub async fn import_paper_by_pdf(
             language: paper.language,
         }),
     })
+}
+
+/// Import papers from a Zotero RDF export file
+///
+/// This function parses a Zotero RDF file and imports all papers found in it.
+/// It handles authors, attachments (PDFs), and avoids duplicates.
+/// Progress events are emitted during import.
+/// If no category_id is provided, a new category with name "Zotero-YYYYMMDD" is created.
+#[tauri::command]
+#[instrument(skip(db, app_dirs, app))]
+pub async fn import_papers_from_zotero_rdf(
+    app: AppHandle,
+    db: State<'_, Arc<DatabaseConnection>>,
+    app_dirs: State<'_, AppDirs>,
+    file_path: String,
+    category_id: Option<String>,
+) -> Result<BatchImportResultDto> {
+    info!("Importing papers from Zotero RDF: {}", file_path);
+
+    // Emit initial progress
+    let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
+        current: 0,
+        total: 0,
+        current_title: String::new(),
+        status: "parsing".to_string(),
+    });
+
+    let rdf_path = Path::new(&file_path);
+    if !rdf_path.exists() {
+        let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
+            current: 0,
+            total: 0,
+            current_title: String::new(),
+            status: "error".to_string(),
+        });
+        return Err(AppError::file_system(file_path, "RDF file not found"));
+    }
+
+    // Parse RDF file
+    let items = parse_rdf_file(rdf_path).map_err(|e| {
+        let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
+            current: 0,
+            total: 0,
+            current_title: String::new(),
+            status: "error".to_string(),
+        });
+        match e {
+            ZoteroRdfError::ParseError(msg) => {
+                AppError::validation("rdf", format!("Failed to parse RDF file: {}", msg))
+            }
+            ZoteroRdfError::IoError(e) => {
+                AppError::file_system(file_path.clone(), e.to_string())
+            }
+        }
+    })?;
+
+    info!("Parsed {} items from RDF file", items.len());
+
+    // Filter items to only include documents (not attachments or notes)
+    let document_items: Vec<_> = items
+        .iter()
+        .filter(|item| {
+            item.item_type != "attachment" && item.item_type != "note"
+                && item.title.as_ref().map_or(false, |t| !t.is_empty())
+        })
+        .collect();
+
+    let total_items = document_items.len();
+
+    // Emit progress with total count
+    let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
+        current: 0,
+        total: total_items,
+        current_title: String::new(),
+        status: "importing".to_string(),
+    });
+
+    let rdf_dir = rdf_path.parent().unwrap_or(Path::new(""));
+
+    let mut result = BatchImportResultDto {
+        total: total_items,
+        imported: 0,
+        skipped: 0,
+        failed: 0,
+        papers: vec![],
+        errors: vec![],
+    };
+
+    // Get or create category ID
+    let cat_id_num = if let Some(ref cat_id) = category_id {
+        // Use provided category ID
+        Some(cat_id.parse::<i64>().map_err(|_| {
+            AppError::validation("category_id", "Invalid category id format")
+        })?)
+    } else {
+        // Auto-create category with name "Zotero-YYYYMMDD"
+        let today = chrono::Local::now().format("%Y%m%d").to_string();
+        let category_name = format!("Zotero-{}", today);
+
+        info!("Auto-creating category: {}", category_name);
+
+        let category = CategoryRepository::create(
+            &db,
+            CreateCategory {
+                name: category_name.clone(),
+                parent_id: None,
+            },
+        )
+        .await?;
+
+        info!("Created category '{}' with id {}", category_name, category.id);
+        Some(category.id)
+    };
+
+    // Process each item with progress updates
+    for (index, item) in document_items.iter().enumerate() {
+        let title = item.title.clone().unwrap_or_default();
+
+        // Emit progress for current item
+        let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
+            current: index + 1,
+            total: total_items,
+            current_title: title.clone(),
+            status: "importing".to_string(),
+        });
+
+        // Check for duplicates by DOI
+        if let Some(ref doi) = item.doi {
+            if !doi.is_empty() {
+                if let Some(_existing) = PaperRepository::find_by_doi(&db, doi).await? {
+                    result.skipped += 1;
+                    continue;
+                }
+            }
+        }
+
+        // Parse publication year from date
+        let publication_year = item
+            .date
+            .as_ref()
+            .and_then(|d| d.split('/').next())
+            .and_then(|y| y.parse::<i32>().ok());
+
+        // Calculate attachment hash
+        let hash_string = calculate_attachment_hash(&title);
+
+        // Create paper record
+        let paper = match PaperRepository::create(
+            &db,
+            CreatePaper {
+                title: title.clone(),
+                doi: item.doi.clone().filter(|d| !d.is_empty()),
+                publication_year,
+                publication_date: item.date.clone(),
+                journal_name: None,
+                conference_name: None,
+                volume: None,
+                issue: None,
+                pages: None,
+                url: None,
+                abstract_text: item.abstract_note.clone(),
+                attachment_path: Some(hash_string.clone()),
+                publisher: None,
+                issn: None,
+                language: None,
+            },
+        )
+        .await
+        {
+            Ok(p) => p,
+            Err(e) => {
+                result.failed += 1;
+                result.errors.push(format!("Failed to create paper '{}': {}", title, e));
+                continue;
+            }
+        };
+
+        let paper_id = paper.id;
+
+        // Add authors (with deduplication to avoid UNIQUE constraint errors)
+        let mut added_author_ids: HashSet<i64> = HashSet::new();
+        for (order, author) in item.authors.iter().enumerate() {
+            let author_record = AuthorRepository::create_or_find_from_parts(
+                &db,
+                author.given_name.as_deref(),
+                author.surname.as_deref(),
+                None,
+            )
+            .await?;
+
+            // Skip if this author was already added to this paper
+            if !added_author_ids.insert(author_record.id) {
+                continue;
+            }
+
+            PaperRepository::add_author(&db, paper_id, author_record.id, order as i32)
+                .await?;
+        }
+
+        // Add tags (labels) with deduplication
+        let mut added_tag_names: HashSet<&str> = HashSet::new();
+        for tag_name in &item.tags {
+            let tag_name = tag_name.trim();
+            if tag_name.is_empty() {
+                continue;
+            }
+
+            // Skip if this tag was already processed for this paper
+            if !added_tag_names.insert(tag_name) {
+                continue;
+            }
+
+            // Find or create label
+            let label = if let Some(existing) = LabelRepository::find_by_name(&db, tag_name).await? {
+                existing
+            } else {
+                LabelRepository::create(
+                    &db,
+                    CreateLabel {
+                        name: tag_name.to_string(),
+                        color: "#607D8B".to_string(), // Default gray color
+                    },
+                )
+                .await?
+            };
+
+            // Add label to paper (ignore if already exists)
+            if let Err(e) = LabelRepository::add_to_paper(&db, paper_id, label.id).await {
+                // Log but don't fail if the label is already associated with this paper
+                info!("Label '{}' already associated with paper: {}", tag_name, e);
+            }
+        }
+
+        // Set category
+        if let Some(cat_id) = cat_id_num {
+            PaperRepository::set_category(&db, paper_id, Some(cat_id)).await?;
+        }
+
+        // Process attachments (PDFs)
+        let mut attachment_count = 0;
+        let mut attachments_dto: Vec<AttachmentDto> = vec![];
+
+        for attachment in &item.attachments {
+            // Resolve attachment path relative to RDF file
+            let attachment_path_str = match &attachment.path {
+                Some(path) => path,
+                None => {
+                    info!("Attachment has no local path, skipping");
+                    continue;
+                }
+            };
+
+            let attachment_path = rdf_dir.join(attachment_path_str);
+
+            if !attachment_path.exists() {
+                info!("Attachment file not found: {:?}", attachment_path);
+                continue;
+            }
+
+            // Create target directory
+            let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);
+            if !target_dir.exists() {
+                if let Err(e) = std::fs::create_dir_all(&target_dir) {
+                    result.errors.push(format!(
+                        "Failed to create attachment directory: {}",
+                        e
+                    ));
+                    continue;
+                }
+            }
+
+            // Get filename from attachment title or path
+            let filename = attachment
+                .title
+                .clone()
+                .unwrap_or_else(|| {
+                    attachment_path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "attachment.pdf".to_string())
+                });
+
+            let target_path = target_dir.join(&filename);
+
+            // Copy attachment file
+            if let Err(e) = std::fs::copy(&attachment_path, &target_path) {
+                result.errors.push(format!(
+                    "Failed to copy attachment '{}': {}",
+                    filename, e
+                ));
+                continue;
+            }
+
+            // Create attachment record
+            let file_size = std::fs::metadata(&target_path).ok().map(|m| m.len() as i64);
+
+            if let Err(e) = PaperRepository::add_attachment(
+                &db,
+                paper_id,
+                Some(filename.clone()),
+                Some("pdf".to_string()),
+                file_size,
+            )
+            .await
+            {
+                result.errors.push(format!("Failed to create attachment record: {}", e));
+                continue;
+            }
+
+            attachment_count += 1;
+            attachments_dto.push(AttachmentDto {
+                id: String::new(),
+                paper_id: paper_id.to_string(),
+                file_name: Some(filename),
+                file_type: Some("pdf".to_string()),
+                created_at: None,
+            });
+        }
+
+        // Build author names for DTO
+        let author_names: Vec<String> = item
+            .authors
+            .iter()
+            .map(|a| a.display_name())
+            .collect();
+
+        result.imported += 1;
+        result.papers.push(PaperDto {
+            id: paper_id.to_string(),
+            title: paper.title,
+            publication_year: paper.publication_year,
+            journal_name: paper.journal_name,
+            conference_name: paper.conference_name,
+            authors: author_names,
+            labels: vec![],
+            attachment_count,
+            attachments: attachments_dto,
+            publisher: paper.publisher,
+            issn: paper.issn,
+            language: paper.language,
+        });
+    }
+
+    // Emit completion progress
+    let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
+        current: total_items,
+        total: total_items,
+        current_title: String::new(),
+        status: "completed".to_string(),
+    });
+
+    info!(
+        "Zotero RDF import completed: {} imported, {} skipped, {} failed",
+        result.imported, result.skipped, result.failed
+    );
+
+    let _ = app
+        .notification()
+        .builder()
+        .title("Zotero Import Completed")
+        .body(format!(
+            "Imported {} papers, skipped {} duplicates, failed {}",
+            result.imported, result.skipped, result.failed
+        ))
+        .show();
+
+    // Emit paper:imported event to refresh paper list
+    let _ = app.emit("paper:imported", serde_json::json!({
+        "imported": result.imported,
+        "skipped": result.skipped,
+        "failed": result.failed
+    }));
+
+    Ok(result)
 }

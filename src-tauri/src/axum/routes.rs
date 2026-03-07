@@ -34,6 +34,11 @@ pub fn create_router(state: AppState) -> Router {
             "/api/papers/import-html",
             post(handlers::papers::import_paper_from_html),
         )
+        // Zotero import
+        .route(
+            "/api/papers/import-clip",
+            post(handlers::papers::import_paper_from_zotero),
+        )
         // Categories
         .route(
             "/api/categories",

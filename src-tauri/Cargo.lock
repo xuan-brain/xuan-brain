@@ -4091,6 +4091,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "oxilangtag"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23f3f87617a86af77fa3691e6350483e7154c2ead9f1261b75130e21ca0f8acb"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "oxiri"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54b4ed3a7192fa19f5f48f99871f2755047fabefd7f222f12a1df1773796a102"
+
+[[package]]
+name = "oxrdf"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0afd5c28e4a399c57ee2bc3accd40c7b671fdc7b6537499f14e95b265af7d7e0"
+dependencies = [
+ "oxilangtag",
+ "oxiri",
+ "rand 0.8.5",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "oxrdfxml"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd5516ae083d09bc57ec65ed5ee97701481725de6ffaa83d968ab42a96157ba1"
+dependencies = [
+ "oxilangtag",
+ "oxiri",
+ "oxrdf",
+ "quick-xml 0.37.5",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "pango"
 version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8596,6 +8636,7 @@ dependencies = [
  "urlencoding",
  "utoipa",
  "utoipa-swagger-ui",
+ "zotero-rdf",
 ]
 
 [[package]]
@@ -8804,6 +8845,21 @@ dependencies = [
  "crc32fast",
  "log",
  "simd-adler32",
+]
+
+[[package]]
+name = "zotero-rdf"
+version = "1.0.1"
+source = "git+https://github.com/spartajet/zotero-rdf.git?branch=master#5251cdcfdf22604f931f262ae018387a91d9e75e"
+dependencies = [
+ "once_cell",
+ "oxrdf",
+ "oxrdfxml",
+ "regex",
+ "serde",
+ "thiserror 2.0.18",
+ "tracing",
+ "urlencoding",
 ]
 
 [[package]]

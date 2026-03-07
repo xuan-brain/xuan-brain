@@ -400,6 +400,25 @@
     flex-wrap: wrap;
     gap: 6px;
     padding: 0 12px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .tags-chips::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .tags-chips::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .tags-chips::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+  }
+
+  .tags-chips::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
   }
 
   .tag-chip {

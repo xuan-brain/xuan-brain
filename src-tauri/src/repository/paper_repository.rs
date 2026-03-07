@@ -11,6 +11,17 @@ use crate::sys::error::{AppError, Result};
 pub struct PaperRepository;
 
 impl PaperRepository {
+    /// Count all non-deleted papers
+    pub async fn count(db: &DatabaseConnection) -> Result<i64> {
+        let count = paper::Entity::find()
+            .filter(paper::Column::DeletedAt.is_null())
+            .count(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to count papers: {}", e)))?;
+
+        Ok(count as i64)
+    }
+
     /// Find all non-deleted papers
     pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<Paper>> {
         let papers = paper::Entity::find()
@@ -34,6 +45,17 @@ impl PaperRepository {
             .map_err(|e| AppError::generic(format!("Failed to query deleted papers: {}", e)))?;
 
         Ok(papers.into_iter().map(Paper::from).collect())
+    }
+
+    /// Count deleted papers (trash)
+    pub async fn count_deleted(db: &DatabaseConnection) -> Result<i64> {
+        let count = paper::Entity::find()
+            .filter(paper::Column::DeletedAt.is_not_null())
+            .count(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to count deleted papers: {}", e)))?;
+
+        Ok(count as i64)
     }
 
     /// Find paper by ID

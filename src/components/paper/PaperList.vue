@@ -263,9 +263,12 @@
 
   // Load papers from backend based on current view
   async function loadPapers() {
+    const perfStart = performance.now();
+    console.info('[PERF] Starting loadPapers');
     loading.value = true;
     try {
       let data: PaperDto[];
+      const invokeStart = performance.now();
 
       if (props.currentView === 'trash') {
         // Load deleted papers
@@ -280,7 +283,23 @@
         data = await invokeCommand<PaperDto[]>('get_all_papers');
       }
 
+      const invokeEnd = performance.now();
+      console.info(
+        `[PERF] invokeCommand completed in ${(invokeEnd - invokeStart).toFixed(2)}ms, received ${data.length} papers`
+      );
+
+      // Measure Vue reactivity update time
+      const updateStart = performance.now();
       papers.value = data;
+      const updateEnd = performance.now();
+      console.info(
+        `[PERF] Vue reactivity update in ${(updateEnd - updateStart).toFixed(2)}ms`
+      );
+
+      const totalEnd = performance.now();
+      console.info(
+        `[PERF] loadPapers total: ${(totalEnd - perfStart).toFixed(2)}ms`
+      );
     } catch (error) {
       console.error('Failed to load papers:', error);
     } finally {

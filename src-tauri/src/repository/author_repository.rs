@@ -1,6 +1,7 @@
 //! Author repository for SQLite using SeaORM
 
 use sea_orm::*;
+use std::collections::HashMap;
 use tracing::info;
 
 use crate::database::entities::{author, paper_author};
@@ -168,6 +169,59 @@ impl AuthorRepository {
             .into_iter()
             .filter_map(|r| author_map.get(&r.author_id).cloned())
             .collect();
+
+        Ok(result)
+    }
+
+    /// Get authors for multiple papers (batch query for N+1 optimization)
+    /// Returns a HashMap mapping paper_id to its authors (ordered by author_order)
+    pub async fn get_paper_authors_batch(
+        db: &DatabaseConnection,
+        paper_ids: &[i64],
+    ) -> Result<HashMap<i64, Vec<Author>>> {
+        if paper_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        // First get all paper_author relations
+        let relations = paper_author::Entity::find()
+            .filter(paper_author::Column::PaperId.is_in(paper_ids.to_vec()))
+            .order_by_asc(paper_author::Column::AuthorOrder)
+            .all(db)
+            .await
+            .map_err(|e| {
+                AppError::generic(format!("Failed to get paper-author relations batch: {}", e))
+            })?;
+
+        let author_ids: Vec<i64> = relations.iter().map(|r| r.author_id).collect();
+
+        if author_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        // Then get all authors by IDs
+        let authors = author::Entity::find()
+            .filter(author::Column::Id.is_in(author_ids))
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get paper authors batch: {}", e)))?;
+
+        // Build author map
+        let author_map: HashMap<i64, Author> = authors
+            .into_iter()
+            .map(|a| (a.id, Author::from(a)))
+            .collect();
+
+        // Group by paper_id, preserving order
+        let mut result: HashMap<i64, Vec<Author>> = HashMap::new();
+        for relation in relations {
+            if let Some(author) = author_map.get(&relation.author_id).cloned() {
+                result
+                    .entry(relation.paper_id)
+                    .or_insert_with(Vec::new)
+                    .push(author);
+            }
+        }
 
         Ok(result)
     }

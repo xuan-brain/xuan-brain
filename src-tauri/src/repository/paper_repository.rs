@@ -394,6 +394,36 @@ impl PaperRepository {
         Ok(attachments.into_iter().map(Attachment::from).collect())
     }
 
+    /// Get all attachments for multiple papers (batch query for N+1 optimization)
+    /// Returns a HashMap mapping paper_id to its attachments
+    pub async fn get_attachments_batch(
+        db: &DatabaseConnection,
+        paper_ids: &[i64],
+    ) -> Result<std::collections::HashMap<i64, Vec<Attachment>>> {
+        use std::collections::HashMap;
+
+        if paper_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let attachments = attachment::Entity::find()
+            .filter(attachment::Column::PaperId.is_in(paper_ids.to_vec()))
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get attachments batch: {}", e)))?;
+
+        let mut result: HashMap<i64, Vec<Attachment>> = HashMap::new();
+        for attachment in attachments {
+            let paper_id = attachment.paper_id;
+            result
+                .entry(paper_id)
+                .or_insert_with(Vec::new)
+                .push(Attachment::from(attachment));
+        }
+
+        Ok(result)
+    }
+
     /// Find PDF attachment for a paper
     pub async fn find_pdf_attachment(
         db: &DatabaseConnection,

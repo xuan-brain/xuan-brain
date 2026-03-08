@@ -1,6 +1,7 @@
 //! Label repository for SQLite using SeaORM
 
 use sea_orm::*;
+use std::collections::HashMap;
 use tracing::info;
 
 use crate::database::entities::{label, paper_label};
@@ -200,6 +201,58 @@ impl LabelRepository {
             .map_err(|e| AppError::generic(format!("Failed to get paper labels: {}", e)))?;
 
         Ok(labels.into_iter().map(Label::from).collect())
+    }
+
+    /// Get labels for multiple papers (batch query for N+1 optimization)
+    /// Returns a HashMap mapping paper_id to its labels
+    pub async fn get_paper_labels_batch(
+        db: &DatabaseConnection,
+        paper_ids: &[i64],
+    ) -> Result<HashMap<i64, Vec<Label>>> {
+        if paper_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        // First get all paper_label relations
+        let relations = paper_label::Entity::find()
+            .filter(paper_label::Column::PaperId.is_in(paper_ids.to_vec()))
+            .all(db)
+            .await
+            .map_err(|e| {
+                AppError::generic(format!("Failed to get paper-label relations batch: {}", e))
+            })?;
+
+        let label_ids: Vec<i64> = relations.iter().map(|r| r.label_id).collect();
+
+        if label_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        // Then get all labels by IDs
+        let labels = label::Entity::find()
+            .filter(label::Column::Id.is_in(label_ids))
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get paper labels batch: {}", e)))?;
+
+        // Build label map
+        let label_map: HashMap<i64, Label> = labels
+            .into_iter()
+            .map(|l| (l.id, Label::from(l)))
+            .collect();
+
+        // Group by paper_id
+        let mut result: HashMap<i64, Vec<Label>> = HashMap::new();
+        for relation in relations {
+            if let Some(label) = label_map.get(&relation.label_id).cloned() {
+                result
+                    .entry(relation.paper_id)
+                    .or_insert_with(Vec::new)
+                    .push(label);
+            }
+        }
+
+        Ok(result)
     }
 
     /// Update document count for a label

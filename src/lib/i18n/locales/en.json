@@ -44,6 +44,9 @@
     "year": "Year",
     "labels": "Labels"
   },
+  "paper": {
+    "loadingProgress": "Loading {loaded}/{total}"
+  },
   "theme": {
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",

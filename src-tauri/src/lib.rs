@@ -28,11 +28,12 @@ use crate::command::data_folder_command::{
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
 use crate::command::paper::{
     add_attachment, add_paper_label, delete_paper, get_all_papers, get_attachments,
-    get_deleted_papers, get_paper, get_paper_count, get_papers_by_category, get_pdf_attachment_path,
-    import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf, import_paper_by_pmid,
-    import_papers_from_zotero_rdf, migrate_abstract_field, open_paper_folder,
+    get_deleted_papers, get_paper, get_paper_count, get_papers_by_category, get_papers_paginated,
+    get_pdf_attachment_path, import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf,
+    import_paper_by_pmid, import_papers_from_zotero_rdf, migrate_abstract_field, open_paper_folder,
     permanently_delete_paper, read_pdf_as_blob, read_pdf_file, remove_paper_label, restore_paper,
-    save_pdf_blob, save_pdf_with_annotations, update_paper_category, update_paper_details,
+    save_pdf_blob, save_pdf_with_annotations, stream_all_papers, update_paper_category,
+    update_paper_details,
 };
 use crate::command::search_command::{search_papers, search_papers_with_score};
 use crate::axum::state::SelectedCategoryState;
@@ -179,7 +180,9 @@ pub fn run() -> Result<()> {
             get_all_papers,
             get_deleted_papers,
             get_paper_count,
+            get_papers_paginated,
             get_papers_by_category,
+            stream_all_papers,
             get_paper,
             import_paper_by_doi,
             import_paper_by_arxiv_id,

@@ -44,6 +44,9 @@
     "year": "年份",
     "labels": "标签"
   },
+  "paper": {
+    "loadingProgress": "加载中 {loaded}/{total}"
+  },
   "theme": {
     "darkMode": "深色模式",
     "lightMode": "浅色模式",

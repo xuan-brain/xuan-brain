@@ -2,14 +2,42 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize)]
+/// Batch DTO for streaming papers via Channel - uses lightweight PaperListDto
+#[derive(Clone, Serialize)]
+pub struct PaperBatchDto {
+    /// Papers in this batch (lightweight, no attachments)
+    pub papers: Vec<PaperListDto>,
+    /// Index of this batch (0-based)
+    pub batch_index: usize,
+    /// Whether this is the last batch
+    pub is_last: bool,
+    /// Total number of papers loaded so far
+    pub loaded_count: usize,
+    /// Total number of papers in the database
+    pub total: usize,
+}
+
+/// Initial response for streaming papers - contains first batch synchronously
+#[derive(Clone, Serialize)]
+pub struct StreamInitDto {
+    /// First batch of papers (returned synchronously, lightweight)
+    pub first_batch: Vec<PaperListDto>,
+    /// Total number of papers in the database
+    pub total: usize,
+    /// Number of papers in first batch
+    pub first_batch_count: usize,
+    /// Whether there are more batches to load
+    pub has_more: bool,
+}
+
+#[derive(Clone, Serialize)]
 pub struct LabelDto {
     pub id: String,
     pub name: String,
     pub color: String,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct AttachmentDto {
     pub id: String,
     pub paper_id: String,
@@ -55,7 +83,7 @@ pub struct PdfSaveResponse {
     pub message: String,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct PaperDto {
     pub id: String,
     pub title: String,
@@ -70,6 +98,21 @@ pub struct PaperDto {
     pub publisher: Option<String>,
     pub issn: Option<String>,
     pub language: Option<String>,
+}
+
+/// Lightweight DTO for paper list view - optimized for fast serialization
+/// Excludes heavy nested objects like attachments (only count is needed)
+#[derive(Clone, Serialize)]
+pub struct PaperListDto {
+    pub id: String,
+    pub title: String,
+    pub publication_year: Option<i32>,
+    pub journal_name: Option<String>,
+    pub conference_name: Option<String>,
+    pub authors: Vec<String>,
+    pub labels: Vec<LabelDto>,
+    pub attachment_count: usize,
+    // NOTE: attachments intentionally excluded - load on demand
 }
 
 #[derive(Serialize)]

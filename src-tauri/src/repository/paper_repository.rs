@@ -35,6 +35,30 @@ impl PaperRepository {
         Ok(papers.into_iter().map(Paper::from).collect())
     }
 
+    /// Find non-deleted papers with pagination
+    pub async fn find_all_paginated(
+        db: &DatabaseConnection,
+        offset: u64,
+        limit: u64,
+    ) -> Result<Vec<Paper>> {
+        let papers = paper::Entity::find()
+            .filter(paper::Column::DeletedAt.is_null())
+            .order_by_desc(paper::Column::CreatedAt)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to query paginated papers: {}", e)))?;
+
+        info!(
+            "Found {} papers (offset={}, limit={})",
+            papers.len(),
+            offset,
+            limit
+        );
+        Ok(papers.into_iter().map(Paper::from).collect())
+    }
+
     /// Find all deleted papers (trash)
     pub async fn find_deleted(db: &DatabaseConnection) -> Result<Vec<Paper>> {
         let papers = paper::Entity::find()

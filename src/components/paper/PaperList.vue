@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
+  import { Channel } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { open } from '@tauri-apps/plugin-dialog';
@@ -33,6 +34,34 @@
     labels: Label[];
     attachment_count?: number;
     attachments?: Attachment[];
+  }
+
+  // Lightweight DTO for paper list - optimized for fast serialization
+  interface PaperListDto {
+    id: string;
+    title: string;
+    publication_year?: number;
+    journal_name?: string;
+    conference_name?: string;
+    authors: string[];
+    labels: Label[];
+    attachment_count: number;
+    // NOTE: attachments intentionally excluded - load on demand
+  }
+
+  interface PaperBatchDto {
+    papers: PaperListDto[];
+    batch_index: number;
+    is_last: boolean;
+    loaded_count: number;
+    total: number;
+  }
+
+  interface StreamInitDto {
+    first_batch: PaperListDto[];
+    total: number;
+    first_batch_count: number;
+    has_more: boolean;
   }
 
   interface PaperDetail {
@@ -74,6 +103,11 @@
 
   // State
   const loading = ref(false);
+  const loadingProgress = reactive({
+    loaded: 0,
+    total: 0,
+    isStreaming: false,
+  });
   const papers = ref<PaperDto[]>([]);
 
   // Table ref
@@ -264,46 +298,102 @@
   // Load papers from backend based on current view
   async function loadPapers() {
     const perfStart = performance.now();
-    console.info('[PERF] Starting loadPapers');
+    console.info('[PERF] Starting loadPapers (stream mode)');
     loading.value = true;
-    try {
-      let data: PaperDto[];
-      const invokeStart = performance.now();
 
+    // Reset progress
+    loadingProgress.loaded = 0;
+    loadingProgress.total = 0;
+    loadingProgress.isStreaming = false;
+
+    // Clear existing papers
+    papers.value = [];
+
+    try {
       if (props.currentView === 'trash') {
-        // Load deleted papers
-        data = await invokeCommand<PaperDto[]>('get_deleted_papers');
+        // Load deleted papers (no streaming for trash)
+        const data = await invokeCommand<PaperDto[]>('get_deleted_papers');
+        papers.value = data;
+        loading.value = false;
       } else if (props.categoryId) {
-        // Load papers for specific category
-        data = await invokeCommand<PaperDto[]>('get_papers_by_category', {
+        // Load papers for specific category (no streaming for category)
+        const data = await invokeCommand<PaperDto[]>('get_papers_by_category', {
           categoryId: props.categoryId,
         });
+        papers.value = data;
+        loading.value = false;
       } else {
-        // Load all papers (library view)
-        data = await invokeCommand<PaperDto[]>('get_all_papers');
+        // Load all papers using hybrid mode:
+        // 1. First batch returned synchronously for immediate display
+        // 2. Remaining batches streamed via Channel
+
+        console.info('[PERF] Step A - Start loading all papers');
+
+        // Set up Channel for remaining batches BEFORE calling command
+        const t_channel = performance.now();
+        const channel = new Channel<PaperBatchDto>();
+        console.info(`[PERF] Step B - Channel created: ${(performance.now() - t_channel).toFixed(2)}ms`);
+
+        channel.onmessage = (data) => {
+          const t_msg = performance.now();
+          // Append papers from channel
+          papers.value.push(...data.papers);
+          console.info(
+            `[PERF] Channel msg received: batch=${data.batch_index}, papers=${data.papers.length}, append_time=${(performance.now() - t_msg).toFixed(2)}ms`
+          );
+
+          // Update progress
+          loadingProgress.loaded = data.loaded_count;
+          loadingProgress.total = data.total;
+          loadingProgress.isStreaming = !data.is_last;
+
+          if (data.is_last) {
+            loadingProgress.isStreaming = false;
+            console.info(
+              `[PERF] All papers streamed: total=${data.total}, batches=${data.batch_index + 1}, loaded=${data.loaded_count}`
+            );
+          }
+        };
+
+        // Mark as streaming mode
+        loadingProgress.isStreaming = true;
+
+        // Invoke command - first batch returned synchronously
+        const t_invoke = performance.now();
+        console.info('[PERF] Step C - Invoking stream_all_papers command...');
+        const result = await invokeCommand<StreamInitDto>('stream_all_papers', { channel });
+        console.info(
+          `[PERF] Step D - Command returned: ${(performance.now() - t_invoke).toFixed(2)}ms, first_batch_count=${result.first_batch_count}`
+        );
+
+        // Immediately display first batch
+        const t_assign = performance.now();
+        papers.value = result.first_batch;
+        loadingProgress.loaded = result.first_batch_count;
+        loadingProgress.total = result.total;
+        console.info(
+          `[PERF] Step E - First batch assigned to reactive: ${(performance.now() - t_assign).toFixed(2)}ms`
+        );
+
+        console.info(
+          `[PERF] Step F - First batch displayed (sync): ${result.first_batch_count} papers in ${(performance.now() - perfStart).toFixed(2)}ms`
+        );
+
+        // Hide loading overlay - UI is now interactive
+        loading.value = false;
+
+        // If no more data, stop streaming indicator
+        if (!result.has_more) {
+          loadingProgress.isStreaming = false;
+        }
       }
 
-      const invokeEnd = performance.now();
-      console.info(
-        `[PERF] invokeCommand completed in ${(invokeEnd - invokeStart).toFixed(2)}ms, received ${data.length} papers`
-      );
-
-      // Measure Vue reactivity update time
-      const updateStart = performance.now();
-      papers.value = data;
-      const updateEnd = performance.now();
-      console.info(
-        `[PERF] Vue reactivity update in ${(updateEnd - updateStart).toFixed(2)}ms`
-      );
-
       const totalEnd = performance.now();
-      console.info(
-        `[PERF] loadPapers total: ${(totalEnd - perfStart).toFixed(2)}ms`
-      );
+      console.info(`[PERF] loadPapers completed: ${(totalEnd - perfStart).toFixed(2)}ms`);
     } catch (error) {
       console.error('Failed to load papers:', error);
-    } finally {
       loading.value = false;
+      loadingProgress.isStreaming = false;
     }
   }
 
@@ -525,6 +615,8 @@
         }"
         :row-config="{ isCurrent: true, isHover: true, keyField: 'id' }"
         :cell-config="{ height: 32 }"
+        :scroll-y="{ enabled: true, gt: 50 }"
+        :scroll-x="{ enabled: true, gt: 20 }"
         :style="{
           '--vxe-ui-table-row-current-background-color': 'rgba(var(--v-theme-primary), 0.2)',
           '--vxe-ui-table-row-hover-current-background-color': 'rgba(var(--v-theme-primary), 0.3)',
@@ -621,6 +713,19 @@
           </template>
         </vxe-column>
       </vxe-table>
+
+      <!-- Streaming progress indicator -->
+      <div v-if="loadingProgress.isStreaming" class="streaming-progress">
+        <v-progress-linear
+          :model-value="(loadingProgress.loaded / loadingProgress.total) * 100"
+          color="primary"
+          height="4"
+          striped
+        />
+        <span class="text-caption ml-2">
+          {{ t('paper.loadingProgress', { loaded: loadingProgress.loaded, total: loadingProgress.total }) }}
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -659,6 +764,19 @@
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 100;
+  }
+
+  .streaming-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding: 4px 16px;
+    background-color: rgba(var(--v-theme-surface), 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    z-index: 50;
   }
 
   .text-truncate {

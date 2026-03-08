@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use serde::Serialize;
 use tauri::State;
+use tauri::ipc::Channel;
 use tracing::{info, instrument};
 
 use crate::database::DatabaseConnection;
@@ -19,6 +20,16 @@ use super::utils::parse_id;
 pub struct PaperCountDto {
     pub total: i64,
     pub deleted: i64,
+}
+
+/// DTO for paginated papers response
+#[derive(Serialize)]
+pub struct PaginatedPapersDto {
+    pub papers: Vec<PaperDto>,
+    pub total: i64,
+    pub offset: u64,
+    pub limit: u64,
+    pub has_more: bool,
 }
 
 #[tauri::command]
@@ -429,4 +440,366 @@ pub async fn get_papers_by_category(
     );
 
     Ok(result)
+}
+
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn get_papers_paginated(
+    db: State<'_, Arc<DatabaseConnection>>,
+    offset: u64,
+    limit: u64,
+) -> Result<PaginatedPapersDto> {
+    let total_start = Instant::now();
+    info!(
+        "[PERF] Starting get_papers_paginated (offset={}, limit={})",
+        offset, limit
+    );
+
+    // Step 1: Get total count
+    let total = PaperRepository::count(&db).await?;
+
+    // Step 2: Fetch paginated papers
+    let step2_start = Instant::now();
+    let papers = PaperRepository::find_all_paginated(&db, offset, limit).await?;
+    let paper_count = papers.len();
+    info!(
+        "[PERF] Step 2 - find_paginated: {:?}ms, found {} papers",
+        step2_start.elapsed().as_millis(),
+        paper_count
+    );
+
+    if paper_count == 0 {
+        return Ok(PaginatedPapersDto {
+            papers: Vec::new(),
+            total,
+            offset,
+            limit,
+            has_more: false,
+        });
+    }
+
+    // Collect paper IDs for batch queries
+    let paper_ids: Vec<i64> = papers.iter().map(|p| p.id).collect();
+
+    // Step 3: Batch fetch attachments
+    let step3_start = Instant::now();
+    let attachments_map = PaperRepository::get_attachments_batch(&db, &paper_ids).await?;
+    info!(
+        "[PERF] Step 3 - batch attachments: {:?}ms",
+        step3_start.elapsed().as_millis()
+    );
+
+    // Step 4: Batch fetch authors
+    let step4_start = Instant::now();
+    let authors_map = AuthorRepository::get_paper_authors_batch(&db, &paper_ids).await?;
+    info!(
+        "[PERF] Step 4 - batch authors: {:?}ms",
+        step4_start.elapsed().as_millis()
+    );
+
+    // Step 5: Batch fetch labels
+    let step5_start = Instant::now();
+    let labels_map = LabelRepository::get_paper_labels_batch(&db, &paper_ids).await?;
+    info!(
+        "[PERF] Step 5 - batch labels: {:?}ms",
+        step5_start.elapsed().as_millis()
+    );
+
+    // Step 6: Build result DTOs
+    let step6_start = Instant::now();
+    let paper_dtos: Vec<PaperDto> = papers
+        .into_iter()
+        .map(|paper| {
+            let attachments = attachments_map.get(&paper.id).cloned().unwrap_or_default();
+            let authors = authors_map.get(&paper.id).cloned().unwrap_or_default();
+            let labels = labels_map.get(&paper.id).cloned().unwrap_or_default();
+
+            let attachment_dtos: Vec<AttachmentDto> = attachments
+                .iter()
+                .map(|a| AttachmentDto {
+                    id: a.id.to_string(),
+                    paper_id: paper.id.to_string(),
+                    file_name: a.file_name.clone(),
+                    file_type: a.file_type.clone(),
+                    created_at: Some(a.created_at.to_rfc3339()),
+                })
+                .collect();
+
+            let author_names: Vec<String> = authors.iter().map(|a| a.full_name()).collect();
+
+            let label_dtos: Vec<LabelDto> = labels
+                .iter()
+                .map(|l| LabelDto {
+                    id: l.id.to_string(),
+                    name: l.name.clone(),
+                    color: l.color.clone(),
+                })
+                .collect();
+
+            PaperDto {
+                id: paper.id.to_string(),
+                title: paper.title,
+                publication_year: paper.publication_year,
+                journal_name: paper.journal_name,
+                conference_name: paper.conference_name,
+                authors: author_names,
+                labels: label_dtos,
+                attachment_count: attachment_dtos.len(),
+                attachments: attachment_dtos,
+                publisher: paper.publisher,
+                issn: paper.issn,
+                language: paper.language,
+            }
+        })
+        .collect();
+
+    info!(
+        "[PERF] Step 6 - build DTOs: {:?}ms",
+        step6_start.elapsed().as_millis()
+    );
+
+    let has_more = (offset + paper_count as u64) < total as u64;
+    let total_time = total_start.elapsed().as_millis();
+
+    info!(
+        "[PERF] get_papers_paginated completed: total={}ms, papers={}, has_more={}",
+        total_time,
+        paper_dtos.len(),
+        has_more
+    );
+
+    Ok(PaginatedPapersDto {
+        papers: paper_dtos,
+        total,
+        offset,
+        limit,
+        has_more,
+    })
+}
+
+/// Stream all papers - returns first batch synchronously, rest via Channel
+/// This ensures immediate display of first batch without waiting for async events
+#[tauri::command]
+#[instrument(skip(db, channel))]
+pub async fn stream_all_papers(
+    db: State<'_, Arc<DatabaseConnection>>,
+    channel: Channel<PaperBatchDto>,
+) -> Result<StreamInitDto> {
+    // Two-phase loading: first batch is smaller for faster display
+    const FIRST_BATCH_SIZE: usize = 30; // Small first batch returned synchronously
+    const SUBSEQUENT_BATCH_SIZE: usize = 100; // Larger batches via Channel
+
+    let total_start = Instant::now();
+    info!("[PERF] === DETAILED PROFILING START ===");
+
+    // OPTIMIZATION: Run COUNT and first batch query IN PARALLEL
+    // This saves ~87ms by not waiting for COUNT before querying papers
+    let t1 = Instant::now();
+    let (count_result, papers_result) = tokio::join!(
+        PaperRepository::count(&db),
+        PaperRepository::find_all_paginated(&db, 0, FIRST_BATCH_SIZE as u64)
+    );
+    let t1_elapsed = t1.elapsed();
+    info!("[PERF] Step 1 - parallel count + query: {}ms", t1_elapsed.as_millis());
+
+    let total = count_result? as usize;
+    let first_papers = papers_result?;
+
+    if total == 0 {
+        info!("[PERF] No papers to stream");
+        return Ok(StreamInitDto {
+            first_batch: Vec::new(),
+            total: 0,
+            first_batch_count: 0,
+            has_more: false,
+        });
+    }
+
+    let first_paper_ids: Vec<i64> = first_papers.iter().map(|p| p.id).collect();
+
+    // Step 2: Batch fetch related data in parallel
+    let t2 = Instant::now();
+    let (attachments_result, authors_result, labels_result) = tokio::join!(
+        PaperRepository::get_attachments_batch(&db, &first_paper_ids),
+        AuthorRepository::get_paper_authors_batch(&db, &first_paper_ids),
+        LabelRepository::get_paper_labels_batch(&db, &first_paper_ids)
+    );
+    let t2_elapsed = t2.elapsed();
+    info!("[PERF] Step 2 - parallel related queries: {}ms", t2_elapsed.as_millis());
+
+    let first_attachments_map = attachments_result?;
+    let first_authors_map = authors_result?;
+    let first_labels_map = labels_result?;
+
+    // Step 3: Build lightweight DTOs (no attachments array - only count)
+    let t3 = Instant::now();
+    let first_batch: Vec<PaperListDto> = first_papers
+        .into_iter()
+        .map(|paper| {
+            let attachments = first_attachments_map
+                .get(&paper.id)
+                .cloned()
+                .unwrap_or_default();
+            let authors = first_authors_map
+                .get(&paper.id)
+                .cloned()
+                .unwrap_or_default();
+            let labels = first_labels_map
+                .get(&paper.id)
+                .cloned()
+                .unwrap_or_default();
+
+            let author_names: Vec<String> = authors.iter().map(|a| a.full_name()).collect();
+
+            let label_dtos: Vec<LabelDto> = labels
+                .iter()
+                .map(|l| LabelDto {
+                    id: l.id.to_string(),
+                    name: l.name.clone(),
+                    color: l.color.clone(),
+                })
+                .collect();
+
+            // Lightweight: only count, no attachment objects
+            PaperListDto {
+                id: paper.id.to_string(),
+                title: paper.title,
+                publication_year: paper.publication_year,
+                journal_name: paper.journal_name,
+                conference_name: paper.conference_name,
+                authors: author_names,
+                labels: label_dtos,
+                attachment_count: attachments.len(),
+            }
+        })
+        .collect();
+
+    let t3_elapsed = t3.elapsed();
+    info!("[PERF] Step 3 - build lightweight DTOs: {}ms", t3_elapsed.as_millis());
+
+    let first_batch_count = first_batch.len();
+    let has_more = first_batch_count < total;
+
+    let first_batch_total = total_start.elapsed();
+    info!(
+        "[PERF] === FIRST BATCH TOTAL: {}ms (count={}, has_more={}) ===",
+        first_batch_total.as_millis(),
+        first_batch_count,
+        has_more
+    );
+
+    // Step 4: Stream remaining batches via Channel (in background)
+    if has_more {
+        let mut offset = FIRST_BATCH_SIZE as u64;
+        let mut batch_index = 1; // Start from 1 since first batch is index 0
+        let mut loaded_count = first_batch_count;
+
+        loop {
+            let batch_start = Instant::now();
+
+            let papers =
+                PaperRepository::find_all_paginated(&db, offset, SUBSEQUENT_BATCH_SIZE as u64)
+                    .await?;
+
+            if papers.is_empty() {
+                break;
+            }
+
+            let paper_ids: Vec<i64> = papers.iter().map(|p| p.id).collect();
+
+            // Batch fetch related data in parallel
+            let (attachments_result, authors_result, labels_result) = tokio::join!(
+                PaperRepository::get_attachments_batch(&db, &paper_ids),
+                AuthorRepository::get_paper_authors_batch(&db, &paper_ids),
+                LabelRepository::get_paper_labels_batch(&db, &paper_ids)
+            );
+
+            let attachments_map = attachments_result?;
+            let authors_map = authors_result?;
+            let labels_map = labels_result?;
+
+            // Build lightweight DTOs (no attachments array)
+            let paper_dtos: Vec<PaperListDto> = papers
+                .into_iter()
+                .map(|paper| {
+                    let attachments = attachments_map
+                        .get(&paper.id)
+                        .cloned()
+                        .unwrap_or_default();
+                    let authors = authors_map.get(&paper.id).cloned().unwrap_or_default();
+                    let labels = labels_map.get(&paper.id).cloned().unwrap_or_default();
+
+                    let author_names: Vec<String> =
+                        authors.iter().map(|a| a.full_name()).collect();
+
+                    let label_dtos: Vec<LabelDto> = labels
+                        .iter()
+                        .map(|l| LabelDto {
+                            id: l.id.to_string(),
+                            name: l.name.clone(),
+                            color: l.color.clone(),
+                        })
+                        .collect();
+
+                    // Lightweight: only count, no attachment objects
+                    PaperListDto {
+                        id: paper.id.to_string(),
+                        title: paper.title,
+                        publication_year: paper.publication_year,
+                        journal_name: paper.journal_name,
+                        conference_name: paper.conference_name,
+                        authors: author_names,
+                        labels: label_dtos,
+                        attachment_count: attachments.len(),
+                    }
+                })
+                .collect();
+
+            loaded_count += paper_dtos.len();
+            let is_last = loaded_count >= total;
+
+            let batch_time = batch_start.elapsed().as_millis();
+            info!(
+                "[PERF] Channel batch {}: sent {} papers in {}ms (total: {}/{})",
+                batch_index,
+                paper_dtos.len(),
+                batch_time,
+                loaded_count,
+                total
+            );
+
+            // Send via Channel
+            channel.send(PaperBatchDto {
+                papers: paper_dtos,
+                batch_index,
+                is_last,
+                loaded_count,
+                total,
+            }).map_err(|e| AppError::generic(format!("Failed to send channel batch: {}", e)))?;
+
+            if is_last {
+                break;
+            }
+
+            offset += SUBSEQUENT_BATCH_SIZE as u64;
+            batch_index += 1;
+        }
+    }
+
+    let total_time = total_start.elapsed().as_millis();
+    info!(
+        "[PERF] stream_all_papers completed: {} papers total, first_batch={} (sync), rest_via_channel={}, total={}ms",
+        total,
+        first_batch_count,
+        has_more,
+        total_time
+    );
+
+    // Return first batch synchronously
+    Ok(StreamInitDto {
+        first_batch,
+        total,
+        first_batch_count,
+        has_more,
+    })
 }

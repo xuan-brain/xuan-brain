@@ -35,7 +35,8 @@
       "Bash(cargo:*)",
       "Bash(yarn lint:*)",
       "Bash(npx eslint:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(xargs cat)"
     ]
   }
 }

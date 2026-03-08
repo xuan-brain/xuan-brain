@@ -31,7 +31,9 @@ use crate::sys::error::AppError;
 pub async fn list_papers(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<serde_json::Value>>, ApiError> {
-    let papers = PaperRepository::find_all(&state.db).await.map_err(ApiError)?;
+    let papers = PaperRepository::find_all(&state.db)
+        .await
+        .map_err(ApiError)?;
 
     let result: Vec<serde_json::Value> = papers
         .into_iter()
@@ -71,10 +73,13 @@ pub async fn get_paper(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let paper_id = id.parse::<i64>()
+    let paper_id = id
+        .parse::<i64>()
         .map_err(|_| ApiError(AppError::validation("id", "Invalid paper id format")))?;
 
-    let paper = PaperRepository::find_by_id(&state.db, paper_id).await.map_err(ApiError)?;
+    let paper = PaperRepository::find_by_id(&state.db, paper_id)
+        .await
+        .map_err(ApiError)?;
 
     match paper {
         Some(p) => Ok(Json(serde_json::json!({
@@ -217,12 +222,8 @@ pub async fn import_paper_from_html(
     })?;
 
     // 1. Load config to get LLM provider
-    let config = AppConfig::load(&state.app_dirs.config).map_err(|e| {
-        ApiError(AppError::config_error(
-            "settings.json",
-            e.to_string(),
-        ))
-    })?;
+    let config = AppConfig::load(&state.app_dirs.config)
+        .map_err(|e| ApiError(AppError::config_error("settings.json", e.to_string())))?;
 
     // 2. Find default or first LLM provider
     let provider = config
@@ -270,7 +271,10 @@ pub async fn import_paper_from_html(
     // 4. Check for duplicates by DOI
     if let Some(ref doi) = metadata.doi {
         if !doi.is_empty() {
-            if let Some(_existing) = PaperRepository::find_by_doi(&state.db, doi).await.map_err(ApiError)? {
+            if let Some(_existing) = PaperRepository::find_by_doi(&state.db, doi)
+                .await
+                .map_err(ApiError)?
+            {
                 return Ok(Json(ImportHtmlResponse {
                     success: false,
                     paper: None,
@@ -283,7 +287,10 @@ pub async fn import_paper_from_html(
     // 5. Check for duplicates by URL
     if let Some(ref url) = metadata.url {
         if !url.is_empty() {
-            if let Some(_existing) = PaperRepository::find_by_url(&state.db, url).await.map_err(ApiError)? {
+            if let Some(_existing) = PaperRepository::find_by_url(&state.db, url)
+                .await
+                .map_err(ApiError)?
+            {
                 return Ok(Json(ImportHtmlResponse {
                     success: false,
                     paper: None,
@@ -299,23 +306,30 @@ pub async fn import_paper_from_html(
     let hash_string = format!("{:x}", hasher.finalize());
 
     // 7. Create paper
-    let paper = PaperRepository::create(&state.db, CreatePaper {
-        title: metadata.title.clone(),
-        doi: metadata.doi.filter(|d| !d.is_empty()),
-        publication_year: metadata.publication_year.and_then(|y| i32::try_from(y).ok()),
-        publication_date: None,
-        journal_name: metadata.journal_name,
-        conference_name: None,
-        volume: metadata.volume,
-        issue: metadata.issue,
-        pages: metadata.pages,
-        url: metadata.url.filter(|u| !u.is_empty()),
-        abstract_text: metadata.abstract_text,
-        attachment_path: Some(hash_string),
-        publisher: None,
-        issn: None,
-        language: None,
-    }).await.map_err(ApiError)?;
+    let paper = PaperRepository::create(
+        &state.db,
+        CreatePaper {
+            title: metadata.title.clone(),
+            doi: metadata.doi.filter(|d| !d.is_empty()),
+            publication_year: metadata
+                .publication_year
+                .and_then(|y| i32::try_from(y).ok()),
+            publication_date: None,
+            journal_name: metadata.journal_name,
+            conference_name: None,
+            volume: metadata.volume,
+            issue: metadata.issue,
+            pages: metadata.pages,
+            url: metadata.url.filter(|u| !u.is_empty()),
+            abstract_text: metadata.abstract_text,
+            attachment_path: Some(hash_string),
+            publisher: None,
+            issn: None,
+            language: None,
+        },
+    )
+    .await
+    .map_err(ApiError)?;
 
     let paper_id = paper.id;
     info!("Created paper with id: {}", paper_id);
@@ -326,9 +340,13 @@ pub async fn import_paper_from_html(
             continue;
         }
 
-        let author = AuthorRepository::create_or_find(&state.db, author_name.trim(), None).await.map_err(ApiError)?;
+        let author = AuthorRepository::create_or_find(&state.db, author_name.trim(), None)
+            .await
+            .map_err(ApiError)?;
         let author_id = author.id;
-        PaperRepository::add_author(&state.db, paper_id, author_id, order as i32).await.map_err(ApiError)?;
+        PaperRepository::add_author(&state.db, paper_id, author_id, order as i32)
+            .await
+            .map_err(ApiError)?;
     }
 
     info!(
@@ -389,7 +407,10 @@ pub async fn import_paper_from_zotero(
     Query(query): Query<ImportZoteroQuery>,
     Json(payload): Json<ImportZoteroRequest>,
 ) -> Result<Json<ImportHtmlResponse>, ApiError> {
-    info!("Importing paper from Zotero JSON via API: {}", payload.title);
+    info!(
+        "Importing paper from Zotero JSON via API: {}",
+        payload.title
+    );
 
     // 1. Check for duplicates by DOI
     if let Some(ref doi) = payload.doi {
@@ -503,7 +524,7 @@ pub async fn import_paper_from_zotero(
             }
 
             // Find existing label or create new one
-            let label = if let Some(existing) = LabelRepository::find_by_name(&state.db, &tag_name)
+            let label = if let Some(existing) = LabelRepository::find_by_name(&state.db, tag_name)
                 .await
                 .map_err(ApiError)?
             {
@@ -560,13 +581,11 @@ pub async fn import_paper_from_zotero(
         .creators
         .unwrap_or_default()
         .iter()
-        .filter_map(|c| {
-            match (&c.first_name, &c.last_name) {
-                (Some(first), Some(last)) => Some(format!("{} {}", first.trim(), last.trim())),
-                (Some(first), None) => Some(first.trim().to_string()),
-                (None, Some(last)) => Some(last.trim().to_string()),
-                (None, None) => None,
-            }
+        .filter_map(|c| match (&c.first_name, &c.last_name) {
+            (Some(first), Some(last)) => Some(format!("{} {}", first.trim(), last.trim())),
+            (Some(first), None) => Some(first.trim().to_string()),
+            (None, Some(last)) => Some(last.trim().to_string()),
+            (None, None) => None,
         })
         .collect();
 

@@ -10,13 +10,13 @@ use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
 use crate::database::DatabaseConnection;
+use crate::models::CreateLabel;
 use crate::models::{CreateCategory, CreatePaper};
 use crate::papers::importer::arxiv::{fetch_arxiv_metadata, ArxivError};
 use crate::papers::importer::doi::{fetch_doi_metadata, DoiError};
 use crate::papers::importer::grobid::process_header_document;
 use crate::papers::importer::pubmed::{fetch_pubmed_metadata, PubmedError};
 use crate::papers::importer::zotero_rdf::{parse_rdf_file, ZoteroRdfError};
-use crate::models::CreateLabel;
 use crate::repository::{AuthorRepository, CategoryRepository, LabelRepository, PaperRepository};
 use crate::sys::config::AppConfig;
 use crate::sys::dirs::AppDirs;
@@ -58,17 +58,26 @@ pub async fn import_paper_by_doi(
 
     // Check if paper already exists
     if let Some(existing_paper) = PaperRepository::find_by_doi(&db, &metadata.doi).await? {
-        info!("Paper with DOI {} already exists: {}", metadata.doi, existing_paper.title);
+        info!(
+            "Paper with DOI {} already exists: {}",
+            metadata.doi, existing_paper.title
+        );
         let _ = app
             .notification()
             .builder()
             .title("Paper Already Exists")
-            .body(format!("Paper '{}' is already in your library", existing_paper.title))
+            .body(format!(
+                "Paper '{}' is already in your library",
+                existing_paper.title
+            ))
             .show();
 
         return Ok(ImportResultDto {
             already_exists: true,
-            message: format!("Paper '{}' is already in your library", existing_paper.title),
+            message: format!(
+                "Paper '{}' is already in your library",
+                existing_paper.title
+            ),
             paper: None,
         });
     }
@@ -77,7 +86,9 @@ pub async fn import_paper_by_doi(
     let hash_string = calculate_attachment_hash(&metadata.title);
 
     // Create paper
-    let publication_year = metadata.publication_year.and_then(|y| y.parse::<i32>().ok());
+    let publication_year = metadata
+        .publication_year
+        .and_then(|y| y.parse::<i32>().ok());
 
     let paper = PaperRepository::create(
         &db,
@@ -192,17 +203,26 @@ pub async fn import_paper_by_arxiv_id(
     // Check if paper already exists by DOI
     if let Some(doi) = &metadata.doi {
         if let Some(existing_paper) = PaperRepository::find_by_doi(&db, doi).await? {
-            info!("Paper with DOI {} already exists: {}", doi, existing_paper.title);
+            info!(
+                "Paper with DOI {} already exists: {}",
+                doi, existing_paper.title
+            );
             let _ = app
                 .notification()
                 .builder()
                 .title("Paper Already Exists")
-                .body(format!("Paper '{}' is already in your library", existing_paper.title))
+                .body(format!(
+                    "Paper '{}' is already in your library",
+                    existing_paper.title
+                ))
                 .show();
 
             return Ok(ImportResultDto {
                 already_exists: true,
-                message: format!("Paper '{}' is already in your library", existing_paper.title),
+                message: format!(
+                    "Paper '{}' is already in your library",
+                    existing_paper.title
+                ),
                 paper: None,
             });
         }
@@ -269,13 +289,16 @@ pub async fn import_paper_by_arxiv_id(
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(120)) // 2 minutes timeout for large PDFs
         .build()
-        .map_err(|e| AppError::network_error(&metadata.pdf_url, format!("Failed to create HTTP client: {}", e)))?;
+        .map_err(|e| {
+            AppError::network_error(
+                &metadata.pdf_url,
+                format!("Failed to create HTTP client: {}", e),
+            )
+        })?;
 
-    let response = client
-        .get(&metadata.pdf_url)
-        .send()
-        .await
-        .map_err(|e| AppError::network_error(&metadata.pdf_url, format!("Failed to download PDF: {}", e)))?;
+    let response = client.get(&metadata.pdf_url).send().await.map_err(|e| {
+        AppError::network_error(&metadata.pdf_url, format!("Failed to download PDF: {}", e))
+    })?;
 
     if !response.status().is_success() {
         return Err(AppError::network_error(
@@ -284,10 +307,12 @@ pub async fn import_paper_by_arxiv_id(
         ));
     }
 
-    let pdf_bytes = response
-        .bytes()
-        .await
-        .map_err(|e| AppError::network_error(&metadata.pdf_url, format!("Failed to read PDF content: {}", e)))?;
+    let pdf_bytes = response.bytes().await.map_err(|e| {
+        AppError::network_error(
+            &metadata.pdf_url,
+            format!("Failed to read PDF content: {}", e),
+        )
+    })?;
 
     std::fs::write(&target_path, &pdf_bytes).map_err(|e| {
         AppError::file_system(target_path.to_string_lossy().to_string(), e.to_string())
@@ -368,17 +393,26 @@ pub async fn import_paper_by_pmid(
 
     if let Some(doi) = &metadata.doi {
         if let Some(existing_paper) = PaperRepository::find_by_doi(&db, doi).await? {
-            info!("Paper with DOI {} already exists: {}", doi, existing_paper.title);
+            info!(
+                "Paper with DOI {} already exists: {}",
+                doi, existing_paper.title
+            );
             let _ = app
                 .notification()
                 .builder()
                 .title("Paper Already Exists")
-                .body(format!("Paper '{}' is already in your library", existing_paper.title))
+                .body(format!(
+                    "Paper '{}' is already in your library",
+                    existing_paper.title
+                ))
                 .show();
 
             return Ok(ImportResultDto {
                 already_exists: true,
-                message: format!("Paper '{}' is already in your library", existing_paper.title),
+                message: format!(
+                    "Paper '{}' is already in your library",
+                    existing_paper.title
+                ),
                 paper: None,
             });
         }
@@ -386,7 +420,9 @@ pub async fn import_paper_by_pmid(
 
     let pubmed_url = format!("https://pubmed.ncbi.nlm.nih.gov/{}/", metadata.pmid);
     let hash_string = calculate_attachment_hash(&metadata.title);
-    let publication_year = metadata.publication_year.and_then(|y| y.parse::<i32>().ok());
+    let publication_year = metadata
+        .publication_year
+        .and_then(|y| y.parse::<i32>().ok());
 
     let paper = PaperRepository::create(
         &db,
@@ -536,17 +572,26 @@ pub async fn import_paper_by_pdf(
     // Check if paper already exists by DOI (if available)
     if let Some(ref doi) = metadata.doi {
         if let Some(existing_paper) = PaperRepository::find_by_doi(&db, doi).await? {
-            info!("Paper with DOI {} already exists: {}", doi, existing_paper.title);
+            info!(
+                "Paper with DOI {} already exists: {}",
+                doi, existing_paper.title
+            );
             let _ = app
                 .notification()
                 .builder()
                 .title("Paper Already Exists")
-                .body(format!("Paper '{}' is already in your library", existing_paper.title))
+                .body(format!(
+                    "Paper '{}' is already in your library",
+                    existing_paper.title
+                ))
                 .show();
 
             return Ok(ImportResultDto {
                 already_exists: true,
-                message: format!("Paper '{}' is already in your library", existing_paper.title),
+                message: format!(
+                    "Paper '{}' is already in your library",
+                    existing_paper.title
+                ),
                 paper: None,
             });
         }
@@ -562,7 +607,9 @@ pub async fn import_paper_by_pdf(
         CreatePaper {
             title: title.clone(),
             doi: metadata.doi.clone(),
-            publication_year: metadata.publication_year.and_then(|y| i32::try_from(y).ok()),
+            publication_year: metadata
+                .publication_year
+                .and_then(|y| i32::try_from(y).ok()),
             publication_date: None,
             journal_name: metadata.journal_name.clone(),
             conference_name: None,
@@ -678,39 +725,46 @@ pub async fn import_papers_from_zotero_rdf(
     info!("Importing papers from Zotero RDF: {}", file_path);
 
     // Emit initial progress
-    let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
-        current: 0,
-        total: 0,
-        current_title: String::new(),
-        status: "parsing".to_string(),
-    });
-
-    let rdf_path = Path::new(&file_path);
-    if !rdf_path.exists() {
-        let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
+    let _ = app.emit(
+        "zotero:import-progress",
+        ZoteroImportProgress {
             current: 0,
             total: 0,
             current_title: String::new(),
-            status: "error".to_string(),
-        });
+            status: "parsing".to_string(),
+        },
+    );
+
+    let rdf_path = Path::new(&file_path);
+    if !rdf_path.exists() {
+        let _ = app.emit(
+            "zotero:import-progress",
+            ZoteroImportProgress {
+                current: 0,
+                total: 0,
+                current_title: String::new(),
+                status: "error".to_string(),
+            },
+        );
         return Err(AppError::file_system(file_path, "RDF file not found"));
     }
 
     // Parse RDF file
     let items = parse_rdf_file(rdf_path).map_err(|e| {
-        let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
-            current: 0,
-            total: 0,
-            current_title: String::new(),
-            status: "error".to_string(),
-        });
+        let _ = app.emit(
+            "zotero:import-progress",
+            ZoteroImportProgress {
+                current: 0,
+                total: 0,
+                current_title: String::new(),
+                status: "error".to_string(),
+            },
+        );
         match e {
             ZoteroRdfError::ParseError(msg) => {
                 AppError::validation("rdf", format!("Failed to parse RDF file: {}", msg))
             }
-            ZoteroRdfError::IoError(e) => {
-                AppError::file_system(file_path.clone(), e.to_string())
-            }
+            ZoteroRdfError::IoError(e) => AppError::file_system(file_path.clone(), e.to_string()),
         }
     })?;
 
@@ -720,20 +774,24 @@ pub async fn import_papers_from_zotero_rdf(
     let document_items: Vec<_> = items
         .iter()
         .filter(|item| {
-            item.item_type != "attachment" && item.item_type != "note"
-                && item.title.as_ref().map_or(false, |t| !t.is_empty())
+            item.item_type != "attachment"
+                && item.item_type != "note"
+                && item.title.as_ref().is_some_and(|t| !t.is_empty())
         })
         .collect();
 
     let total_items = document_items.len();
 
     // Emit progress with total count
-    let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
-        current: 0,
-        total: total_items,
-        current_title: String::new(),
-        status: "importing".to_string(),
-    });
+    let _ = app.emit(
+        "zotero:import-progress",
+        ZoteroImportProgress {
+            current: 0,
+            total: total_items,
+            current_title: String::new(),
+            status: "importing".to_string(),
+        },
+    );
 
     let rdf_dir = rdf_path.parent().unwrap_or(Path::new(""));
 
@@ -749,9 +807,11 @@ pub async fn import_papers_from_zotero_rdf(
     // Get or create category ID
     let cat_id_num = if let Some(ref cat_id) = category_id {
         // Use provided category ID
-        Some(cat_id.parse::<i64>().map_err(|_| {
-            AppError::validation("category_id", "Invalid category id format")
-        })?)
+        Some(
+            cat_id
+                .parse::<i64>()
+                .map_err(|_| AppError::validation("category_id", "Invalid category id format"))?,
+        )
     } else {
         // Auto-create category with name "Zotero-YYYYMMDD"
         let today = chrono::Local::now().format("%Y%m%d").to_string();
@@ -768,7 +828,10 @@ pub async fn import_papers_from_zotero_rdf(
         )
         .await?;
 
-        info!("Created category '{}' with id {}", category_name, category.id);
+        info!(
+            "Created category '{}' with id {}",
+            category_name, category.id
+        );
         Some(category.id)
     };
 
@@ -777,12 +840,15 @@ pub async fn import_papers_from_zotero_rdf(
         let title = item.title.clone().unwrap_or_default();
 
         // Emit progress for current item
-        let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
-            current: index + 1,
-            total: total_items,
-            current_title: title.clone(),
-            status: "importing".to_string(),
-        });
+        let _ = app.emit(
+            "zotero:import-progress",
+            ZoteroImportProgress {
+                current: index + 1,
+                total: total_items,
+                current_title: title.clone(),
+                status: "importing".to_string(),
+            },
+        );
 
         // Check for duplicates by DOI
         if let Some(ref doi) = item.doi {
@@ -830,7 +896,9 @@ pub async fn import_papers_from_zotero_rdf(
             Ok(p) => p,
             Err(e) => {
                 result.failed += 1;
-                result.errors.push(format!("Failed to create paper '{}': {}", title, e));
+                result
+                    .errors
+                    .push(format!("Failed to create paper '{}': {}", title, e));
                 continue;
             }
         };
@@ -853,8 +921,7 @@ pub async fn import_papers_from_zotero_rdf(
                 continue;
             }
 
-            PaperRepository::add_author(&db, paper_id, author_record.id, order as i32)
-                .await?;
+            PaperRepository::add_author(&db, paper_id, author_record.id, order as i32).await?;
         }
 
         // Add tags (labels) with deduplication
@@ -871,7 +938,8 @@ pub async fn import_papers_from_zotero_rdf(
             }
 
             // Find or create label
-            let label = if let Some(existing) = LabelRepository::find_by_name(&db, tag_name).await? {
+            let label = if let Some(existing) = LabelRepository::find_by_name(&db, tag_name).await?
+            {
                 existing
             } else {
                 LabelRepository::create(
@@ -921,33 +989,28 @@ pub async fn import_papers_from_zotero_rdf(
             let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);
             if !target_dir.exists() {
                 if let Err(e) = std::fs::create_dir_all(&target_dir) {
-                    result.errors.push(format!(
-                        "Failed to create attachment directory: {}",
-                        e
-                    ));
+                    result
+                        .errors
+                        .push(format!("Failed to create attachment directory: {}", e));
                     continue;
                 }
             }
 
             // Get filename from attachment title or path
-            let filename = attachment
-                .title
-                .clone()
-                .unwrap_or_else(|| {
-                    attachment_path
-                        .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_else(|| "attachment.pdf".to_string())
-                });
+            let filename = attachment.title.clone().unwrap_or_else(|| {
+                attachment_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "attachment.pdf".to_string())
+            });
 
             let target_path = target_dir.join(&filename);
 
             // Copy attachment file
             if let Err(e) = std::fs::copy(&attachment_path, &target_path) {
-                result.errors.push(format!(
-                    "Failed to copy attachment '{}': {}",
-                    filename, e
-                ));
+                result
+                    .errors
+                    .push(format!("Failed to copy attachment '{}': {}", filename, e));
                 continue;
             }
 
@@ -963,7 +1026,9 @@ pub async fn import_papers_from_zotero_rdf(
             )
             .await
             {
-                result.errors.push(format!("Failed to create attachment record: {}", e));
+                result
+                    .errors
+                    .push(format!("Failed to create attachment record: {}", e));
                 continue;
             }
 
@@ -978,11 +1043,7 @@ pub async fn import_papers_from_zotero_rdf(
         }
 
         // Build author names for DTO
-        let author_names: Vec<String> = item
-            .authors
-            .iter()
-            .map(|a| a.display_name())
-            .collect();
+        let author_names: Vec<String> = item.authors.iter().map(|a| a.display_name()).collect();
 
         result.imported += 1;
         result.papers.push(PaperDto {
@@ -1002,12 +1063,15 @@ pub async fn import_papers_from_zotero_rdf(
     }
 
     // Emit completion progress
-    let _ = app.emit("zotero:import-progress", ZoteroImportProgress {
-        current: total_items,
-        total: total_items,
-        current_title: String::new(),
-        status: "completed".to_string(),
-    });
+    let _ = app.emit(
+        "zotero:import-progress",
+        ZoteroImportProgress {
+            current: total_items,
+            total: total_items,
+            current_title: String::new(),
+            status: "completed".to_string(),
+        },
+    );
 
     info!(
         "Zotero RDF import completed: {} imported, {} skipped, {} failed",
@@ -1025,11 +1089,14 @@ pub async fn import_papers_from_zotero_rdf(
         .show();
 
     // Emit paper:imported event to refresh paper list
-    let _ = app.emit("paper:imported", serde_json::json!({
-        "imported": result.imported,
-        "skipped": result.skipped,
-        "failed": result.failed
-    }));
+    let _ = app.emit(
+        "paper:imported",
+        serde_json::json!({
+            "imported": result.imported,
+            "skipped": result.skipped,
+            "failed": result.failed
+        }),
+    );
 
     Ok(result)
 }

@@ -239,7 +239,18 @@
     "keywords": "Keywords",
     "labels": "Labels",
     "categories": "Categories",
-    "attachments": "Attachments"
+    "attachments": "Attachments",
+    "clearAllData": "Clear All Data",
+    "clearAllDataDescription": "Clear all papers, labels, and attachment data. This feature is for development testing only.",
+    "clearAllDataWarning": "This action will permanently delete data and cannot be undone!",
+    "clearDataConfirmTitle": "Confirm Clear All Data",
+    "clearDataWillDelete": "The following data will be deleted:",
+    "clearDataRelations": "All relations",
+    "clearDataWillKeep": "Category data will be preserved",
+    "clearingData": "Clearing data...",
+    "clearDataConfirm": "Confirm Clear",
+    "clearDataCompleted": "Data cleared successfully!",
+    "clearDataCompletedErrors": "Data cleared with some errors"
   },
   "clips": {
     "title": "Web Clips",

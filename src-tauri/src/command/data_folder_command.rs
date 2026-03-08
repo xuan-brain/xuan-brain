@@ -5,11 +5,19 @@
 //! - Validating new data folder paths
 //! - Migrating data to a new location
 //! - Restarting the application
+//! - Clearing all data (dev mode only)
 
 use std::path::PathBuf;
+use std::sync::Arc;
+
+use sea_orm::{DatabaseConnection, EntityTrait};
+use serde::Serialize;
 use tauri::{AppHandle, State};
 use tracing::{error, info};
 
+use crate::database::entities::{
+    attachment, label, paper, paper_author, paper_category, paper_keyword, paper_label,
+};
 use crate::service::data_migration_service::DataMigrationService;
 use crate::sys::{
     dirs::{
@@ -18,6 +26,15 @@ use crate::sys::{
     },
     error::{AppError, Result},
 };
+
+/// Result of clear all data operation
+#[derive(Debug, Serialize, Clone)]
+pub struct ClearDataResult {
+    pub papers_deleted: u64,
+    pub labels_deleted: u64,
+    pub files_deleted: u64,
+    pub errors: Vec<String>,
+}
 
 /// Get current data folder information
 #[tauri::command]
@@ -160,4 +177,123 @@ pub async fn restart_app(app: AppHandle) -> Result<()> {
 
     // Use tauri-plugin-process to restart
     app.restart();
+}
+
+/// Clear all data from the database (dev mode only)
+///
+/// This command deletes:
+/// - All papers (including soft-deleted)
+/// - All labels
+/// - All attachments
+/// - All files in the files directory
+/// - All relations (paper-author, paper-label, paper-keyword, paper-category)
+///
+/// Category data is preserved.
+#[tauri::command]
+pub async fn clear_all_data_command(
+    db: State<'_, Arc<DatabaseConnection>>,
+    app_dirs: State<'_, AppDirs>,
+) -> Result<ClearDataResult> {
+    info!("Starting clear all data operation (dev mode)");
+
+    let mut result = ClearDataResult {
+        papers_deleted: 0,
+        labels_deleted: 0,
+        files_deleted: 0,
+        errors: Vec::new(),
+    };
+
+    // Delete in correct order to handle foreign key constraints
+    // 1. Delete all paper_label relations
+    match paper_label::Entity::delete_many().exec(db.as_ref()).await {
+        Ok(_) => info!("Deleted all paper_label relations"),
+        Err(e) => result.errors.push(format!("Failed to delete paper_labels: {}", e)),
+    }
+
+    // 2. Delete all paper_author relations
+    match paper_author::Entity::delete_many().exec(db.as_ref()).await {
+        Ok(_) => info!("Deleted all paper_author relations"),
+        Err(e) => result.errors.push(format!("Failed to delete paper_authors: {}", e)),
+    }
+
+    // 3. Delete all paper_keyword relations
+    match paper_keyword::Entity::delete_many().exec(db.as_ref()).await {
+        Ok(_) => info!("Deleted all paper_keyword relations"),
+        Err(e) => result.errors.push(format!("Failed to delete paper_keywords: {}", e)),
+    }
+
+    // 4. Delete all paper_category relations (keep categories)
+    match paper_category::Entity::delete_many().exec(db.as_ref()).await {
+        Ok(_) => info!("Deleted all paper_category relations"),
+        Err(e) => result.errors.push(format!("Failed to delete paper_categories: {}", e)),
+    }
+
+    // 5. Delete all attachments
+    match attachment::Entity::delete_many().exec(db.as_ref()).await {
+        Ok(r) => {
+            let deleted = r.rows_affected;
+            info!("Deleted {} attachments", deleted);
+        }
+        Err(e) => result.errors.push(format!("Failed to delete attachments: {}", e)),
+    }
+
+    // 6. Delete all papers (including soft-deleted)
+    match paper::Entity::delete_many().exec(db.as_ref()).await {
+        Ok(r) => {
+            result.papers_deleted = r.rows_affected;
+            info!("Deleted {} papers", result.papers_deleted);
+        }
+        Err(e) => result.errors.push(format!("Failed to delete papers: {}", e)),
+    }
+
+    // 7. Delete all labels
+    match label::Entity::delete_many().exec(db.as_ref()).await {
+        Ok(r) => {
+            result.labels_deleted = r.rows_affected;
+            info!("Deleted {} labels", result.labels_deleted);
+        }
+        Err(e) => result.errors.push(format!("Failed to delete labels: {}", e)),
+    }
+
+    // 8. Clear files directory
+    let files_path = PathBuf::from(&app_dirs.files);
+    if files_path.exists() {
+        match clear_directory_contents(&files_path) {
+            Ok(count) => {
+                result.files_deleted = count;
+                info!("Deleted {} items from files directory", count);
+            }
+            Err(e) => {
+                result.errors.push(format!("Failed to clear files directory: {}", e));
+                error!("Failed to clear files directory: {}", e);
+            }
+        }
+    }
+
+    info!("Clear all data operation completed: {:?}", result);
+    Ok(result)
+}
+
+/// Clear all contents of a directory without removing the directory itself
+fn clear_directory_contents(dir: &PathBuf) -> std::result::Result<u64, String> {
+    let mut count = 0u64;
+
+    if !dir.is_dir() {
+        return Err(format!("Path is not a directory: {:?}", dir));
+    }
+
+    for entry in std::fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            std::fs::remove_dir_all(&path).map_err(|e| e.to_string())?;
+            count += 1;
+        } else {
+            std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+            count += 1;
+        }
+    }
+
+    Ok(count)
 }

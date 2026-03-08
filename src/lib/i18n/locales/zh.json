@@ -239,7 +239,18 @@
     "keywords": "关键词",
     "labels": "标签",
     "categories": "分类",
-    "attachments": "附件"
+    "attachments": "附件",
+    "clearAllData": "清空所有数据",
+    "clearAllDataDescription": "清空所有论文、标签和附件数据。此功能仅用于开发测试。",
+    "clearAllDataWarning": "此操作将永久删除数据，无法恢复！",
+    "clearDataConfirmTitle": "确认清空所有数据",
+    "clearDataWillDelete": "以下数据将被删除：",
+    "clearDataRelations": "所有关联关系",
+    "clearDataWillKeep": "分类数据将被保留",
+    "clearingData": "正在清空数据...",
+    "clearDataConfirm": "确认清空",
+    "clearDataCompleted": "数据清空完成！",
+    "clearDataCompletedErrors": "数据清空完成，但有一些错误"
   },
   "clips": {
     "title": "网页剪藏",

@@ -21,8 +21,9 @@ use crate::command::clip_command::{
 };
 use crate::command::config_command::{get_app_config, save_app_config};
 use crate::command::data_folder_command::{
-    get_data_folder_info_command, get_default_data_folder, migrate_data_folder_command,
-    restart_app, revert_to_default_data_folder_command, validate_data_folder_command,
+    clear_all_data_command, get_data_folder_info_command, get_default_data_folder,
+    migrate_data_folder_command, restart_app, revert_to_default_data_folder_command,
+    validate_data_folder_command,
 };
 use crate::command::label_command::{create_label, delete_label, get_all_labels, update_label};
 use crate::command::paper::{
@@ -212,6 +213,7 @@ pub fn run() -> Result<()> {
             migrate_data_folder_command,
             revert_to_default_data_folder_command,
             restart_app,
+            clear_all_data_command,
             // Database migration commands
             migrate_abstract_field,
             // Clip commands

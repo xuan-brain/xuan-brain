@@ -26,7 +26,7 @@
     onCategorySelect?: (categoryId: string | null) => void;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const emit = defineEmits<{
     categorySelect: [categoryId: string | null];

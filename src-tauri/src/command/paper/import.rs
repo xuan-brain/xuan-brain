@@ -968,7 +968,18 @@ pub async fn import_papers_from_zotero_rdf(
         let mut attachment_count = 0;
         let mut attachments_dto: Vec<AttachmentDto> = vec![];
 
+        info!(
+            "Processing {} attachments for paper: {}",
+            item.attachments.len(),
+            paper.title
+        );
+
         for attachment in &item.attachments {
+            info!(
+                "Attachment: title={:?}, path={:?}, content_type={:?}",
+                attachment.title, attachment.path, attachment.content_type
+            );
+
             // Resolve attachment path relative to RDF file
             let attachment_path_str = match &attachment.path {
                 Some(path) => path,
@@ -979,6 +990,7 @@ pub async fn import_papers_from_zotero_rdf(
             };
 
             let attachment_path = rdf_dir.join(attachment_path_str);
+            info!("Resolved attachment path: {:?}", attachment_path);
 
             if !attachment_path.exists() {
                 info!("Attachment file not found: {:?}", attachment_path);

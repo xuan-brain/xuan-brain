@@ -233,9 +233,10 @@ impl PaperRepository {
 
         let mut paper: paper::ActiveModel = paper.into();
         paper.deleted_at = Set(Some(chrono::Utc::now()));
-        paper.update(db).await.map_err(|e| {
-            AppError::generic(format!("Failed to soft delete paper: {}", e))
-        })?;
+        paper
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to soft delete paper: {}", e)))?;
 
         Ok(())
     }
@@ -250,9 +251,10 @@ impl PaperRepository {
 
         let mut paper: paper::ActiveModel = paper.into();
         paper.deleted_at = Set(None);
-        paper.update(db).await.map_err(|e| {
-            AppError::generic(format!("Failed to restore paper: {}", e))
-        })?;
+        paper
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to restore paper: {}", e)))?;
 
         Ok(())
     }
@@ -294,7 +296,9 @@ impl PaperRepository {
             .filter(paper_category::Column::CategoryId.eq(category_id))
             .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get paper-category relations: {}", e)))?;
+            .map_err(|e| {
+                AppError::generic(format!("Failed to get paper-category relations: {}", e))
+            })?;
 
         let paper_ids: Vec<i64> = relations.iter().map(|r| r.paper_id).collect();
 
@@ -325,9 +329,7 @@ impl PaperRepository {
             .filter(paper_category::Column::PaperId.eq(paper_id))
             .exec(db)
             .await
-            .map_err(|e| {
-                AppError::generic(format!("Failed to delete paper category: {}", e))
-            })?;
+            .map_err(|e| AppError::generic(format!("Failed to delete paper category: {}", e)))?;
 
         // Then create new relation if category_id is provided
         if let Some(cat_id) = category_id {
@@ -336,9 +338,10 @@ impl PaperRepository {
                 category_id: Set(cat_id),
                 ..Default::default()
             };
-            relation.insert(db).await.map_err(|e| {
-                AppError::generic(format!("Failed to set paper category: {}", e))
-            })?;
+            relation
+                .insert(db)
+                .await
+                .map_err(|e| AppError::generic(format!("Failed to set paper category: {}", e)))?;
         }
 
         Ok(())
@@ -370,9 +373,10 @@ impl PaperRepository {
         let mut paper: paper::ActiveModel = paper.into();
         paper.attachment_path = Set(Some(path.to_string()));
         paper.updated_at = Set(chrono::Utc::now());
-        paper.update(db).await.map_err(|e| {
-            AppError::generic(format!("Failed to update attachment path: {}", e))
-        })?;
+        paper
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to update attachment path: {}", e)))?;
 
         Ok(())
     }
@@ -402,6 +406,9 @@ impl PaperRepository {
             .await
             .map_err(|e| AppError::generic(format!("Failed to add attachment: {}", e)))?;
 
+        // Increment attachment count
+        Self::update_attachment_count(db, paper_id, 1).await?;
+
         // Update paper's updated_at
         Self::touch_paper(db, paper_id).await?;
 
@@ -409,7 +416,10 @@ impl PaperRepository {
     }
 
     /// Get all attachments for a paper
-    pub async fn get_attachments(db: &DatabaseConnection, paper_id: i64) -> Result<Vec<Attachment>> {
+    pub async fn get_attachments(
+        db: &DatabaseConnection,
+        paper_id: i64,
+    ) -> Result<Vec<Attachment>> {
         let attachments = attachment::Entity::find()
             .filter(attachment::Column::PaperId.eq(paper_id))
             .all(db)
@@ -442,7 +452,7 @@ impl PaperRepository {
             let paper_id = attachment.paper_id;
             result
                 .entry(paper_id)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(Attachment::from(attachment));
         }
 
@@ -500,7 +510,8 @@ impl PaperRepository {
             .filter(attachment::Column::FileName.eq(file_name))
             .count(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to count attachments: {}", e)))? as i32;
+            .map_err(|e| AppError::generic(format!("Failed to count attachments: {}", e)))?
+            as i32;
 
         if count == 0 {
             return Ok(());
@@ -589,9 +600,10 @@ impl PaperRepository {
         let mut paper: paper::ActiveModel = paper.into();
         paper.attachment_count = Set(count);
         paper.updated_at = Set(chrono::Utc::now());
-        paper.update(db).await.map_err(|e| {
-            AppError::generic(format!("Failed to update attachment count: {}", e))
-        })?;
+        paper
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to update attachment count: {}", e)))?;
 
         Ok(count)
     }

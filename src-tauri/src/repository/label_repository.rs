@@ -115,9 +115,7 @@ impl LabelRepository {
             .filter(paper_label::Column::LabelId.eq(id))
             .exec(db)
             .await
-            .map_err(|e| {
-                AppError::generic(format!("Failed to delete label relations: {}", e))
-            })?;
+            .map_err(|e| AppError::generic(format!("Failed to delete label relations: {}", e)))?;
 
         // Then delete the label
         label::Entity::delete_by_id(id)
@@ -136,9 +134,7 @@ impl LabelRepository {
             .filter(paper_label::Column::LabelId.eq(label_id))
             .one(db)
             .await
-            .map_err(|e| {
-                AppError::generic(format!("Failed to check existing relation: {}", e))
-            })?;
+            .map_err(|e| AppError::generic(format!("Failed to check existing relation: {}", e)))?;
 
         if existing.is_none() {
             let relation = paper_label::ActiveModel {
@@ -146,9 +142,10 @@ impl LabelRepository {
                 label_id: Set(label_id),
                 ..Default::default()
             };
-            relation.insert(db).await.map_err(|e| {
-                AppError::generic(format!("Failed to add label to paper: {}", e))
-            })?;
+            relation
+                .insert(db)
+                .await
+                .map_err(|e| AppError::generic(format!("Failed to add label to paper: {}", e)))?;
         }
 
         // Update document count
@@ -168,9 +165,7 @@ impl LabelRepository {
             .filter(paper_label::Column::LabelId.eq(label_id))
             .exec(db)
             .await
-            .map_err(|e| {
-                AppError::generic(format!("Failed to remove label from paper: {}", e))
-            })?;
+            .map_err(|e| AppError::generic(format!("Failed to remove label from paper: {}", e)))?;
 
         // Update document count
         Self::update_document_count(db, label_id).await?;
@@ -185,7 +180,9 @@ impl LabelRepository {
             .filter(paper_label::Column::PaperId.eq(paper_id))
             .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get paper-label relations: {}", e)))?;
+            .map_err(|e| {
+                AppError::generic(format!("Failed to get paper-label relations: {}", e))
+            })?;
 
         let label_ids: Vec<i64> = relations.iter().map(|r| r.label_id).collect();
 
@@ -236,19 +233,14 @@ impl LabelRepository {
             .map_err(|e| AppError::generic(format!("Failed to get paper labels batch: {}", e)))?;
 
         // Build label map
-        let label_map: HashMap<i64, Label> = labels
-            .into_iter()
-            .map(|l| (l.id, Label::from(l)))
-            .collect();
+        let label_map: HashMap<i64, Label> =
+            labels.into_iter().map(|l| (l.id, Label::from(l))).collect();
 
         // Group by paper_id
         let mut result: HashMap<i64, Vec<Label>> = HashMap::new();
         for relation in relations {
             if let Some(label) = label_map.get(&relation.label_id).cloned() {
-                result
-                    .entry(relation.paper_id)
-                    .or_insert_with(Vec::new)
-                    .push(label);
+                result.entry(relation.paper_id).or_default().push(label);
             }
         }
 
@@ -261,9 +253,7 @@ impl LabelRepository {
             .filter(paper_label::Column::LabelId.eq(label_id))
             .count(db)
             .await
-            .map_err(|e| {
-                AppError::generic(format!("Failed to count label documents: {}", e))
-            })?;
+            .map_err(|e| AppError::generic(format!("Failed to count label documents: {}", e)))?;
 
         let label = label::Entity::find_by_id(label_id)
             .one(db)

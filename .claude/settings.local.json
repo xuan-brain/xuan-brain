@@ -36,7 +36,10 @@
       "Bash(yarn lint:*)",
       "Bash(npx eslint:*)",
       "Bash(node:*)",
-      "Bash(xargs cat)"
+      "Bash(xargs cat)",
+      "Bash(head -20 })",
+      "Bash(sqlite3 ~/.xuan-brain/xuan-brain.db \"SELECT id, title, journal_name FROM paper LIMIT 5;\")",
+      "Bash(git ls-remote https://github.com/spartajet/zotero-rdf.git HEAD master)"
     ]
   }
 }

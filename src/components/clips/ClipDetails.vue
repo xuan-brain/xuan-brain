@@ -65,7 +65,7 @@
       author: api.author ?? undefined,
       published_date: api.published_date ?? undefined,
       content: api.content,
-      tags: api.tags.map((tag, _) => ({
+      tags: api.tags.map((tag, _idx) => ({
         id: `${api.id}-${tag}`,
         name: tag,
         color: 'primary',
@@ -155,11 +155,6 @@
     } catch {
       return dateString;
     }
-  }
-
-  // Notify parent of update
-  function notifyUpdate(data: ClipDetail) {
-    emit('clipUpdated', data);
   }
 
   // Handle comments updated from ClipComments component

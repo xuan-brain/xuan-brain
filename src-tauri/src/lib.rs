@@ -31,9 +31,9 @@ use crate::command::paper::{
     get_deleted_papers, get_paper, get_paper_count, get_papers_by_category, get_papers_paginated,
     get_pdf_attachment_path, import_paper_by_arxiv_id, import_paper_by_doi, import_paper_by_pdf,
     import_paper_by_pmid, import_papers_from_zotero_rdf, migrate_abstract_field, open_paper_folder,
-    permanently_delete_paper, read_pdf_as_blob, read_pdf_file, remove_paper_label, restore_paper,
-    save_pdf_blob, save_pdf_with_annotations, stream_all_papers, update_paper_category,
-    update_paper_details,
+    permanently_delete_paper, read_pdf_as_blob, read_pdf_file, remove_paper_label,
+    repair_attachment_counts, restore_paper, save_pdf_blob, save_pdf_with_annotations,
+    stream_all_papers, update_paper_category, update_paper_details,
 };
 use crate::command::search_command::{search_papers, search_papers_with_score};
 use crate::axum::state::SelectedCategoryState;
@@ -219,6 +219,7 @@ pub fn run() -> Result<()> {
             clear_all_data_command,
             // Database migration commands
             migrate_abstract_field,
+            repair_attachment_counts,
             // Clip commands
             list_clips,
             get_clip,

@@ -108,12 +108,12 @@
     total: 0,
     isStreaming: false,
   });
-  const papers = ref<PaperDto[]>([]);
+  const papers = ref<(PaperDto | PaperListDto)[]>([]);
 
   // Table ref
 
   // Expand configuration
-  const expandRowIds = ref<number[]>([]);
+  const expandRowIds = ref<string[]>([]);
 
   const expandConfig = computed<VxeTablePropTypes.ExpandConfig>(() => ({
     showIcon: true,
@@ -122,21 +122,15 @@
     accordion: true, // 手风琴模式：展开一行时其他行自动折叠
     visibleMethod: ({ row }) => {
       // 只对有附件的行显示展开图标
-      return ((row as PaperDto).attachment_count ?? 0) > 0;
+      const paper = row as PaperDto | PaperListDto;
+      return (paper.attachment_count ?? 0) > 0;
     },
-    toggleMethod({ expanded, row }) {
-      const paper = row as PaperDto;
-      if (expanded) {
-        if ((paper.attachment_count ?? 0) === 0) {
-          return false; // 没有附件，禁止展开
-        }
-        return true;
-      } else {
-        if ((paper.attachment_count ?? 0) === 0) {
-          return false; // 没有附件，禁止展开
-        }
-        return true; // 有附件，允许展开
+    toggleMethod({ row }) {
+      const paper = row as PaperDto | PaperListDto;
+      if ((paper.attachment_count ?? 0) === 0) {
+        return false; // 没有附件，禁止展开
       }
+      return true;
     },
   }));
 
@@ -332,7 +326,9 @@
         // Set up Channel for remaining batches BEFORE calling command
         const t_channel = performance.now();
         const channel = new Channel<PaperBatchDto>();
-        console.info(`[PERF] Step B - Channel created: ${(performance.now() - t_channel).toFixed(2)}ms`);
+        console.info(
+          `[PERF] Step B - Channel created: ${(performance.now() - t_channel).toFixed(2)}ms`
+        );
 
         channel.onmessage = (data) => {
           const t_msg = performance.now();
@@ -371,6 +367,7 @@
         papers.value = result.first_batch;
         loadingProgress.loaded = result.first_batch_count;
         loadingProgress.total = result.total;
+
         console.info(
           `[PERF] Step E - First batch assigned to reactive: ${(performance.now() - t_assign).toFixed(2)}ms`
         );
@@ -520,12 +517,7 @@
           });
           loadedAttachments.value.set(paper.id, attachments);
           paper.attachments = attachments;
-          console.info(
-            'Loaded attachments for paper:',
-            paper.id,
-            'count:',
-            attachments.length
-          );
+          console.info('Loaded attachments for paper:', paper.id, 'count:', attachments.length);
         } catch (error) {
           console.error('Failed to load attachments:', error);
           paper.attachments = [];
@@ -535,12 +527,7 @@
       } else {
         // Already loaded, just expand
         expandRowIds.value.push(paper.id);
-        console.info(
-          'Expanded row:',
-          paper.id,
-          'attachment_count:',
-          paper.attachment_count
-        );
+        console.info('Expanded row:', paper.id, 'attachment_count:', paper.attachment_count);
       }
     }
   }
@@ -626,9 +613,11 @@
 
       <vxe-table
         ref="tableRef"
+        id="paper-list-table"
         :data="papers"
         :expand-config="expandConfig"
         :column-config="{ resizable: true }"
+        :custom-config="{ enabled: true, storage: true }"
         :menu-config="contextMenuConfig"
         :sort-config="{
           trigger: 'cell',
@@ -641,8 +630,8 @@
         }"
         :row-config="{ isCurrent: true, isHover: true, keyField: 'id' }"
         :cell-config="{ height: 32 }"
-        :scroll-y="{ enabled: true, gt: 50 }"
-        :scroll-x="{ enabled: true, gt: 20 }"
+        :scroll-y="{ enabled: false }"
+        :scroll-x="{ enabled: false }"
         :style="{
           '--vxe-ui-table-row-current-background-color': 'rgba(var(--v-theme-primary), 0.2)',
           '--vxe-ui-table-row-hover-current-background-color': 'rgba(var(--v-theme-primary), 0.3)',
@@ -745,7 +734,12 @@
           striped
         />
         <span class="text-caption ml-2">
-          {{ t('paper.loadingProgress', { loaded: loadingProgress.loaded, total: loadingProgress.total }) }}
+          {{
+            t('paper.loadingProgress', {
+              loaded: loadingProgress.loaded,
+              total: loadingProgress.total,
+            })
+          }}
         </span>
       </div>
     </div>

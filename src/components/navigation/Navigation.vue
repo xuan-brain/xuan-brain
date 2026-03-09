@@ -93,7 +93,7 @@
   }
 
   // Handle label click
-  function handleLabelClick(_: string) {
+  function handleLabelClick(_labelId: string) {
     activeNavItem.value = 'library';
     // TODO: Filter by label
     emit('viewChange', 'library');
@@ -314,7 +314,7 @@
               :style="{ backgroundColor: color }"
               :title="key"
               @click="handleUpdateTagColor(key)"
-            />
+            ></div>
           </div>
         </v-list-item>
       </v-list>

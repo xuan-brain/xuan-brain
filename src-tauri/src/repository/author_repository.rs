@@ -89,8 +89,8 @@ impl AuthorRepository {
         }
 
         // Build query based on whether last_name and email exist
-        let mut query = author::Entity::find()
-            .filter(author::Column::FirstName.eq(&name_parts.first_name));
+        let mut query =
+            author::Entity::find().filter(author::Column::FirstName.eq(&name_parts.first_name));
 
         // Handle last_name (can be None or Some)
         match &name_parts.last_name {
@@ -216,10 +216,7 @@ impl AuthorRepository {
         let mut result: HashMap<i64, Vec<Author>> = HashMap::new();
         for relation in relations {
             if let Some(author) = author_map.get(&relation.author_id).cloned() {
-                result
-                    .entry(relation.paper_id)
-                    .or_insert_with(Vec::new)
-                    .push(author);
+                result.entry(relation.paper_id).or_default().push(author);
             }
         }
 

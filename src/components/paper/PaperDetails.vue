@@ -3,7 +3,7 @@
   import { invokeCommand } from '@/lib/tauri';
   import { computed, ref, watch } from 'vue';
 
-  const { t } = useI18n();
+  useI18n();
 
   interface Label {
     id: string;

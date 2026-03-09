@@ -239,8 +239,16 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(PaperAuthor::PaperId).integer().not_null())
                     .col(ColumnDef::new(PaperAuthor::AuthorId).integer().not_null())
-                    .col(ColumnDef::new(PaperAuthor::AuthorOrder).integer().default(0))
-                    .col(ColumnDef::new(PaperAuthor::IsCorresponding).integer().default(0))
+                    .col(
+                        ColumnDef::new(PaperAuthor::AuthorOrder)
+                            .integer()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(PaperAuthor::IsCorresponding)
+                            .integer()
+                            .default(0),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_paper_author_paper")
@@ -369,7 +377,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(PaperCategory::PaperId).integer().not_null())
-                    .col(ColumnDef::new(PaperCategory::CategoryId).integer().not_null())
+                    .col(
+                        ColumnDef::new(PaperCategory::CategoryId)
+                            .integer()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_paper_category_paper")
@@ -602,7 +614,6 @@ pub enum Paper {
 }
 
 // Re-export for use in other migrations
-pub use Paper as PaperEnum;
 
 // Author table
 #[derive(Iden)]

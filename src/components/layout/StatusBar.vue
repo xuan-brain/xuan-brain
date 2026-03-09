@@ -4,9 +4,11 @@ import { useI18n, setLocale } from "@/lib/i18n";
 import { useAppStore } from "@/stores/useAppStore";
 import { invokeCommand } from "@/lib/tauri";
 import { APP_VERSION } from "@/lib/version";
+import { useNotification } from "@/composables/useNotification";
 
 const { t, locale: localeRef, availableLocales } = useI18n();
 const appStore = useAppStore();
+const { statusText } = useNotification();
 
 // Current locale
 const currentLocale = computed(
@@ -110,6 +112,7 @@ async function handleGrobidServerSelect(serverId: string) {
 <template>
   <v-footer height="36" class="status-bar">
     <div class="status-bar-left">
+      <span v-if="statusText" class="status-text">{{ statusText }}</span>
       <span class="mr-4">{{ t("status.documents") }}: 0</span>
       <span>{{ t("status.version") }}: {{ APP_VERSION }}</span>
     </div>
@@ -396,5 +399,11 @@ async function handleGrobidServerSelect(serverId: string) {
 
 .color-dot-active {
   border: 2px solid rgb(var(--v-theme-primary));
+}
+
+.status-text {
+  margin-right: 16px;
+  color: rgb(var(--v-theme-primary));
+  font-weight: 500;
 }
 </style>

@@ -297,5 +297,30 @@
       "edited": "(edited)"
     }
   },
-  "duration": "Duration"
+  "duration": "Duration",
+  "notification": {
+    "success": "Success",
+    "info": "Info",
+    "warning": "Warning",
+    "error": "Error",
+    "all": "All",
+    "operationSuccess": "Operation successful",
+    "operationFailed": "Operation failed",
+    "networkError": "Network connection failed",
+    "saveSuccess": "Saved successfully",
+    "deleteSuccess": "Deleted successfully",
+    "details": "Details",
+    "copy": "Copy",
+    "close": "Close",
+    "clearHistory": "Clear History",
+    "markAllRead": "Mark All as Read",
+    "unread": "Unread",
+    "read": "Read",
+    "notificationHistory": "Notification History",
+    "noNotifications": "No notifications",
+    "justNow": "Just now",
+    "minutesAgo": "{n} min ago",
+    "hoursAgo": "{n} hr ago",
+    "daysAgo": "{n} days ago"
+  }
 }

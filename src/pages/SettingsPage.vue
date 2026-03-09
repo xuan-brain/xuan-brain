@@ -10,6 +10,7 @@ import UserSettings from "@/components/settings/UserSettings.vue";
 import ClipsSettings from "@/components/settings/ClipsSettings.vue";
 import WritingSettings from "@/components/settings/WritingSettings.vue";
 import SubscriptionsSettings from "@/components/settings/SubscriptionsSettings.vue";
+import NotificationHistory from "@/components/notification/NotificationHistory.vue";
 
 const { t } = useI18n();
 
@@ -28,6 +29,7 @@ const tabItems = [
   { key: "clips", i18n: "navigation.clips", icon: "mdi-content-cut" },
   { key: "writing", i18n: "navigation.writing", icon: "mdi-pencil" },
   { key: "subscriptions", i18n: "navigation.subscriptions", icon: "mdi-rss" },
+  { key: "notifications", i18n: "notification.notificationHistory", icon: "mdi-bell" },
   { key: "about", i18n: "navigation.about", icon: "mdi-information" },
 ];
 
@@ -96,6 +98,9 @@ async function handleConfigUpdated() {
 
           <!-- Subscriptions Settings -->
           <SubscriptionsSettings v-if="activeTab === 'subscriptions'" />
+
+          <!-- Notifications History -->
+          <NotificationHistory v-if="activeTab === 'notifications'" />
 
           <!-- About -->
           <AboutSettings v-if="activeTab === 'about'" />

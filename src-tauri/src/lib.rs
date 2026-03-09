@@ -4,6 +4,7 @@ mod command;
 mod database;
 mod llm;
 mod models;
+mod notification;
 mod papers;
 mod repository;
 mod service;

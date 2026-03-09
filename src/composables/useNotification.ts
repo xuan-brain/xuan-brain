@@ -1,4 +1,5 @@
 // src/composables/useNotification.ts
+import { toRefs } from 'vue';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { NotificationOptions } from '@/types/notification';
 import { NotificationDisplay } from '@/types/notification';
@@ -9,15 +10,28 @@ import { NotificationDisplay } from '@/types/notification';
 export function useNotification() {
   const notificationStore = useNotificationStore();
 
+  // Use toRefs to maintain reactivity when destructuring from Pinia store
+  const {
+    toasts,
+    history,
+    showDialog,
+    dialogContent,
+    unreadCount,
+  } = toRefs(notificationStore);
+
   return {
     // Toast 通知
     success: (message: string, options?: NotificationOptions) =>
+      notificationStore.success(message, { display: NotificationDisplay.Toast, ...options }),
+    showSuccess: (message: string, options?: NotificationOptions) =>
       notificationStore.success(message, { display: NotificationDisplay.Toast, ...options }),
     info: (message: string, options?: NotificationOptions) =>
       notificationStore.info(message, { display: NotificationDisplay.Toast, ...options }),
     warning: (message: string, options?: NotificationOptions) =>
       notificationStore.warning(message, { display: NotificationDisplay.Toast, ...options }),
     error: (message: string, options?: NotificationOptions) =>
+      notificationStore.error(message, { display: NotificationDisplay.Toast, ...options }),
+    showError: (message: string, options?: NotificationOptions) =>
       notificationStore.error(message, { display: NotificationDisplay.Toast, ...options }),
 
     // 对话框通知
@@ -26,17 +40,12 @@ export function useNotification() {
     dialogError: (message: string, options?: NotificationOptions) =>
       notificationStore.error(message, { display: NotificationDisplay.Dialog, ...options }),
 
-    // 状态栏
-    setStatus: (text: string) => notificationStore.setStatus(text),
-    clearStatus: () => notificationStore.clearStatus(),
-
-    // Store 访问
-    toasts: notificationStore.toasts,
-    statusText: notificationStore.statusText,
-    history: notificationStore.history,
-    showDialog: notificationStore.showDialog,
-    dialogContent: notificationStore.dialogContent,
-    unreadCount: notificationStore.unreadCount,
+    // Store 访问 (保持响应式)
+    toasts,
+    history,
+    showDialog,
+    dialogContent,
+    unreadCount,
 
     // 历史记录管理
     markAsRead: (id: string) => notificationStore.markAsRead(id),

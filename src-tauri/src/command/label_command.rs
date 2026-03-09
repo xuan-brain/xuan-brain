@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::{AppHandle, State};
-use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
 use crate::database::DatabaseConnection;
@@ -39,22 +38,15 @@ pub async fn get_all_labels(db: State<'_, Arc<DatabaseConnection>>) -> Result<Ve
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn create_label(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     name: String,
     color: String,
 ) -> Result<LabelResponse> {
     info!("Creating label '{}' with color '{}'", name, color);
     let label = LabelRepository::create(&db, CreateLabel { name: name.clone(), color }).await?;
-
-    let _ = app
-        .notification()
-        .builder()
-        .title("Label Created")
-        .body(format!("Label '{}' created successfully", name))
-        .show();
 
     info!("Label created successfully");
     Ok(LabelResponse {
@@ -66,9 +58,9 @@ pub async fn create_label(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn update_label(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     id: String,
     name: Option<String>,
@@ -83,16 +75,6 @@ pub async fn update_label(
     let updated_label =
         LabelRepository::update(&db, id_num, UpdateLabel { name, color }).await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Label Updated")
-        .body(format!(
-            "Label '{}' updated successfully",
-            updated_label.name
-        ))
-        .show();
-
     info!("Label updated successfully");
     Ok(LabelResponse {
         id: updated_label.id.to_string(),
@@ -103,9 +85,9 @@ pub async fn update_label(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn delete_label(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     id: String,
 ) -> Result<()> {
@@ -116,13 +98,6 @@ pub async fn delete_label(
         .map_err(|_| crate::sys::error::AppError::validation("id", "Invalid id format"))?;
 
     LabelRepository::delete(&db, id_num).await?;
-
-    let _ = app
-        .notification()
-        .builder()
-        .title("Label Deleted")
-        .body(format!("Label with id {} deleted successfully", id))
-        .show();
 
     Ok(())
 }

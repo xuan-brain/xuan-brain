@@ -1,5 +1,4 @@
 <script setup lang="ts">
-  import { useNotification } from '@/composables/useNotification';
   import { setLocale, useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
   import { APP_VERSION } from '@/lib/version';
@@ -8,7 +7,6 @@
 
   const { t, locale: localeRef, availableLocales } = useI18n();
   const appStore = useAppStore();
-  const { statusText } = useNotification();
 
   // Current locale
   const currentLocale = computed(() => localeRef.value as keyof typeof availableLocales);
@@ -110,7 +108,6 @@
 <template>
   <v-footer height="36" class="status-bar">
     <div class="status-bar-left">
-      <span v-if="statusText" class="status-text">{{ statusText }}</span>
       <span class="mr-4">{{ t('status.documents') }}: 0</span>
       <span>{{ t('status.version') }}: {{ APP_VERSION }}</span>
     </div>

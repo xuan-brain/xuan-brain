@@ -9,7 +9,6 @@ export const useNotificationStore = defineStore(
   () => {
     // State
     const toasts = ref<Notification[]>([]);
-    const statusText = ref<string | null>(null);
     const history = ref<Notification[]>([]);
     const showDialog = ref(false);
     const dialogContent = ref<Notification | null>(null);
@@ -43,9 +42,6 @@ export const useNotificationStore = defineStore(
 
       // Route based on display type
       switch (fullNotification.display) {
-        case NotificationDisplay.StatusBar:
-          statusText.value = fullNotification.message;
-          break;
         case NotificationDisplay.Dialog:
           dialogContent.value = fullNotification;
           showDialog.value = true;
@@ -78,15 +74,6 @@ export const useNotificationStore = defineStore(
 
     function error(message: string, options: NotificationOptions = {}): void {
       add({ type: NotificationType.Error, title: 'Error', message, ...options });
-    }
-
-    // Status bar methods
-    function setStatus(text: string): void {
-      statusText.value = text;
-    }
-
-    function clearStatus(): void {
-      statusText.value = null;
     }
 
     // Toast management
@@ -133,7 +120,6 @@ export const useNotificationStore = defineStore(
     return {
       // State
       toasts,
-      statusText,
       history,
       showDialog,
       dialogContent,
@@ -145,8 +131,6 @@ export const useNotificationStore = defineStore(
       info,
       warning,
       error,
-      setStatus,
-      clearStatus,
       removeToast,
       clearToasts,
       closeDialog,

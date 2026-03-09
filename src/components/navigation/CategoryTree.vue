@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import AddCategoryDialog from '@/components/dialogs/AddCategoryDialog.vue';
   import EditCategoryDialog from '@/components/dialogs/EditCategoryDialog.vue';
+  import { useNotification } from '@/composables/useNotification';
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
   import { Draggable } from '@he-tree/vue';
@@ -33,6 +34,7 @@
   }>();
 
   const { t } = useI18n();
+  const { showSuccess, showError } = useNotification();
 
   const treeData = ref<CategoryNode[]>([]);
   const loading = ref(false);
@@ -183,9 +185,10 @@
     try {
       await invokeCommand('delete_category', { id: selectedNode.value.id });
       await loadCategories();
+      showSuccess(t('dialog.categoryDeleted'));
     } catch (error) {
       console.error('Failed to delete category:', error);
-      alert(`删除失败: ${error}`);
+      showError(t('dialog.deleteFailed'));
     }
     hideContextMenu();
   }

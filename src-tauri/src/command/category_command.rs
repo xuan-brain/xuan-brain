@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
-use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
 use crate::axum::state::SelectedCategoryState;
@@ -32,9 +31,9 @@ pub async fn load_categories(db: State<'_, Arc<DatabaseConnection>>) -> Result<V
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn create_category(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     name: String,
     parent_id: Option<String>,
@@ -56,21 +55,14 @@ pub async fn create_category(
 
     CategoryRepository::create(&db, create_data).await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Category Created")
-        .body(format!("Category '{}' created successfully", name))
-        .show();
-
     info!("Category created successfully");
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn delete_category(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     id: String,
 ) -> Result<()> {
@@ -82,21 +74,14 @@ pub async fn delete_category(
 
     CategoryRepository::delete(&db, id_num).await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Category Deleted")
-        .body(format!("Category with id {} deleted successfully", id))
-        .show();
-
     info!("Category deleted successfully");
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn update_category(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     id: String,
     name: String,
@@ -117,21 +102,14 @@ pub async fn update_category(
     )
     .await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Category Updated")
-        .body(format!("Category updated to '{}'", name))
-        .show();
-
     info!("Category updated successfully");
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn move_category(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     dragged_id: String,
     target_id: Option<String>,
@@ -169,21 +147,14 @@ pub async fn move_category(
 
     CategoryRepository::move_to_parent(&db, dragged_id_num, new_parent_id).await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Category Moved")
-        .body("Category structure updated successfully")
-        .show();
-
     info!("Category moved successfully");
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn reorder_tree(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     tree_data: Vec<TreeNodeDto>,
 ) -> Result<()> {
@@ -196,13 +167,6 @@ pub async fn reorder_tree(
     let nodes = convert_tree_nodes(&tree_data);
 
     CategoryRepository::rebuild_tree_from_structure(&db, &nodes).await?;
-
-    let _ = app
-        .notification()
-        .builder()
-        .title("Categories Reordered")
-        .body("Category tree reordered successfully")
-        .show();
 
     info!("Tree reordered successfully");
     Ok(())

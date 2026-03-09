@@ -7,10 +7,8 @@ export enum NotificationType {
 }
 
 export enum NotificationDisplay {
-  Toast = 'toast',
-  StatusBar = 'status',
-  Dialog = 'dialog',
-  System = 'system',
+  Toast = 'toast',      // Snackbar 临时通知
+  Dialog = 'dialog',    // 全局错误对话框
 }
 
 export interface Notification {

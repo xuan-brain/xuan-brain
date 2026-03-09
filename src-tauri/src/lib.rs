@@ -4,7 +4,6 @@ mod command;
 mod database;
 mod llm;
 mod models;
-mod notification;
 mod papers;
 mod repository;
 mod service;
@@ -72,7 +71,6 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwdwd| {}))
         .plugin(tauri_plugin_tracing::Builder::new().build())
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_fs::init())

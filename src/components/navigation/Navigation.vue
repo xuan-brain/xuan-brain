@@ -3,12 +3,14 @@
   import AddTagDialog from '@/components/dialogs/AddTagDialog.vue';
   import EditCategoryDialog from '@/components/dialogs/EditCategoryDialog.vue';
   import CategoryTree from '@/components/navigation/CategoryTree.vue';
+  import { useNotification } from '@/composables/useNotification';
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { onMounted, onUnmounted, ref } from 'vue';
 
   const { t } = useI18n();
+  const { showSuccess, showError } = useNotification();
 
   // CategoryTree ref for refresh
   const categoryTreeRef = ref<InstanceType<typeof CategoryTree>>();
@@ -133,9 +135,10 @@
     try {
       await invokeCommand('delete_label', { id: selectedTag.value.id });
       await loadLabels();
+      showSuccess(`标签"${selectedTag.value.name}"已删除`);
     } catch (error) {
       console.error('Failed to delete tag:', error);
-      alert(`删除标签失败: ${error}`);
+      showError(`删除标签失败: ${error}`);
     }
     hideTagContextMenu();
   }
@@ -151,9 +154,10 @@
         color: colorKey,
       });
       await loadLabels();
+      showSuccess(`标签颜色已更新`);
     } catch (error) {
       console.error('Failed to update tag color:', error);
-      alert(`修改标签颜色失败: ${error}`);
+      showError(`修改标签颜色失败: ${error}`);
     }
     hideTagContextMenu();
   }

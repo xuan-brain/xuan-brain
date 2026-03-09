@@ -1,32 +1,32 @@
-import { createI18n } from "vue-i18n";
-import en from "./locales/en.json";
-import zh from "./locales/zh.json";
+import { createI18n } from 'vue-i18n';
+import en from './locales/en.json';
+import zh from './locales/zh.json';
 
-export type LocaleCode = "en" | "zh";
+export type LocaleCode = 'en' | 'zh';
 
 export const availableLocales: Record<
   LocaleCode,
   { name: string; nativeName: string; flag: string }
 > = {
-  en: { name: "English", nativeName: "English", flag: "🇺🇸" },
-  zh: { name: "Chinese", nativeName: "中文", flag: "🇨🇳" },
+  en: { name: 'English', nativeName: 'English', flag: '🇺🇸' },
+  zh: { name: 'Chinese', nativeName: '中文', flag: '🇨🇳' },
 };
 
-const STORAGE_KEY = "xuan-brain-locale";
+const STORAGE_KEY = 'xuan-brain-locale';
 
 function getInitialLocale(): LocaleCode {
-  if (typeof window === "undefined") return "en";
+  if (typeof window === 'undefined') return 'en';
   const saved = localStorage.getItem(STORAGE_KEY) as LocaleCode | null;
   if (saved && availableLocales[saved]) return saved;
-  const browserLang = navigator.language.split("-")[0] as LocaleCode;
+  const browserLang = navigator.language.split('-')[0] as LocaleCode;
   if (browserLang && availableLocales[browserLang]) return browserLang;
-  return "en";
+  return 'en';
 }
 
 export const i18n = createI18n({
   legacy: false,
   locale: getInitialLocale(),
-  fallbackLocale: "en",
+  fallbackLocale: 'en',
   messages: { en, zh },
 });
 

@@ -9,17 +9,20 @@
 ## 📝 最终配置
 
 ### Cargo.toml
+
 ```toml
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png", "image-ico"] }
 ```
 
 **说明**:
+
 - `tray-icon`: 启用系统托盘功能
 - `image-png`: PNG 图标支持（跨平台）
 - `image-ico`: ICO 图标支持（Windows）
 
 ### lib.rs 导入
+
 ```rust
 use tauri::{
     menu::{Menu, MenuItem},
@@ -28,6 +31,7 @@ use tauri::{
 ```
 
 ### tauri.conf.json
+
 ```json
 {
   "app": {
@@ -46,6 +50,7 @@ use tauri::{
 ## 🚀 立即测试
 
 清理并重新构建：
+
 ```cmd
 cd src-tauri
 cargo clean
@@ -53,6 +58,7 @@ cargo build
 ```
 
 如果构建成功，运行应用：
+
 ```cmd
 cd ..
 yarn tauri dev
@@ -74,6 +80,7 @@ yarn tauri dev
 ## 🔍 验证配置
 
 运行此命令检查依赖树：
+
 ```cmd
 cd src-tauri
 cargo tree | findstr tauri

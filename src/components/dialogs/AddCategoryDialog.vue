@@ -1,9 +1,11 @@
 <script setup lang="ts">
+  import { useNotification } from '@/composables/useNotification';
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
   import { ref, watch } from 'vue';
 
   const { t } = useI18n();
+  const { success: showSuccess, error: showError, setStatus, clearStatus } = useNotification();
 
   interface Props {
     modelValue: boolean;
@@ -45,31 +47,39 @@
   async function handleSubmit() {
     if (!name.value.trim()) {
       error.value = t('dialog.categoryNameRequired');
+      showError(t('dialog.categoryNameRequired'), { title: 'Validation Error' });
       return;
     }
 
     if (name.value.length > 50) {
       error.value = t('dialog.categoryNameMaxLength');
+      showError(t('dialog.categoryNameMaxLength'), { title: 'Validation Error' });
       return;
     }
 
     loading.value = true;
+    setStatus(t('dialog.creatingCategory'));
     try {
       await invokeCommand('create_category', {
         name: name.value.trim(),
         parentId: props.parentId || null,
       });
       console.info('Category created successfully:', name.value.trim());
+      showSuccess(t('dialog.categoryCreated', { name: name.value.trim() }), {
+        title: 'Success',
+      });
       name.value = '';
       error.value = '';
       emit('categoryCreated');
       emit('update:modelValue', false);
     } catch (err) {
-      // err is an error object with message property
-      error.value =
+      const errorMessage =
         typeof err === 'string' ? err : (err as { message?: string })?.message || String(err);
+      error.value = errorMessage;
+      showError(errorMessage, { title: 'Error' });
     } finally {
       loading.value = false;
+      clearStatus();
     }
   }
 

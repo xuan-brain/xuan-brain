@@ -23,6 +23,7 @@
 ### 构建说明
 
 Nightly Build 用于：
+
 - 持续集成最新代码更改
 - 提前发现潜在问题
 - 为测试人员提供最新版本
@@ -89,6 +90,7 @@ Nightly Build 用于：
 ## 触发条件
 
 工作流在以下情况下自动触发:
+
 - 当推送以 `v` 开头的 tag 时（例如：`v0.1.0`, `v1.2.3`）
 - Workflow 会自动创建 GitHub Release 并上传构建产物
 
@@ -97,17 +99,20 @@ Nightly Build 用于：
 两个工作流都会为以下平台构建安装包:
 
 ### Linux
+
 - **架构**: x86_64
 - **运行环境**: Ubuntu 22.04
 - **输出格式**: `.AppImage`, `.deb`
 
 ### macOS
+
 - **Intel 架构**: x86_64
 - **Apple Silicon**: aarch64 (M1/M2/M3)
 - **运行环境**: macOS latest
 - **输出格式**: `.dmg`, `.app` bundle
 
 ### Windows
+
 - **架构**: x86_64
 - **运行环境**: Windows latest
 - **输出格式**: `.msi`, `.exe`
@@ -186,6 +191,7 @@ git push origin v0.1.0
 ### 构建时间
 
 预计构建时间:
+
 - Linux: 约 10-15 分钟
 - macOS (两个架构): 各约 15-20 分钟
 - Windows: 约 15-20 分钟
@@ -206,14 +212,17 @@ git push origin v0.1.0
 ## 构建产物
 
 ### Linux
+
 - `xuan-brain_0.1.0_amd64.AppImage` - AppImage 格式
 - `xuan-brain_0.1.0_amd64.deb` - Debian 包
 
 ### macOS
+
 - `xuan-brain_0.1.0_x64.dmg` - Intel Mac 磁盘映像
 - `xuan-brain_0.1.0_aarch64.dmg` - Apple Silicon 磁盘映像
 
 ### Windows
+
 - `xuan-brain_0.1.0_x64_en-US.msi` - MSI 安装包
 - `xuan-brain_0.1.0_x64-setup.exe` - 可执行安装程序
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
   import StatusBar from '@/components/layout/StatusBar.vue';
-  import NotificationToast from '@/components/notification/NotificationToast.vue';
   import GlobalErrorDialog from '@/components/notification/GlobalErrorDialog.vue';
-  import { invokeCommand } from '@/lib/tauri';
+  import NotificationToast from '@/components/notification/NotificationToast.vue';
   import { initNotificationListeners } from '@/lib/notification-events';
+  import { invokeCommand } from '@/lib/tauri';
   import { useAppStore } from '@/stores/useAppStore';
   import { onMounted, provide, ref, watch } from 'vue';
   import { useTheme } from 'vuetify';

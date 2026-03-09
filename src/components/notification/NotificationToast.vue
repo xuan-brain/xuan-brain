@@ -1,45 +1,45 @@
 <!-- src/components/notification/NotificationToast.vue -->
 <script setup lang="ts">
-import { useNotificationStore } from '@/stores/useNotificationStore';
-import { computed } from 'vue';
+  import { useNotificationStore } from '@/stores/useNotificationStore';
+  import { computed } from 'vue';
 
-const notificationStore = useNotificationStore();
+  const notificationStore = useNotificationStore();
 
-const toasts = computed(() => notificationStore.toasts);
+  const toasts = computed(() => notificationStore.toasts);
 
-function getIcon(type: string) {
-  switch (type) {
-    case 'success':
-      return 'mdi-check-circle';
-    case 'info':
-      return 'mdi-information';
-    case 'warning':
-      return 'mdi-alert';
-    case 'error':
-      return 'mdi-close-circle';
-    default:
-      return 'mdi-information';
+  function getIcon(type: string) {
+    switch (type) {
+      case 'success':
+        return 'mdi-check-circle';
+      case 'info':
+        return 'mdi-information';
+      case 'warning':
+        return 'mdi-alert';
+      case 'error':
+        return 'mdi-close-circle';
+      default:
+        return 'mdi-information';
+    }
   }
-}
 
-function getColor(type: string) {
-  switch (type) {
-    case 'success':
-      return 'success';
-    case 'info':
-      return 'info';
-    case 'warning':
-      return 'warning';
-    case 'error':
-      return 'error';
-    default:
-      return 'info';
+  function getColor(type: string) {
+    switch (type) {
+      case 'success':
+        return 'success';
+      case 'info':
+        return 'info';
+      case 'warning':
+        return 'warning';
+      case 'error':
+        return 'error';
+      default:
+        return 'info';
+    }
   }
-}
 
-function removeToast(id: string) {
-  notificationStore.removeToast(id);
-}
+  function removeToast(id: string) {
+    notificationStore.removeToast(id);
+  }
 </script>
 
 <template>
@@ -72,70 +72,70 @@ function removeToast(id: string) {
 </template>
 
 <style scoped>
-.notification-toasts {
-  position: fixed;
-  bottom: 48px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-}
+  .notification-toasts {
+    position: fixed;
+    bottom: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
 
-.notification-toast {
-  min-width: 300px;
-  max-width: 500px;
-  pointer-events: auto;
-}
+  .notification-toast {
+    min-width: 300px;
+    max-width: 500px;
+    pointer-events: auto;
+  }
 
-.toast-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-}
+  .toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+  }
 
-.toast-icon {
-  flex-shrink: 0;
-}
+  .toast-icon {
+    flex-shrink: 0;
+  }
 
-.toast-text {
-  flex: 1;
-  min-width: 0;
-}
+  .toast-text {
+    flex: 1;
+    min-width: 0;
+  }
 
-.toast-title {
-  font-weight: 500;
-  font-size: 14px;
-}
+  .toast-title {
+    font-weight: 500;
+    font-size: 14px;
+  }
 
-.toast-message {
-  font-size: 13px;
-  opacity: 0.9;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+  .toast-message {
+    font-size: 13px;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-.toast-close {
-  flex-shrink: 0;
-}
+  .toast-close {
+    flex-shrink: 0;
+  }
 
-/* Toast animations */
-.toast-enter-active,
-.toast-leave-active {
-  transition: all 0.3s ease;
-}
+  /* Toast animations */
+  .toast-enter-active,
+  .toast-leave-active {
+    transition: all 0.3s ease;
+  }
 
-.toast-enter-from {
-  opacity: 0;
-  transform: translateY(20px);
-}
+  .toast-enter-from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
 
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(100%);
-}
+  .toast-leave-to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
 </style>

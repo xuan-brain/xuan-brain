@@ -3,14 +3,14 @@ export enum NotificationType {
   Success = 'success',
   Info = 'info',
   Warning = 'warning',
-  Error = 'error'
+  Error = 'error',
 }
 
 export enum NotificationDisplay {
   Toast = 'toast',
   StatusBar = 'status',
   Dialog = 'dialog',
-  System = 'system'
+  System = 'system',
 }
 
 export interface Notification {

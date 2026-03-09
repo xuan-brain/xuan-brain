@@ -1,8 +1,8 @@
 // src/stores/useNotificationStore.ts
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
 import type { Notification, NotificationOptions } from '@/types/notification';
-import { NotificationType, NotificationDisplay } from '@/types/notification';
+import { NotificationDisplay, NotificationType } from '@/types/notification';
+import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
 
 export const useNotificationStore = defineStore(
   'notification',

@@ -1,5 +1,5 @@
-import { defineStore } from "pinia";
-import { ref } from "vue";
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
 export interface Tab {
   id: string;
@@ -10,7 +10,7 @@ export interface Tab {
 }
 
 export const useTabsStore = defineStore(
-  "tabs",
+  'tabs',
   () => {
     const tabs = ref<Tab[]>([]);
     const activeTabId = ref<string | null>(null);
@@ -78,8 +78,8 @@ export const useTabsStore = defineStore(
   },
   {
     persist: {
-      key: "xuan-brain-tabs-storage",
+      key: 'xuan-brain-tabs-storage',
       storage: localStorage,
     },
-  },
+  }
 );

@@ -1,30 +1,35 @@
 # 系统托盘功能实现文档
 
 ## 概述
+
 本文档描述了为 xuan-brain 应用添加的系统托盘功能的实现细节。
 
 ## 功能特性
 
 ### 1. 系统托盘图标
+
 - 应用程序在启动时会在系统托盘显示图标
 - 使用应用默认图标作为托盘图标
 
 ### 2. 窗口关闭行为
+
 - 点击窗口关闭按钮时，窗口不会真正退出应用，而是隐藏到系统托盘
 - 只有通过托盘菜单选择"退出"才会真正关闭应用
 
 ### 3. 托盘交互
+
 - **单击左键**: 切换窗口显示/隐藏状态
   - 如果窗口可见，点击后隐藏窗口
   - 如果窗口隐藏，点击后显示窗口并获得焦点
-  
 - **右键菜单**（Windows）/ **左键菜单**（macOS）:
   - **退出**: 完全退出应用程序
 
 ## 技术实现
 
 ### 依赖项
+
 在 `src-tauri/Cargo.toml` 中，系统托盘功能通过 `tauri` 核心包的 `tray-icon` feature 启用：
+
 ```toml
 tauri = { version = "2", features = ["tray-icon"] }
 ```
@@ -32,6 +37,7 @@ tauri = { version = "2", features = ["tray-icon"] }
 注意：在 Tauri 2.x 中，托盘功能是内置的，不需要单独的插件包。
 
 ### 配置文件
+
 托盘图标完全在代码中创建，不需要在 `tauri.conf.json` 中配置。
 
 > **注意**：不要在 `tauri.conf.json` 中添加 `trayIcon` 配置，否则会创建重复的托盘图标。
@@ -39,6 +45,7 @@ tauri = { version = "2", features = ["tray-icon"] }
 ### 代码实现
 
 #### 1. 导入必要的类型
+
 ```rust
 use tauri::{
     menu::{Menu, MenuItem},
@@ -47,14 +54,18 @@ use tauri::{
 ```
 
 #### 2. 创建托盘菜单
+
 在 `setup` 闭包中创建托盘菜单项：
+
 ```rust
 let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
 let menu = Menu::with_items(app, &[&quit_i])?;
 ```
 
 #### 3. 构建托盘图标
+
 使用 `TrayIconBuilder` 创建托盘图标并设置事件处理：
+
 ```rust
 let _tray = TrayIconBuilder::new()
     .icon(app.default_window_icon().unwrap().clone())
@@ -88,7 +99,9 @@ let _tray = TrayIconBuilder::new()
 ```
 
 #### 4. 处理窗口关闭事件
+
 使用 `on_window_event` 拦截窗口关闭请求：
+
 ```rust
 .on_window_event(|window, event| {
     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -102,16 +115,19 @@ let _tray = TrayIconBuilder::new()
 ## 用户体验
 
 ### Windows
+
 - 托盘图标显示在任务栏右下角的系统托盘区域
 - 左键单击图标可快速切换窗口显示状态
 - 右键单击显示菜单，可选择"退出"
 
 ### macOS
+
 - 托盘图标显示在菜单栏右侧
 - 点击图标显示菜单，可选择"退出"
 - 左键单击图标可切换窗口显示状态（需要右键才能看到菜单）
 
 ### Linux
+
 - 托盘图标显示在系统托盘区域（具体位置取决于桌面环境）
 - 交互行为与 Windows 类似
 

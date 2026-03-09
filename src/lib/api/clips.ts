@@ -123,10 +123,7 @@ export async function getClip(id: string): Promise<ClippingResponse> {
  * @param content - The comment content
  * @returns Promise resolving to the created comment
  */
-export async function addClipComment(
-  clipId: string,
-  content: string
-): Promise<Comment> {
+export async function addClipComment(clipId: string, content: string): Promise<Comment> {
   try {
     const result = await invokeCommand<Comment>('add_clip_comment', {
       clipId,
@@ -175,10 +172,7 @@ export async function updateClipComment(
  * @param clipId - The clipping ID
  * @param commentId - The comment ID to delete
  */
-export async function deleteClipComment(
-  clipId: string,
-  commentId: string
-): Promise<void> {
+export async function deleteClipComment(clipId: string, commentId: string): Promise<void> {
   try {
     await invokeCommand<void>('delete_clip_comment', {
       clipId,

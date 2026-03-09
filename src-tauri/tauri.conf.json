@@ -22,10 +22,7 @@
     ],
     "security": {
       "csp": null,
-      "capabilities": [
-        "default",
-        "pdf-viewer"
-      ]
+      "capabilities": ["default", "pdf-viewer"]
     }
   },
   "bundle": {

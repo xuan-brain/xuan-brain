@@ -248,7 +248,11 @@
             </div>
             <v-switch
               v-model="details.read_status"
-              :label="details.read_status === 1 ? t('clips.clipDetails.read') : t('clips.clipDetails.unread')"
+              :label="
+                details.read_status === 1
+                  ? t('clips.clipDetails.read')
+                  : t('clips.clipDetails.unread')
+              "
               color="success"
               hide-details
               density="compact"

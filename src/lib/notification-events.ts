@@ -1,7 +1,7 @@
 // src/lib/notification-events.ts
-import { listen } from '@tauri-apps/api/event';
 import { useNotificationStore } from '@/stores/useNotificationStore';
-import { NotificationType, NotificationDisplay, type Notification } from '@/types/notification';
+import { NotificationDisplay, NotificationType, type Notification } from '@/types/notification';
+import { listen } from '@tauri-apps/api/event';
 
 interface TauriNotificationPayload {
   type: 'success' | 'info' | 'warning' | 'error';
@@ -36,7 +36,10 @@ export async function initNotificationListeners(): Promise<void> {
   }
 
   // Helper function to create notification from payload
-  function createNotification(payload: TauriNotificationPayload, type: NotificationType): Partial<Notification> {
+  function createNotification(
+    payload: TauriNotificationPayload,
+    type: NotificationType
+  ): Partial<Notification> {
     return {
       type,
       title: payload.title,
@@ -49,36 +52,24 @@ export async function initNotificationListeners(): Promise<void> {
   }
 
   // 监听成功通知
-  await listen<TauriNotificationPayload>(
-    'notification:success',
-    (event) => {
-      notificationStore.add(createNotification(event.payload, NotificationType.Success));
-    }
-  );
+  await listen<TauriNotificationPayload>('notification:success', (event) => {
+    notificationStore.add(createNotification(event.payload, NotificationType.Success));
+  });
 
   // 监听信息通知
-  await listen<TauriNotificationPayload>(
-    'notification:info',
-    (event) => {
-      notificationStore.add(createNotification(event.payload, NotificationType.Info));
-    }
-  );
+  await listen<TauriNotificationPayload>('notification:info', (event) => {
+    notificationStore.add(createNotification(event.payload, NotificationType.Info));
+  });
 
   // 监听警告通知
-  await listen<TauriNotificationPayload>(
-    'notification:warning',
-    (event) => {
-      notificationStore.add(createNotification(event.payload, NotificationType.Warning));
-    }
-  );
+  await listen<TauriNotificationPayload>('notification:warning', (event) => {
+    notificationStore.add(createNotification(event.payload, NotificationType.Warning));
+  });
 
   // 监听错误通知
-  await listen<TauriNotificationPayload>(
-    'notification:error',
-    (event) => {
-      notificationStore.add(createNotification(event.payload, NotificationType.Error));
-    }
-  );
+  await listen<TauriNotificationPayload>('notification:error', (event) => {
+    notificationStore.add(createNotification(event.payload, NotificationType.Error));
+  });
 
   console.info('Notification listeners initialized');
 }

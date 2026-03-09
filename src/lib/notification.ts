@@ -1,9 +1,13 @@
 // src/lib/notification.ts
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import { sendNotification as sendTauriNotification, isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { Notification, NotificationOptions } from '@/types/notification';
-import { NotificationType, NotificationDisplay } from '@/types/notification';
+import { NotificationDisplay, NotificationType } from '@/types/notification';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification as sendTauriNotification,
+} from '@tauri-apps/plugin-notification';
 
 /**
  * 判断是否应该使用系统通知

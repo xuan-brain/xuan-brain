@@ -5,8 +5,8 @@
   import CategoryTree from '@/components/navigation/CategoryTree.vue';
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
-  import { onMounted, onUnmounted, ref } from 'vue';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+  import { onMounted, onUnmounted, ref } from 'vue';
 
   const { t } = useI18n();
 

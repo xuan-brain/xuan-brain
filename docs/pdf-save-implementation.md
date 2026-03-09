@@ -3,11 +3,13 @@
 ## 📖 概述
 
 实现了前端通过 blob 数据向 Rust 后端保存 PDF 的功能。前端负责：
+
 - 获取 PDF blob 数据
 - 转换为 base64
 - 发送给后端
 
 Rust 后端负责：
+
 - 接收 base64 数据
 - 解码为二进制
 - 保存到文件系统
@@ -35,6 +37,7 @@ PDF 文件 (文件系统)
 ### 1. Rust 后端 (`src-tauri/src/command/paper_command.rs`)
 
 #### 请求结构体
+
 ```rust
 #[derive(Deserialize)]
 pub struct PdfBlobSaveRequest {
@@ -44,6 +47,7 @@ pub struct PdfBlobSaveRequest {
 ```
 
 #### 响应结构体
+
 ```rust
 #[derive(Serialize)]
 pub struct PdfSaveResponse {
@@ -55,6 +59,7 @@ pub struct PdfSaveResponse {
 ```
 
 #### 命令函数
+
 ```rust
 #[tauri::command]
 pub async fn save_pdf_blob(
@@ -66,6 +71,7 @@ pub async fn save_pdf_blob(
 ```
 
 **功能**:
+
 1. 获取论文信息和附件
 2. 找到或创建 PDF 路径
 3. 解码 base64 数据
@@ -73,12 +79,14 @@ pub async fn save_pdf_blob(
 5. 返回结果和文件信息
 
 #### 辅助函数
+
 - `base64_decode()` - 解码 base64 字符串
 - `base64_char_to_value()` - 转换单个字符
 
 ### 2. 前端 API (`src/lib/api/pdf.ts`)
 
 #### 核心函数: `savePdfBlob()`
+
 ```typescript
 export async function savePdfBlob(
   paperId: number,
@@ -88,20 +96,23 @@ export async function savePdfBlob(
   filePath: string;
   sizeMB: number;
   message: string;
-}>
+}>;
 ```
 
 **流程**:
+
 1. 调用 `blobToBase64()` 转换 blob
 2. 调用 Rust `save_pdf_blob` 命令
 3. 返回保存结果
 
 #### 辅助函数: `blobToBase64()`
+
 ```typescript
-export function blobToBase64(blob: Blob): Promise<string>
+export function blobToBase64(blob: Blob): Promise<string>;
 ```
 
 使用 FileReader 异步转换：
+
 - 读取 blob 为 data URL
 - 提取 base64 部分（去掉前缀）
 - 返回纯 base64 字符串
@@ -109,12 +120,14 @@ export function blobToBase64(blob: Blob): Promise<string>
 ### 3. PDFViewer 组件 (`src/components/pdf/PDFViewer.vue`)
 
 #### 新增功能
+
 - ✅ 保存按钮
 - ✅ 保存状态显示
 - ✅ 成功提示信息
 - ✅ 加载状态反馈
 
 #### 使用方式
+
 ```typescript
 // 加载 PDF 时获取 blob
 const response = await fetch(blobUrl);
@@ -161,6 +174,7 @@ await savePdfBlob(paperId, pdfBlob);
 ## 📋 文件修改清单
 
 ### 后端修改
+
 - ✅ `src-tauri/src/command/paper_command.rs`
   - 添加 `PdfBlobSaveRequest` 结构体
   - 添加 `PdfSaveResponse` 结构体
@@ -173,6 +187,7 @@ await savePdfBlob(paperId, pdfBlob);
   - 在 `invoke_handler` 中注册
 
 ### 前端修改
+
 - ✅ `src/lib/api/pdf.ts`
   - 添加 `PdfSaveResponse` 接口
   - 实现 `savePdfBlob()` 函数
@@ -189,6 +204,7 @@ await savePdfBlob(paperId, pdfBlob);
 ## 🧪 测试步骤
 
 ### 1. 编译
+
 ```bash
 cd src-tauri
 cargo check
@@ -197,6 +213,7 @@ cd ..
 ```
 
 ### 2. 启动开发服务
+
 ```bash
 yarn dev
 ```
@@ -204,6 +221,7 @@ yarn dev
 ### 3. 测试保存功能
 
 #### 场景 1: 正常保存
+
 1. 打开应用
 2. 打开一篇有 PDF 的论文
 3. 点击 "Save" 按钮
@@ -214,6 +232,7 @@ yarn dev
    - ✅ Rust 日志显示保存信息
 
 #### 场景 2: 大文件保存
+
 1. 选择一个大 PDF (>100MB)
 2. 点击保存
 3. 监控：
@@ -222,6 +241,7 @@ yarn dev
    - 完成时间
 
 #### 场景 3: 错误处理
+
 1. 在论文中移除 PDF 附件
 2. 点击保存
 3. 验证：
@@ -231,10 +251,10 @@ yarn dev
 ## 📊 性能数据
 
 | 文件大小 | 编码时间 | 保存时间 | 总耗时 |
-|---------|---------|---------|-------|
-| 5 MB | ~50ms | ~100ms | ~150ms |
-| 50 MB | ~500ms | ~800ms | ~1.3s |
-| 100 MB | ~1s | ~2s | ~3s |
+| -------- | -------- | -------- | ------ |
+| 5 MB     | ~50ms    | ~100ms   | ~150ms |
+| 50 MB    | ~500ms   | ~800ms   | ~1.3s  |
+| 100 MB   | ~1s      | ~2s      | ~3s    |
 
 ## 🔐 安全性检查
 
@@ -247,14 +267,16 @@ yarn dev
 ## ⚙️ 参数对应关系
 
 ### 前端调用
+
 ```typescript
 invokeCommand('save_pdf_blob', {
-  paper_id: paperId,       // i64
-  base64_data: base64String // String
-})
+  paper_id: paperId, // i64
+  base64_data: base64String, // String
+});
 ```
 
 ### Rust 函数签名
+
 ```rust
 pub async fn save_pdf_blob(
     paper_id: i64,
@@ -265,15 +287,18 @@ pub async fn save_pdf_blob(
 ```
 
 **重要**: 参数顺序
+
 - 显式参数 (`paper_id`, `base64_data`) 在前
 - State 依赖注入参数 (`db`, `app_dirs`) 在后
 
 ## 🐛 故障排查
 
 ### 问题 1: "invalid args" 错误
+
 **症状**: 保存时出现参数错误
 **原因**: 参数名称不匹配
 **解决**: 检查 Rust 函数签名中的参数顺序
+
 ```rust
 // ✅ 正确
 pub async fn save_pdf_blob(
@@ -285,47 +310,58 @@ pub async fn save_pdf_blob(
 ```
 
 ### 问题 2: "Paper not found" 错误
+
 **症状**: 保存失败，显示论文不存在
 **原因**: 论文 ID 无效
-**解决**: 
+**解决**:
+
 1. 确认论文确实存在
 2. 检查论文 ID 是否正确
 
-### 问题 3: "PDF file not found"  或"PDF attachment not found" 错误
+### 问题 3: "PDF file not found" 或"PDF attachment not found" 错误
+
 **症状**: 保存失败，显示找不到 PDF
 **原因**: 论文没有 PDF 附件
 **解决**:
+
 1. 确认论文有 PDF 附件
 2. 检查附件类型是否为 PDF
 
 ### 问题 4: 保存很慢
+
 **症状**: 保存大文件时耗时很长
 **原因**: 大文件处理
 **解决**:
+
 1. 这是正常行为（Base64 编码有开销）
 2. 考虑为大文件显示进度条
 3. 未来可优化为分块保存
 
 ### 问题 5: 内存使用过高
+
 **症状**: 保存大文件时内存占用很多
 **原因**: 整个文件在内存中处理
 **解决**:
+
 1. 对于极大文件，考虑分块保存
 2. Base64 编码会增加 33% 的内存使用
 
 ## 📈 改进建议
 
 ### 短期 (已实现)
+
 - ✅ 基本的 blob 保存功能
 - ✅ 完整的错误处理
 - ✅ UI 反馈
 
 ### 中期
+
 - [ ] 保存进度条（大文件）
 - [ ] 分块保存（>500MB）
 - [ ] 保存历史记录
 
 ### 长期
+
 - [ ] 增量更新（只保存改动部分）
 - [ ] 自动保存
 - [ ] 版本控制

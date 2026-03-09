@@ -1,37 +1,36 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+  import { onMounted, ref } from 'vue';
 
-// App version info
-const appVersion = ref("");
-const tauriVersion = ref("");
-const vueVersion = ref("");
+  // App version info
+  const appVersion = ref('');
+  const tauriVersion = ref('');
+  const vueVersion = ref('');
 
-onMounted(async () => {
-  await loadVersionInfo();
-});
+  onMounted(async () => {
+    await loadVersionInfo();
+  });
 
-// Load app version info
-async function loadVersionInfo() {
-  try {
-    const { getVersion } = await import("@tauri-apps/api/app");
+  // Load app version info
+  async function loadVersionInfo() {
+    try {
+      const { getVersion } = await import('@tauri-apps/api/app');
 
-    appVersion.value = await getVersion();
+      appVersion.value = await getVersion();
 
-    // Get versions from package.json
-    const packageRes = await fetch("/package.json");
-    if (packageRes.ok) {
-      const packageData = await packageRes.json();
-      vueVersion.value = packageData.dependencies?.vue || "3.x";
-      tauriVersion.value =
-        packageData.devDependencies?.["@tauri-apps/api"] || "2.x";
+      // Get versions from package.json
+      const packageRes = await fetch('/package.json');
+      if (packageRes.ok) {
+        const packageData = await packageRes.json();
+        vueVersion.value = packageData.dependencies?.vue || '3.x';
+        tauriVersion.value = packageData.devDependencies?.['@tauri-apps/api'] || '2.x';
+      }
+    } catch (error) {
+      console.error('Failed to load version info:', error);
+      // Fallback values
+      tauriVersion.value = '2.x';
+      vueVersion.value = '3.x';
     }
-  } catch (error) {
-    console.error("Failed to load version info:", error);
-    // Fallback values
-    tauriVersion.value = "2.x";
-    vueVersion.value = "3.x";
   }
-}
 </script>
 
 <template>
@@ -44,10 +43,10 @@ async function loadVersionInfo() {
         </div>
 
         <!-- App Name -->
-        <h2 class="text-h4 text-center mt-4 mb-2">璇玑 (xuan-brain)</h2>
+        <h2 class="text-h4 mt-4 mb-2 text-center">璇玑 (xuan-brain)</h2>
 
         <!-- Description -->
-        <p class="text-center text-grey mb-6">AI 驱动的科研文献管理桌面应用</p>
+        <p class="text-grey mb-6 text-center">AI 驱动的科研文献管理桌面应用</p>
 
         <v-divider class="my-4" />
 
@@ -59,46 +58,28 @@ async function loadVersionInfo() {
                 <v-icon>mdi-application</v-icon>
               </template>
               <v-list-item-title>应用版本</v-list-item-title>
-              <v-list-item-subtitle>{{
-                appVersion || "0.1.0"
-              }}</v-list-item-subtitle>
+              <v-list-item-subtitle>{{ appVersion || '0.1.0' }}</v-list-item-subtitle>
             </v-list-item>
 
             <v-list-item>
               <template #prepend>
-                <img
-                  src="@/assets/tech-icons/tauri.png"
-                  class="tech-icon"
-                  alt="Tauri"
-                />
+                <img src="@/assets/tech-icons/tauri.png" class="tech-icon" alt="Tauri" />
               </template>
               <v-list-item-title>Tauri 版本</v-list-item-title>
-              <v-list-item-subtitle>{{
-                tauriVersion || "2.x"
-              }}</v-list-item-subtitle>
+              <v-list-item-subtitle>{{ tauriVersion || '2.x' }}</v-list-item-subtitle>
             </v-list-item>
 
             <v-list-item>
               <template #prepend>
-                <img
-                  src="@/assets/tech-icons/vue.png"
-                  class="tech-icon"
-                  alt="Vue"
-                />
+                <img src="@/assets/tech-icons/vue.png" class="tech-icon" alt="Vue" />
               </template>
               <v-list-item-title>Vue 版本</v-list-item-title>
-              <v-list-item-subtitle>{{
-                vueVersion || "3.x"
-              }}</v-list-item-subtitle>
+              <v-list-item-subtitle>{{ vueVersion || '3.x' }}</v-list-item-subtitle>
             </v-list-item>
 
             <v-list-item>
               <template #prepend>
-                <img
-                  src="@/assets/tech-icons/vuetify.png"
-                  class="tech-icon"
-                  alt="Vuetify"
-                />
+                <img src="@/assets/tech-icons/vuetify.png" class="tech-icon" alt="Vuetify" />
               </template>
               <v-list-item-title>Vuetify 版本</v-list-item-title>
               <v-list-item-subtitle>3.7.0</v-list-item-subtitle>
@@ -106,11 +87,7 @@ async function loadVersionInfo() {
 
             <v-list-item>
               <template #prepend>
-                <img
-                  src="@/assets/tech-icons/sqlite.svg"
-                  class="tech-icon"
-                  alt="SQLite"
-                />
+                <img src="@/assets/tech-icons/sqlite.svg" class="tech-icon" alt="SQLite" />
               </template>
               <v-list-item-title>数据库</v-list-item-title>
               <v-list-item-subtitle>SQLite</v-list-item-subtitle>
@@ -118,11 +95,7 @@ async function loadVersionInfo() {
 
             <v-list-item>
               <template #prepend>
-                <img
-                  src="@/assets/tech-icons/seaorm.png"
-                  class="tech-icon"
-                  alt="SeaORM"
-                />
+                <img src="@/assets/tech-icons/seaorm.png" class="tech-icon" alt="SeaORM" />
               </template>
               <v-list-item-title>ORM</v-list-item-title>
               <v-list-item-subtitle>SeaORM 2.0</v-list-item-subtitle>
@@ -168,32 +141,32 @@ async function loadVersionInfo() {
 </template>
 
 <style scoped>
-.about-section {
-  text-align: center;
-}
+  .about-section {
+    text-align: center;
+  }
 
-.about-logo {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+  .about-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-.version-info {
-  text-align: left;
-  max-width: 400px;
-  margin: 0 auto;
-}
+  .version-info {
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto;
+  }
 
-.tech-icon {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
+  .tech-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+  }
 
-.about-links {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+  .about-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 </style>

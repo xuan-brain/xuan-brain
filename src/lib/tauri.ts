@@ -4,8 +4,8 @@
  */
 export async function invokeCommand<T = unknown>(
   cmd: string,
-  args?: Record<string, unknown>,
+  args?: Record<string, unknown>
 ): Promise<T> {
-  const { invoke } = await import("@tauri-apps/api/core");
+  const { invoke } = await import('@tauri-apps/api/core');
   return invoke<T>(cmd, args);
 }

@@ -3,9 +3,11 @@
 ## 🔍 问题分析
 
 ### 问题描述
+
 保存 PDF 后，添加的 annotation 数据看不到了。
 
 ### 根本原因
+
 原始的 `save_pdf_blob` 命令**只保存 PDF 文件本身**，**不保存 annotation 数据**。
 
 ```rust
@@ -23,7 +25,9 @@ pub async fn save_pdf_blob(
 ```
 
 ### Annotation 存储机制
+
 系统支持将 annotation 保存为 **sidecar JSON 文件**：
+
 - PDF: `/path/to/file.pdf`
 - Annotation: `/path/to/file.json` (同名，不同扩展名)
 
@@ -47,14 +51,14 @@ pub async fn save_pdf_with_annotations(
 ) -> Result<PdfSaveResponse> {
     // 1. 保存 PDF
     let pdf_response = save_pdf_blob(paper_id, base64_data, db, app_dirs).await?;
-    
+
     // 2. 如果有 annotation，也保存为 JSON 文件
     if let Some(annotations) = annotations_json {
         let annotations_path = PathBuf::from(&pdf_response.file_path)
             .with_extension("json");
         std::fs::write(&annotations_path, &annotations)?;
     }
-    
+
     Ok(pdf_response)
 }
 ```
@@ -65,7 +69,7 @@ pub async fn save_pdf_with_annotations(
 export async function savePdfWithAnnotations(
   paperId: number,
   blob: Blob,
-  annotationsJson?: string  // ✅ 新增 annotation 参数
+  annotationsJson?: string // ✅ 新增 annotation 参数
 ): Promise<{
   success: boolean;
   filePath: string;
@@ -73,11 +77,11 @@ export async function savePdfWithAnnotations(
   message: string;
 }> {
   const base64Data = await blobToBase64(blob);
-  
+
   return invokeCommand<PdfSaveResponse>('save_pdf_with_annotations', {
     paper_id: paperId,
     base64_data: base64Data,
-    annotations_json: annotationsJson || null,  // ✅ 传递 annotation
+    annotations_json: annotationsJson || null, // ✅ 传递 annotation
   });
 }
 ```
@@ -135,7 +139,7 @@ async function savePdf() {
   try {
     // 获取当前 PDF blob
     const pdfBlob = /* ... */;
-    
+
     // 获取当前 annotation 数据（如果有的话）
     const annotations = {
       annotations: [
@@ -147,14 +151,14 @@ async function savePdf() {
         }
       ]
     };
-    
+
     // 同时保存 PDF 和 annotation
     const result = await savePdfWithAnnotations(
       paperId,
       pdfBlob,
       JSON.stringify(annotations)  // ✅ 传递 annotation 数据
     );
-    
+
     console.log('Saved:', result.message);
   } catch (error) {
     console.error('Save failed:', error);
@@ -226,11 +230,13 @@ files/
 ## ✅ 验证步骤
 
 1. **编译**
+
    ```bash
    cd src-tauri && cargo check && cd ..
    ```
 
 2. **测试保存**
+
    ```
    - 打开 PDF
    - 添加 annotation (高亮、注释等)
@@ -239,6 +245,7 @@ files/
    ```
 
 3. **验证 annotation 持久化**
+
    ```
    - 重新加载同一个 PDF
    - 检查 annotation 是否被恢复
@@ -254,11 +261,13 @@ files/
 ## 🎯 问题解决效果
 
 ### 修改前 ❌
+
 - 保存 PDF: ✅
 - 保存 Annotation: ❌ (丢失)
 - 重新加载: ❌ (没有 annotation)
 
 ### 修改后 ✅
+
 - 保存 PDF: ✅
 - 保存 Annotation: ✅
 - 重新加载: ✅ (完整恢复)
@@ -295,15 +304,15 @@ pub async fn load_annotations_data(
 
 ## 🎉 总结
 
-| 方面 | 说明 |
-|-----|------|
-| 问题 | 保存 PDF 时 annotation 数据丢失 |
-| 原因 | `save_pdf_blob` 只保存 PDF，不保存 annotation |
-| 解决 | 新增 `save_pdf_with_annotations` 命令 |
-| 实现 | 后端同时保存 PDF 和 annotation JSON 文件 |
+| 方面 | 说明                                                              |
+| ---- | ----------------------------------------------------------------- |
+| 问题 | 保存 PDF 时 annotation 数据丢失                                   |
+| 原因 | `save_pdf_blob` 只保存 PDF，不保存 annotation                     |
+| 解决 | 新增 `save_pdf_with_annotations` 命令                             |
+| 实现 | 后端同时保存 PDF 和 annotation JSON 文件                          |
 | 使用 | 前端调用 `savePdfWithAnnotations(paperId, blob, annotationsJson)` |
-| 存储 | 使用 sidecar JSON 文件存储 annotation 数据 |
-| 效果 | annotation 数据完整持久化和恢复 |
+| 存储 | 使用 sidecar JSON 文件存储 annotation 数据                        |
+| 效果 | annotation 数据完整持久化和恢复                                   |
 
 ---
 

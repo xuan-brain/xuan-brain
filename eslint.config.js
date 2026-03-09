@@ -3,12 +3,12 @@
  * Uses the new flat config format for ESLint 9+.
  */
 import js from '@eslint/js';
-import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
-import vueParser from 'vue-eslint-parser';
-import vuePlugin from 'eslint-plugin-vue';
+import tsParser from '@typescript-eslint/parser';
 import prettier from 'eslint-config-prettier';
+import vuePlugin from 'eslint-plugin-vue';
 import globals from 'globals';
+import vueParser from 'vue-eslint-parser';
 
 export default [
   // Base JavaScript recommended rules
@@ -106,7 +106,10 @@ export default [
           ignoreRestSiblings: true,
         },
       ],
-      '@typescript-eslint/ban-ts-comment': ['warn', { 'ts-expect-error': 'allow-with-description' }],
+      '@typescript-eslint/ban-ts-comment': [
+        'warn',
+        { 'ts-expect-error': 'allow-with-description' },
+      ],
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/consistent-type-imports': 'warn',
       '@typescript-eslint/no-empty-object-type': 'off',

@@ -135,9 +135,9 @@ These variables can be used throughout the application for consistent theming.
 
 ```vue
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
+  import { useI18n } from 'vue-i18n';
 
-const { t, locale } = useI18n();
+  const { t, locale } = useI18n();
 </script>
 
 <template>
@@ -184,12 +184,12 @@ export default {
 </template>
 
 <style scoped>
-.accent-box {
-  background-color: var(--accent-color);
-}
-.accent-box:hover {
-  background-color: var(--accent-color-hover);
-}
+  .accent-box {
+    background-color: var(--accent-color);
+  }
+  .accent-box:hover {
+    background-color: var(--accent-color-hover);
+  }
 </style>
 ```
 

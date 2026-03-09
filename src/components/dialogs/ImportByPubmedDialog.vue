@@ -1,82 +1,82 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { invokeCommand } from "@/lib/tauri";
+  import { invokeCommand } from '@/lib/tauri';
+  import { ref, watch } from 'vue';
 
-interface Props {
-  modelValue: boolean;
-}
+  interface Props {
+    modelValue: boolean;
+  }
 
-const props = defineProps<Props>();
+  const props = defineProps<Props>();
 
-const emit = defineEmits<{
-  "update:modelValue": [value: boolean];
-  paperImported: [];
-}>();
+  const emit = defineEmits<{
+    'update:modelValue': [value: boolean];
+    paperImported: [];
+  }>();
 
-// State
-const pmid = ref("");
-const loading = ref(false);
-const error = ref("");
+  // State
+  const pmid = ref('');
+  const loading = ref(false);
+  const error = ref('');
 
-// Reset form when dialog opens
-watch(
-  () => props.modelValue,
-  (isOpen) => {
-    if (isOpen) {
-      pmid.value = "";
-      error.value = "";
+  // Reset form when dialog opens
+  watch(
+    () => props.modelValue,
+    (isOpen) => {
+      if (isOpen) {
+        pmid.value = '';
+        error.value = '';
+      }
     }
-  },
-);
+  );
 
-// Close dialog
-function handleClose() {
-  pmid.value = "";
-  error.value = "";
-  emit("update:modelValue", false);
-}
-
-// Submit form
-async function handleSubmit() {
-  if (!pmid.value.trim()) {
-    error.value = "PMID is required";
-    return;
+  // Close dialog
+  function handleClose() {
+    pmid.value = '';
+    error.value = '';
+    emit('update:modelValue', false);
   }
 
-  const trimmedPmid = pmid.value.trim();
+  // Submit form
+  async function handleSubmit() {
+    if (!pmid.value.trim()) {
+      error.value = 'PMID is required';
+      return;
+    }
 
-  loading.value = true;
-  try {
-    await invokeCommand("import_paper_by_pmid", { pmid: trimmedPmid });
-    console.info("Paper imported successfully by PMID:", trimmedPmid);
-    pmid.value = "";
-    error.value = "";
-    emit("paperImported");
-    emit("update:modelValue", false);
-  } catch (err) {
-    error.value = err as string;
-  } finally {
-    loading.value = false;
-  }
-}
+    const trimmedPmid = pmid.value.trim();
 
-// Handle Enter key
-function handleKeyPress(event: KeyboardEvent) {
-  if (event.key === "Enter" && !loading.value && pmid.value.trim()) {
-    handleSubmit();
+    loading.value = true;
+    try {
+      await invokeCommand('import_paper_by_pmid', { pmid: trimmedPmid });
+      console.info('Paper imported successfully by PMID:', trimmedPmid);
+      pmid.value = '';
+      error.value = '';
+      emit('paperImported');
+      emit('update:modelValue', false);
+    } catch (err) {
+      error.value = err as string;
+    } finally {
+      loading.value = false;
+    }
   }
-}
 
-// Handle paste from clipboard
-async function handlePaste() {
-  try {
-    const text = await navigator.clipboard.readText();
-    pmid.value = text;
-    error.value = "";
-  } catch (err) {
-    console.error("Failed to read clipboard:", err);
+  // Handle Enter key
+  function handleKeyPress(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !loading.value && pmid.value.trim()) {
+      handleSubmit();
+    }
   }
-}
+
+  // Handle paste from clipboard
+  async function handlePaste() {
+    try {
+      const text = await navigator.clipboard.readText();
+      pmid.value = text;
+      error.value = '';
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+    }
+  }
 </script>
 
 <template>
@@ -132,21 +132,20 @@ async function handlePaste() {
         <v-alert type="info" density="compact" class="mt-4">
           <div class="text-caption">
             Examples:
-            <br />• 32123456 <br />• https://pubmed.ncbi.nlm.nih.gov/32123456/
-            <br />• PMID:32123456
+            <br />
+            • 32123456
+            <br />
+            • https://pubmed.ncbi.nlm.nih.gov/32123456/
+            <br />
+            • PMID:32123456
           </div>
         </v-alert>
       </v-card-text>
 
       <v-card-actions>
         <v-spacer />
-        <v-btn @click="handleClose" :disabled="loading"> Cancel </v-btn>
-        <v-btn
-          color="primary"
-          @click="handleSubmit"
-          :loading="loading"
-          :disabled="!pmid.trim()"
-        >
+        <v-btn @click="handleClose" :disabled="loading">Cancel</v-btn>
+        <v-btn color="primary" @click="handleSubmit" :loading="loading" :disabled="!pmid.trim()">
           Import
         </v-btn>
       </v-card-actions>

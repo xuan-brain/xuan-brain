@@ -110,9 +110,9 @@ pub struct PaperListDto {
     pub journal_name: Option<String>,
     pub conference_name: Option<String>,
     pub authors: Vec<String>,
-    pub labels: Vec<LabelDto>,
     pub attachment_count: usize,
     // NOTE: attachments intentionally excluded - load on demand
+    // NOTE: labels excluded - not displayed in table view
 }
 
 #[derive(Serialize)]

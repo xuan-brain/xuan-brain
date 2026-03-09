@@ -813,9 +813,9 @@ pub async fn import_papers_from_zotero_rdf(
                 .map_err(|_| AppError::validation("category_id", "Invalid category id format"))?,
         )
     } else {
-        // Auto-create category with name "Zotero-YYYYMMDD"
-        let today = chrono::Local::now().format("%Y%m%d").to_string();
-        let category_name = format!("Zotero-{}", today);
+        // Auto-create category with name "Zotero-YYYYMMDDHHMM"
+        let timestamp = chrono::Local::now().format("%Y%m%d%H%M").to_string();
+        let category_name = format!("Zotero-{}", timestamp);
 
         info!("Auto-creating category: {}", category_name);
 
@@ -878,10 +878,10 @@ pub async fn import_papers_from_zotero_rdf(
                 doi: item.doi.clone().filter(|d| !d.is_empty()),
                 publication_year,
                 publication_date: item.date.clone(),
-                journal_name: None,
+                journal_name: item.journal.as_ref().and_then(|j| j.title.clone()),
                 conference_name: None,
-                volume: None,
-                issue: None,
+                volume: item.journal.as_ref().and_then(|j| j.volume.clone()),
+                issue: item.journal.as_ref().and_then(|j| j.number.clone()),
                 pages: None,
                 url: None,
                 abstract_text: item.abstract_note.clone(),
@@ -1097,6 +1097,9 @@ pub async fn import_papers_from_zotero_rdf(
             "failed": result.failed
         }),
     );
+
+    // Emit category:refresh event to refresh category tree
+    let _ = app.emit("category:refresh", ());
 
     Ok(result)
 }

@@ -31,6 +31,8 @@ pub struct Paper {
     pub publisher: Option<String>,
     pub issn: Option<String>,
     pub language: Option<String>,
+    /// Denormalized field for performance optimization
+    pub attachment_count: i32,
     #[serde(default)]
     pub attachments: Vec<Attachment>,
     #[serde(default)]
@@ -142,6 +144,7 @@ impl Paper {
             publisher: None,
             issn: None,
             language: None,
+            attachment_count: 0,
             attachments: Vec::new(),
             labels: Vec::new(),
             authors: Vec::new(),
@@ -180,6 +183,7 @@ impl From<CreatePaper> for Paper {
             publisher: create.publisher,
             issn: create.issn,
             language: create.language,
+            attachment_count: 0,
             attachments: Vec::new(),
             labels: Vec::new(),
             authors: Vec::new(),
@@ -213,6 +217,7 @@ impl From<paper::Model> for Paper {
             publisher: model.publisher,
             issn: model.issn,
             language: model.language,
+            attachment_count: model.attachment_count,
             attachments: Vec::new(),
             labels: Vec::new(),
             authors: Vec::new(),

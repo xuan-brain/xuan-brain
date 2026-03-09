@@ -6,6 +6,7 @@ use sea_orm_migration::prelude::*;
 mod m20240101_000001_initial;
 mod m20240307_000001_split_author_name;
 mod m20250307_000002_add_paper_fields;
+mod m20250308_000001_add_attachment_count;
 
 #[allow(unused_imports)]
 pub use m20240101_000001_initial::Migration as InitialMigration;
@@ -26,6 +27,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240101_000001_initial::Migration),
             // Box::new(m20240307_000001_split_author_name::Migration),
             Box::new(m20250307_000002_add_paper_fields::Migration),
+            Box::new(m20250308_000001_add_attachment_count::Migration),
         ]
     }
 }

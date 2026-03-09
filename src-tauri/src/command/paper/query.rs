@@ -617,50 +617,25 @@ pub async fn stream_all_papers(
 
     let first_paper_ids: Vec<i64> = first_papers.iter().map(|p| p.id).collect();
 
-    // Step 2: Batch fetch related data in parallel
+    // Step 2: Batch fetch authors only (no attachments or labels - use paper.attachment_count directly)
     let t2 = Instant::now();
-    let (attachments_result, authors_result, labels_result) = tokio::join!(
-        PaperRepository::get_attachments_batch(&db, &first_paper_ids),
-        AuthorRepository::get_paper_authors_batch(&db, &first_paper_ids),
-        LabelRepository::get_paper_labels_batch(&db, &first_paper_ids)
-    );
+    let authors_map = AuthorRepository::get_paper_authors_batch(&db, &first_paper_ids).await?;
     let t2_elapsed = t2.elapsed();
-    info!("[PERF] Step 2 - parallel related queries: {}ms", t2_elapsed.as_millis());
+    info!("[PERF] Step 2 - batch authors ONLY (using paper.attachment_count): {}ms", t2_elapsed.as_millis());
 
-    let first_attachments_map = attachments_result?;
-    let first_authors_map = authors_result?;
-    let first_labels_map = labels_result?;
-
-    // Step 3: Build lightweight DTOs (no attachments array - only count)
+    // Step 3: Build lightweight DTOs using paper.attachment_count directly
     let t3 = Instant::now();
     let first_batch: Vec<PaperListDto> = first_papers
         .into_iter()
         .map(|paper| {
-            let attachments = first_attachments_map
-                .get(&paper.id)
-                .cloned()
-                .unwrap_or_default();
-            let authors = first_authors_map
-                .get(&paper.id)
-                .cloned()
-                .unwrap_or_default();
-            let labels = first_labels_map
+            let authors = authors_map
                 .get(&paper.id)
                 .cloned()
                 .unwrap_or_default();
 
             let author_names: Vec<String> = authors.iter().map(|a| a.full_name()).collect();
 
-            let label_dtos: Vec<LabelDto> = labels
-                .iter()
-                .map(|l| LabelDto {
-                    id: l.id.to_string(),
-                    name: l.name.clone(),
-                    color: l.color.clone(),
-                })
-                .collect();
-
-            // Lightweight: only count, no attachment objects
+            // Use attachment_count from paper model directly (no attachment query needed)
             PaperListDto {
                 id: paper.id.to_string(),
                 title: paper.title,
@@ -668,8 +643,7 @@ pub async fn stream_all_papers(
                 journal_name: paper.journal_name,
                 conference_name: paper.conference_name,
                 authors: author_names,
-                labels: label_dtos,
-                attachment_count: attachments.len(),
+                attachment_count: paper.attachment_count as usize,
             }
         })
         .collect();
@@ -707,41 +681,19 @@ pub async fn stream_all_papers(
 
             let paper_ids: Vec<i64> = papers.iter().map(|p| p.id).collect();
 
-            // Batch fetch related data in parallel
-            let (attachments_result, authors_result, labels_result) = tokio::join!(
-                PaperRepository::get_attachments_batch(&db, &paper_ids),
-                AuthorRepository::get_paper_authors_batch(&db, &paper_ids),
-                LabelRepository::get_paper_labels_batch(&db, &paper_ids)
-            );
+            // Batch fetch authors only (no attachments or labels)
+            let authors_map = AuthorRepository::get_paper_authors_batch(&db, &paper_ids).await?;
 
-            let attachments_map = attachments_result?;
-            let authors_map = authors_result?;
-            let labels_map = labels_result?;
-
-            // Build lightweight DTOs (no attachments array)
+            // Build lightweight DTOs using paper.attachment_count directly
             let paper_dtos: Vec<PaperListDto> = papers
                 .into_iter()
                 .map(|paper| {
-                    let attachments = attachments_map
-                        .get(&paper.id)
-                        .cloned()
-                        .unwrap_or_default();
                     let authors = authors_map.get(&paper.id).cloned().unwrap_or_default();
-                    let labels = labels_map.get(&paper.id).cloned().unwrap_or_default();
 
                     let author_names: Vec<String> =
                         authors.iter().map(|a| a.full_name()).collect();
 
-                    let label_dtos: Vec<LabelDto> = labels
-                        .iter()
-                        .map(|l| LabelDto {
-                            id: l.id.to_string(),
-                            name: l.name.clone(),
-                            color: l.color.clone(),
-                        })
-                        .collect();
-
-                    // Lightweight: only count, no attachment objects
+                    // Use attachment_count from paper model directly
                     PaperListDto {
                         id: paper.id.to_string(),
                         title: paper.title,
@@ -749,8 +701,7 @@ pub async fn stream_all_papers(
                         journal_name: paper.journal_name,
                         conference_name: paper.conference_name,
                         authors: author_names,
-                        labels: label_dtos,
-                        attachment_count: attachments.len(),
+                        attachment_count: paper.attachment_count as usize,
                     }
                 })
                 .collect();

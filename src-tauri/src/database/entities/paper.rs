@@ -27,6 +27,7 @@ pub struct Model {
     pub publisher: Option<String>,
     pub issn: Option<String>,
     pub language: Option<String>,
+    pub attachment_count: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,

@@ -597,7 +597,12 @@ pub enum Paper {
     Publisher,
     Issn,
     Language,
+    // Denormalized field for performance optimization
+    AttachmentCount,
 }
+
+// Re-export for use in other migrations
+pub use Paper as PaperEnum;
 
 // Author table
 #[derive(Iden)]

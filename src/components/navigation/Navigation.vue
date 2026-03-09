@@ -5,7 +5,8 @@
   import CategoryTree from '@/components/navigation/CategoryTree.vue';
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
-  import { onMounted, ref } from 'vue';
+  import { onMounted, onUnmounted, ref } from 'vue';
+  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
   const { t } = useI18n();
 
@@ -182,9 +183,25 @@
 
   // Get color display value from color key
 
+  // Event listener cleanup
+  let unlistenCategoryRefresh: UnlistenFn | null = null;
+
   // Initialize on mount
-  onMounted(() => {
+  onMounted(async () => {
     loadLabels();
+
+    // Listen for category:refresh event from backend
+    unlistenCategoryRefresh = await listen('category:refresh', () => {
+      console.info('Received category:refresh event, refreshing category tree');
+      categoryTreeRef.value?.loadCategories();
+    });
+  });
+
+  // Cleanup on unmount
+  onUnmounted(() => {
+    if (unlistenCategoryRefresh) {
+      unlistenCategoryRefresh();
+    }
   });
 </script>
 

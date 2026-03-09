@@ -44,9 +44,9 @@
     journal_name?: string;
     conference_name?: string;
     authors: string[];
-    labels: Label[];
     attachment_count: number;
     // NOTE: attachments intentionally excluded - load on demand
+    // NOTE: labels excluded - not displayed in table view
   }
 
   interface PaperBatchDto {
@@ -490,13 +490,18 @@
     }
   }
 
-  // Handle expand row toggle
-  function handleToggleExpandChange({ row }: { row: any }) {
-    const index = expandRowIds.value.indexOf(row.id);
+  // Store for loaded attachments (lazy loading)
+  const loadedAttachments = ref<Map<string, Attachment[]>>(new Map());
+  const loadingAttachments = ref<Set<string>>(new Set());
+
+  // Handle expand row toggle - load attachments on demand
+  async function handleToggleExpandChange({ row }: { row: any }) {
+    const paper = row as PaperDto;
+    const index = expandRowIds.value.indexOf(paper.id);
 
     console.info(
       'Toggle expand clicked for row:',
-      row.id,
+      paper.id,
       'current expanded rows:',
       expandRowIds.value
     );
@@ -504,18 +509,39 @@
     if (index > -1) {
       // Collapse
       expandRowIds.value.splice(index, 1);
-      console.info('Collapsed row:', row.id);
+      console.info('Collapsed row:', paper.id);
     } else {
-      // Expand - attachments are already loaded from backend
-      expandRowIds.value.push(row.id);
-      console.info(
-        'Expanded row:',
-        row.id,
-        'attachment_count:',
-        row.attachment_count,
-        'attachments:',
-        row.attachments?.length || 0
-      );
+      // Expand - load attachments on demand if not already loaded
+      if ((paper.attachment_count ?? 0) > 0 && !loadedAttachments.value.has(paper.id)) {
+        loadingAttachments.value.add(paper.id);
+        try {
+          const attachments = await invokeCommand<Attachment[]>('get_attachments', {
+            paperId: paper.id,
+          });
+          loadedAttachments.value.set(paper.id, attachments);
+          paper.attachments = attachments;
+          console.info(
+            'Loaded attachments for paper:',
+            paper.id,
+            'count:',
+            attachments.length
+          );
+        } catch (error) {
+          console.error('Failed to load attachments:', error);
+          paper.attachments = [];
+        } finally {
+          loadingAttachments.value.delete(paper.id);
+        }
+      } else {
+        // Already loaded, just expand
+        expandRowIds.value.push(paper.id);
+        console.info(
+          'Expanded row:',
+          paper.id,
+          'attachment_count:',
+          paper.attachment_count
+        );
+      }
     }
   }
 
@@ -636,7 +662,19 @@
         <vxe-column type="expand" width="40" fixed="left">
           <template #content="{ row }">
             <div class="expand-row-content">
-              <div v-if="row.attachments && row.attachments.length > 0" class="attachments-list">
+              <!-- Loading state -->
+              <div
+                v-if="loadingAttachments.has(row.id) && !loadedAttachments.has(row.id)"
+                class="loading-attachments"
+              >
+                <v-progress-circular indeterminate size="small" class="mr-2" />
+                <span class="text-caption">Loading attachments...</span>
+              </div>
+              <!-- Loaded attachments -->
+              <div
+                v-else-if="row.attachments && row.attachments.length > 0"
+                class="attachments-list"
+              >
                 <div class="attachments-header">
                   <v-icon size="small" class="mr-2">mdi-paperclip</v-icon>
                   <span class="text-subtitle-2">Attachments ({{ row.attachments.length }})</span>
@@ -663,6 +701,7 @@
                   </v-list-item>
                 </v-list>
               </div>
+              <!-- No attachments -->
               <div v-else class="no-attachments">
                 <v-icon size="small" class="mr-2">mdi-information</v-icon>
                 <span class="text-caption">No attachments</span>
@@ -694,24 +733,7 @@
         <vxe-column field="publication_year" title="Year" width="80" sortable />
 
         <!-- Journal column -->
-        <vxe-column field="journal_name" title="Journal" width="20%" sortable show-overflow />
-
-        <!-- Labels column -->
-        <vxe-column field="labels" title="Labels" width="15%" show-overflow>
-          <template #default="{ row }">
-            <v-chip
-              v-if="row.labels && row.labels.length > 0"
-              size="x-small"
-              :color="row.labels[0].color"
-              class="mr-1"
-            >
-              {{ row.labels[0].name }}
-            </v-chip>
-            <v-chip v-if="row.labels && row.labels.length > 1" size="x-small">
-              +{{ row.labels.length - 1 }}
-            </v-chip>
-          </template>
-        </vxe-column>
+        <vxe-column field="journal_name" title="Journal" width="35%" sortable show-overflow />
       </vxe-table>
 
       <!-- Streaming progress indicator -->

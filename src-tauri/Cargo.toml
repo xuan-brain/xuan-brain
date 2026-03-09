@@ -60,7 +60,7 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 urlencoding = "2.1"
 # Zotero RDF parser
-zotero-rdf = { git = "https://github.com/spartajet/zotero-rdf.git", branch = "master" }
+zotero-rdf = { git = "https://github.com/spartajet/zotero-rdf.git", branch = "dev" }
 # OpenAPI / Swagger
 utoipa = { version = "5", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }

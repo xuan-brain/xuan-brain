@@ -22,10 +22,10 @@ pub struct PaperCountDto {
     pub deleted: i64,
 }
 
-/// DTO for paginated papers response
+/// DTO for paginated papers response (uses lightweight PaperListDto for performance)
 #[derive(Serialize)]
 pub struct PaginatedPapersDto {
-    pub papers: Vec<PaperDto>,
+    pub papers: Vec<PaperListDto>,
     pub total: i64,
     pub offset: u64,
     pub limit: u64,
@@ -497,58 +497,30 @@ pub async fn get_papers_paginated(
         step4_start.elapsed().as_millis()
     );
 
-    // Step 5: Batch fetch labels
-    let step5_start = Instant::now();
-    let labels_map = LabelRepository::get_paper_labels_batch(&db, &paper_ids).await?;
-    info!(
-        "[PERF] Step 5 - batch labels: {:?}ms",
-        step5_start.elapsed().as_millis()
-    );
-
-    // Step 6: Build result DTOs
+    // Step 5: Build result DTOs (lightweight PaperListDto for fast serialization)
+    // Note: labels not included - not needed for list view
+    // Note: using first_author + author_count instead of full authors array for faster serialization
     let step6_start = Instant::now();
-    let paper_dtos: Vec<PaperDto> = papers
+    let paper_dtos: Vec<PaperListDto> = papers
         .into_iter()
         .map(|paper| {
-            let attachments = attachments_map.get(&paper.id).cloned().unwrap_or_default();
             let authors = authors_map.get(&paper.id).cloned().unwrap_or_default();
-            let labels = labels_map.get(&paper.id).cloned().unwrap_or_default();
 
-            let attachment_dtos: Vec<AttachmentDto> = attachments
-                .iter()
-                .map(|a| AttachmentDto {
-                    id: a.id.to_string(),
-                    paper_id: paper.id.to_string(),
-                    file_name: a.file_name.clone(),
-                    file_type: a.file_type.clone(),
-                    created_at: Some(a.created_at.to_rfc3339()),
-                })
-                .collect();
+            // Only get attachment count, not full attachments (load on expand)
+            let attachment_count = attachments_map.get(&paper.id).map(|v| v.len()).unwrap_or(0);
 
-            let author_names: Vec<String> = authors.iter().map(|a| a.full_name()).collect();
+            let author_count = authors.len();
+            let first_author = authors.first().map(|a| a.full_name());
 
-            let label_dtos: Vec<LabelDto> = labels
-                .iter()
-                .map(|l| LabelDto {
-                    id: l.id.to_string(),
-                    name: l.name.clone(),
-                    color: l.color.clone(),
-                })
-                .collect();
-
-            PaperDto {
+            PaperListDto {
                 id: paper.id.to_string(),
                 title: paper.title,
                 publication_year: paper.publication_year,
                 journal_name: paper.journal_name,
                 conference_name: paper.conference_name,
-                authors: author_names,
-                labels: label_dtos,
-                attachment_count: attachment_dtos.len(),
-                attachments: attachment_dtos,
-                publisher: paper.publisher,
-                issn: paper.issn,
-                language: paper.language,
+                first_author,
+                author_count,
+                attachment_count,
             }
         })
         .collect();
@@ -556,6 +528,25 @@ pub async fn get_papers_paginated(
     info!(
         "[PERF] Step 6 - build DTOs: {:?}ms",
         step6_start.elapsed().as_millis()
+    );
+
+    // Calculate data size for serialization with field breakdown
+    let step7_start = Instant::now();
+    let total_authors: usize = paper_dtos.iter().map(|p| p.author_count).sum();
+    let total_title_chars: usize = paper_dtos.iter().map(|p| p.title.len()).sum();
+    let total_journal_chars: usize = paper_dtos.iter()
+        .map(|p| p.journal_name.as_ref().map(|s| s.len()).unwrap_or(0))
+        .sum();
+    let serialized = serde_json::to_string(&paper_dtos);
+    let serialized_size = serialized.as_ref().map(|s| s.len()).unwrap_or(0);
+    info!(
+        "[PERF] Step 7 - serialize check: {:?}ms, size={} bytes ({} KB), authors={}, title_chars={}, journal_chars={}",
+        step7_start.elapsed().as_millis(),
+        serialized_size,
+        serialized_size / 1024,
+        total_authors,
+        total_title_chars,
+        total_journal_chars
     );
 
     let has_more = (offset + paper_count as u64) < total as u64;
@@ -633,7 +624,8 @@ pub async fn stream_all_papers(
                 .cloned()
                 .unwrap_or_default();
 
-            let author_names: Vec<String> = authors.iter().map(|a| a.full_name()).collect();
+            let author_count = authors.len();
+            let first_author = authors.first().map(|a| a.full_name());
 
             // Use attachment_count from paper model directly (no attachment query needed)
             PaperListDto {
@@ -642,7 +634,8 @@ pub async fn stream_all_papers(
                 publication_year: paper.publication_year,
                 journal_name: paper.journal_name,
                 conference_name: paper.conference_name,
-                authors: author_names,
+                first_author,
+                author_count,
                 attachment_count: paper.attachment_count as usize,
             }
         })
@@ -690,8 +683,8 @@ pub async fn stream_all_papers(
                 .map(|paper| {
                     let authors = authors_map.get(&paper.id).cloned().unwrap_or_default();
 
-                    let author_names: Vec<String> =
-                        authors.iter().map(|a| a.full_name()).collect();
+                    let author_count = authors.len();
+                    let first_author = authors.first().map(|a| a.full_name());
 
                     // Use attachment_count from paper model directly
                     PaperListDto {
@@ -700,7 +693,8 @@ pub async fn stream_all_papers(
                         publication_year: paper.publication_year,
                         journal_name: paper.journal_name,
                         conference_name: paper.conference_name,
-                        authors: author_names,
+                        first_author,
+                        author_count,
                         attachment_count: paper.attachment_count as usize,
                     }
                 })

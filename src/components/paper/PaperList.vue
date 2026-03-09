@@ -26,16 +26,19 @@
     created_at: string | null;
   }
 
+  // Lightweight DTO for paper list (from pagination)
   interface PaperDto {
     id: string;
     title: string;
-    authors: string[];
+    // Authors as simple fields instead of array for faster serialization
+    first_author?: string | null;
+    author_count?: number;
     publication_year?: number;
     journal_name?: string;
     conference_name?: string;
-    labels: Label[];
+    labels?: Label[]; // Optional - not included in paginated response
     attachment_count?: number;
-    attachments?: Attachment[];
+    attachments?: Attachment[]; // Loaded on demand
     publisher?: string | null;
     issn?: string | null;
     language?: string | null;
@@ -296,8 +299,13 @@
         loading.value = false;
       } else {
         // Load all papers with pagination
+        const t1 = performance.now();
         const offset = (pageConfig.currentPage - 1) * pageConfig.pageSize;
+        console.info(
+          `[PERF] Step 1 - Calculate offset: ${(performance.now() - t1).toFixed(2)}ms, offset=${offset}`
+        );
 
+        const t2 = performance.now();
         const data = await invokeCommand<{
           papers: PaperDto[];
           total: number;
@@ -308,13 +316,23 @@
           offset: offset,
           limit: pageConfig.pageSize,
         });
+        console.info(
+          `[PERF] Step 2 - Backend invoke: ${(performance.now() - t2).toFixed(2)}ms, received ${data.papers.length} papers`
+        );
 
+        const t3 = performance.now();
         papers.value = data.papers;
+        console.info(
+          `[PERF] Step 3 - Assign to reactive: ${(performance.now() - t3).toFixed(2)}ms`
+        );
+
+        const t4 = performance.now();
         pageConfig.total = data.total;
         loading.value = false;
+        console.info(`[PERF] Step 4 - Update pageConfig: ${(performance.now() - t4).toFixed(2)}ms`);
 
         console.info(
-          `[PERF] Pagination loaded: ${data.papers.length} papers, total=${data.total}, page=${pageConfig.currentPage}`
+          `[PERF] Pagination summary: ${data.papers.length} papers, total=${data.total}, page=${pageConfig.currentPage}`
         );
       }
 
@@ -455,6 +473,7 @@
           });
           loadedAttachments.value.set(paper.id, attachments);
           paper.attachments = attachments;
+          expandRowIds.value.push(paper.id);
           console.info('Loaded attachments for paper:', paper.id, 'count:', attachments.length);
         } catch (error) {
           console.error('Failed to load attachments:', error);
@@ -463,7 +482,11 @@
           loadingAttachments.value.delete(paper.id);
         }
       } else {
-        // Already loaded, just expand
+        // Already loaded or no attachments, use cached data if available
+        if (loadedAttachments.value.has(paper.id)) {
+          paper.attachments = loadedAttachments.value.get(paper.id) || [];
+          console.info('Using cached attachments for paper:', paper.id);
+        }
         expandRowIds.value.push(paper.id);
         console.info('Expanded row:', paper.id, 'attachment_count:', paper.attachment_count);
       }
@@ -651,11 +674,11 @@
           <!-- Authors column -->
           <vxe-column field="authors" title="Authors" width="15%" show-overflow>
             <template #default="{ row }">
-              <v-chip v-if="row.authors && row.authors.length > 0" size="x-small" class="mr-1">
-                {{ row.authors[0] }}
+              <v-chip v-if="row.first_author" size="x-small" class="mr-1">
+                {{ row.first_author }}
               </v-chip>
-              <v-chip v-if="row.authors && row.authors.length > 1" size="x-small">
-                +{{ row.authors.length - 1 }}
+              <v-chip v-if="row.author_count && row.author_count > 1" size="x-small">
+                +{{ row.author_count - 1 }}
               </v-chip>
             </template>
           </vxe-column>

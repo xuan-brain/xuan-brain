@@ -113,7 +113,7 @@ pub struct PaperListDto {
     pub first_author: Option<String>,
     pub author_count: usize,
     pub attachment_count: usize,
-    // NOTE: attachments intentionally excluded - load on demand
+    pub attachments: Vec<AttachmentDto>,
     // NOTE: labels excluded - not displayed in table view
 }
 

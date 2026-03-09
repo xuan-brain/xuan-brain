@@ -505,12 +505,22 @@ pub async fn get_papers_paginated(
         .into_iter()
         .map(|paper| {
             let authors = authors_map.get(&paper.id).cloned().unwrap_or_default();
+            let attachments = attachments_map.get(&paper.id).cloned().unwrap_or_default();
 
-            // Only get attachment count, not full attachments (load on expand)
-            let attachment_count = attachments_map.get(&paper.id).map(|v| v.len()).unwrap_or(0);
-
+            let attachment_count = attachments.len();
             let author_count = authors.len();
             let first_author = authors.first().map(|a| a.full_name());
+
+            let attachment_dtos: Vec<AttachmentDto> = attachments
+                .iter()
+                .map(|a| AttachmentDto {
+                    id: a.id.to_string(),
+                    paper_id: paper.id.to_string(),
+                    file_name: a.file_name.clone(),
+                    file_type: a.file_type.clone(),
+                    created_at: Some(a.created_at.to_rfc3339()),
+                })
+                .collect();
 
             PaperListDto {
                 id: paper.id.to_string(),
@@ -521,6 +531,7 @@ pub async fn get_papers_paginated(
                 first_author,
                 author_count,
                 attachment_count,
+                attachments: attachment_dtos,
             }
         })
         .collect();
@@ -628,6 +639,7 @@ pub async fn stream_all_papers(
             let first_author = authors.first().map(|a| a.full_name());
 
             // Use attachment_count from paper model directly (no attachment query needed)
+            // Note: attachments are empty for streaming, will be loaded on demand
             PaperListDto {
                 id: paper.id.to_string(),
                 title: paper.title,
@@ -637,6 +649,7 @@ pub async fn stream_all_papers(
                 first_author,
                 author_count,
                 attachment_count: paper.attachment_count as usize,
+                attachments: Vec::new(),
             }
         })
         .collect();
@@ -687,6 +700,7 @@ pub async fn stream_all_papers(
                     let first_author = authors.first().map(|a| a.full_name());
 
                     // Use attachment_count from paper model directly
+                    // Note: attachments are empty for streaming, will be loaded on demand
                     PaperListDto {
                         id: paper.id.to_string(),
                         title: paper.title,
@@ -696,6 +710,7 @@ pub async fn stream_all_papers(
                         first_author,
                         author_count,
                         attachment_count: paper.attachment_count as usize,
+                        attachments: Vec::new(),
                     }
                 })
                 .collect();

@@ -345,7 +345,7 @@
   }
 
   // 分页事件处理：页码或每页条数变化
-  function handlePageChange(params: { currentPage: number; pageSize: number }) {
+  function handlePageChange(_: { currentPage: number; pageSize: number }) {
     // v-model 会自动更新值，这里只需要触发数据加载
     loadPapers();
   }
@@ -616,23 +616,12 @@
           <vxe-column type="expand" width="40" fixed="left">
             <template #content="{ row }">
               <div class="expand-row-content">
-                <!-- Loading state -->
-                <div
-                  v-if="loadingAttachments.has(row.id) && !loadedAttachments.has(row.id)"
-                  class="loading-attachments"
-                >
-                  <v-progress-circular indeterminate size="small" class="mr-2" />
-                  <span class="text-caption">Loading attachments...</span>
-                </div>
                 <!-- Loaded attachments -->
-                <div
-                  v-else-if="row.attachments && row.attachments.length > 0"
-                  class="attachments-list"
-                >
-                  <div class="attachments-header">
+                <div v-if="row.attachments && row.attachments.length > 0" class="attachments-list">
+                  <!-- <div class="attachments-header">
                     <v-icon size="small" class="mr-2">mdi-paperclip</v-icon>
                     <span class="text-subtitle-2">Attachments ({{ row.attachments.length }})</span>
-                  </div>
+                  </div> -->
                   <v-list density="compact" class="attachments-list-items">
                     <v-list-item
                       v-for="attachment in row.attachments"

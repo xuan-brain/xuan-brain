@@ -3,6 +3,7 @@
   import NotificationToast from '@/components/notification/NotificationToast.vue';
   import GlobalErrorDialog from '@/components/notification/GlobalErrorDialog.vue';
   import { invokeCommand } from '@/lib/tauri';
+  import { initNotificationListeners } from '@/lib/notification-events';
   import { useAppStore } from '@/stores/useAppStore';
   import { onMounted, provide, ref, watch } from 'vue';
   import { useTheme } from 'vuetify';
@@ -34,8 +35,14 @@
   provide('reloadConfig', reloadConfig);
 
   // Initialize theme on mount
-  onMounted(() => {
+  onMounted(async () => {
     theme.change(appStore.isDark ? 'dark' : 'light');
+    // Initialize Tauri notification event listeners
+    try {
+      await initNotificationListeners();
+    } catch (error) {
+      console.error('Failed to initialize notification listeners:', error);
+    }
   });
 
   // Watch for theme changes in store and update Vuetify theme

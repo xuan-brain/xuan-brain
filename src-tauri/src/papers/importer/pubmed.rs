@@ -26,7 +26,8 @@ pub enum PubmedError {
 pub struct PubmedMetadata {
     pub pmid: String,
     pub title: String,
-    pub authors: Vec<String>,
+    /// Structured author names (ForeName/LastName separated)
+    pub authors: Vec<PubmedAuthor>,
     pub abstract_text: Option<String>,
     pub journal_name: Option<String>,
     pub publication_year: Option<String>,
@@ -38,6 +39,51 @@ pub struct PubmedMetadata {
     pub pmc_id: Option<String>,
     pub keywords: Vec<String>,
     pub mesh_terms: Vec<String>,
+}
+
+/// Author name from PubMed with separated ForeName/LastName
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PubmedAuthor {
+    /// ForeName / First name
+    pub fore_name: Option<String>,
+    /// LastName / Family name
+    pub last_name: Option<String>,
+    /// Collective name (for organizations, etc.)
+    pub collective_name: Option<String>,
+    /// Full name (for display, computed from fore_name + last_name)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub full_name: Option<String>,
+}
+
+impl PubmedAuthor {
+    /// Create from PubMed author data
+    pub fn from_pubmed(
+        fore_name: Option<String>,
+        last_name: Option<String>,
+        collective_name: Option<String>,
+    ) -> Self {
+        if let Some(collective) = &collective_name {
+            Self {
+                fore_name: Some(collective.clone()),
+                last_name: None,
+                collective_name: Some(collective.clone()),
+                full_name: Some(collective.clone()),
+            }
+        } else {
+            let full_name = match (&fore_name, &last_name) {
+                (Some(fore), Some(last)) => Some(format!("{} {}", fore, last)),
+                (Some(fore), None) => Some(fore.clone()),
+                (None, Some(last)) => Some(last.clone()),
+                (None, None) => None,
+            };
+            Self {
+                fore_name,
+                last_name,
+                collective_name: None,
+                full_name,
+            }
+        }
+    }
 }
 
 /// PubMed XML response structures
@@ -146,6 +192,23 @@ struct Author {
 }
 
 impl Author {
+    /// Convert to PubmedAuthor, keeping ForeName/LastName separate
+    fn to_pubmed_author(&self) -> Option<PubmedAuthor> {
+        if self.collective_name.is_some()
+            || self.fore_name.is_some()
+            || self.last_name.is_some()
+        {
+            Some(PubmedAuthor::from_pubmed(
+                self.fore_name.clone(),
+                self.last_name.clone(),
+                self.collective_name.clone(),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Get full name as string (for backward compatibility)
     fn to_string(&self) -> Option<String> {
         if let Some(collective) = &self.collective_name {
             return Some(collective.clone());
@@ -256,13 +319,13 @@ impl PubmedArticle {
             return Err(PubmedError::ParseError("Title is empty".to_string()));
         }
 
-        // Extract authors
+        // Extract authors (keep ForeName/LastName separate)
         let authors = self
             .medline_citation
             .article
             .author_list
             .as_ref()
-            .map(|al| al.authors.iter().filter_map(|a| a.to_string()).collect())
+            .map(|al| al.authors.iter().filter_map(|a| a.to_pubmed_author()).collect())
             .unwrap_or_default();
 
         // Extract abstract
@@ -592,9 +655,15 @@ mod tests {
         assert!(!metadata.title.is_empty(), "Title should not be empty");
         assert!(!metadata.authors.is_empty(), "Authors should not be empty");
 
+        let author_names: Vec<&str> = metadata
+            .authors
+            .iter()
+            .filter_map(|a| a.full_name.as_deref())
+            .collect();
+
         println!("PMID: {}", metadata.pmid);
         println!("Title: {}", metadata.title);
-        println!("Authors: {}", metadata.authors.join(", "));
+        println!("Authors: {}", author_names.join(", "));
         println!("Journal: {:?}", metadata.journal_name);
         println!("Year: {:?}", metadata.publication_year);
         println!("DOI: {:?}", metadata.doi);

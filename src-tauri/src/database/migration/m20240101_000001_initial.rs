@@ -239,8 +239,16 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(PaperAuthor::PaperId).integer().not_null())
                     .col(ColumnDef::new(PaperAuthor::AuthorId).integer().not_null())
-                    .col(ColumnDef::new(PaperAuthor::AuthorOrder).integer().default(0))
-                    .col(ColumnDef::new(PaperAuthor::IsCorresponding).integer().default(0))
+                    .col(
+                        ColumnDef::new(PaperAuthor::AuthorOrder)
+                            .integer()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(PaperAuthor::IsCorresponding)
+                            .integer()
+                            .default(0),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_paper_author_paper")
@@ -369,7 +377,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(PaperCategory::PaperId).integer().not_null())
-                    .col(ColumnDef::new(PaperCategory::CategoryId).integer().not_null())
+                    .col(
+                        ColumnDef::new(PaperCategory::CategoryId)
+                            .integer()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_paper_category_paper")
@@ -572,7 +584,7 @@ impl MigrationTrait for Migration {
 
 // Paper table
 #[derive(Iden)]
-enum Paper {
+pub enum Paper {
     Table,
     Id,
     Title,
@@ -593,7 +605,15 @@ enum Paper {
     CreatedAt,
     UpdatedAt,
     DeletedAt,
+    // New fields for Zotero import support
+    Publisher,
+    Issn,
+    Language,
+    // Denormalized field for performance optimization
+    AttachmentCount,
 }
+
+// Re-export for use in other migrations
 
 // Author table
 #[derive(Iden)]

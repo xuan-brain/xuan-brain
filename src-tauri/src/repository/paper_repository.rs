@@ -11,6 +11,17 @@ use crate::sys::error::{AppError, Result};
 pub struct PaperRepository;
 
 impl PaperRepository {
+    /// Count all non-deleted papers
+    pub async fn count(db: &DatabaseConnection) -> Result<i64> {
+        let count = paper::Entity::find()
+            .filter(paper::Column::DeletedAt.is_null())
+            .count(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to count papers: {}", e)))?;
+
+        Ok(count as i64)
+    }
+
     /// Find all non-deleted papers
     pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<Paper>> {
         let papers = paper::Entity::find()
@@ -24,6 +35,30 @@ impl PaperRepository {
         Ok(papers.into_iter().map(Paper::from).collect())
     }
 
+    /// Find non-deleted papers with pagination
+    pub async fn find_all_paginated(
+        db: &DatabaseConnection,
+        offset: u64,
+        limit: u64,
+    ) -> Result<Vec<Paper>> {
+        let papers = paper::Entity::find()
+            .filter(paper::Column::DeletedAt.is_null())
+            .order_by_desc(paper::Column::CreatedAt)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to query paginated papers: {}", e)))?;
+
+        info!(
+            "Found {} papers (offset={}, limit={})",
+            papers.len(),
+            offset,
+            limit
+        );
+        Ok(papers.into_iter().map(Paper::from).collect())
+    }
+
     /// Find all deleted papers (trash)
     pub async fn find_deleted(db: &DatabaseConnection) -> Result<Vec<Paper>> {
         let papers = paper::Entity::find()
@@ -34,6 +69,17 @@ impl PaperRepository {
             .map_err(|e| AppError::generic(format!("Failed to query deleted papers: {}", e)))?;
 
         Ok(papers.into_iter().map(Paper::from).collect())
+    }
+
+    /// Count deleted papers (trash)
+    pub async fn count_deleted(db: &DatabaseConnection) -> Result<i64> {
+        let count = paper::Entity::find()
+            .filter(paper::Column::DeletedAt.is_not_null())
+            .count(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to count deleted papers: {}", e)))?;
+
+        Ok(count as i64)
     }
 
     /// Find paper by ID
@@ -87,9 +133,13 @@ impl PaperRepository {
             read_status: Set("unread".to_string()),
             notes: Set(None),
             attachment_path: Set(create.attachment_path),
+            attachment_count: Set(0),
             created_at: Set(now),
             updated_at: Set(now),
             deleted_at: Set(None),
+            publisher: Set(create.publisher),
+            issn: Set(create.issn),
+            language: Set(create.language),
             ..Default::default()
         };
 
@@ -152,6 +202,16 @@ impl PaperRepository {
         if let Some(attachment_path) = update.attachment_path {
             paper.attachment_path = Set(Some(attachment_path));
         }
+        // New fields for Zotero import support
+        if let Some(publisher) = update.publisher {
+            paper.publisher = Set(Some(publisher));
+        }
+        if let Some(issn) = update.issn {
+            paper.issn = Set(Some(issn));
+        }
+        if let Some(language) = update.language {
+            paper.language = Set(Some(language));
+        }
 
         paper.updated_at = Set(chrono::Utc::now());
 
@@ -173,9 +233,10 @@ impl PaperRepository {
 
         let mut paper: paper::ActiveModel = paper.into();
         paper.deleted_at = Set(Some(chrono::Utc::now()));
-        paper.update(db).await.map_err(|e| {
-            AppError::generic(format!("Failed to soft delete paper: {}", e))
-        })?;
+        paper
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to soft delete paper: {}", e)))?;
 
         Ok(())
     }
@@ -190,9 +251,10 @@ impl PaperRepository {
 
         let mut paper: paper::ActiveModel = paper.into();
         paper.deleted_at = Set(None);
-        paper.update(db).await.map_err(|e| {
-            AppError::generic(format!("Failed to restore paper: {}", e))
-        })?;
+        paper
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to restore paper: {}", e)))?;
 
         Ok(())
     }
@@ -234,7 +296,9 @@ impl PaperRepository {
             .filter(paper_category::Column::CategoryId.eq(category_id))
             .all(db)
             .await
-            .map_err(|e| AppError::generic(format!("Failed to get paper-category relations: {}", e)))?;
+            .map_err(|e| {
+                AppError::generic(format!("Failed to get paper-category relations: {}", e))
+            })?;
 
         let paper_ids: Vec<i64> = relations.iter().map(|r| r.paper_id).collect();
 
@@ -265,9 +329,7 @@ impl PaperRepository {
             .filter(paper_category::Column::PaperId.eq(paper_id))
             .exec(db)
             .await
-            .map_err(|e| {
-                AppError::generic(format!("Failed to delete paper category: {}", e))
-            })?;
+            .map_err(|e| AppError::generic(format!("Failed to delete paper category: {}", e)))?;
 
         // Then create new relation if category_id is provided
         if let Some(cat_id) = category_id {
@@ -276,9 +338,10 @@ impl PaperRepository {
                 category_id: Set(cat_id),
                 ..Default::default()
             };
-            relation.insert(db).await.map_err(|e| {
-                AppError::generic(format!("Failed to set paper category: {}", e))
-            })?;
+            relation
+                .insert(db)
+                .await
+                .map_err(|e| AppError::generic(format!("Failed to set paper category: {}", e)))?;
         }
 
         Ok(())
@@ -310,9 +373,10 @@ impl PaperRepository {
         let mut paper: paper::ActiveModel = paper.into();
         paper.attachment_path = Set(Some(path.to_string()));
         paper.updated_at = Set(chrono::Utc::now());
-        paper.update(db).await.map_err(|e| {
-            AppError::generic(format!("Failed to update attachment path: {}", e))
-        })?;
+        paper
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to update attachment path: {}", e)))?;
 
         Ok(())
     }
@@ -342,6 +406,9 @@ impl PaperRepository {
             .await
             .map_err(|e| AppError::generic(format!("Failed to add attachment: {}", e)))?;
 
+        // Increment attachment count
+        Self::update_attachment_count(db, paper_id, 1).await?;
+
         // Update paper's updated_at
         Self::touch_paper(db, paper_id).await?;
 
@@ -349,7 +416,10 @@ impl PaperRepository {
     }
 
     /// Get all attachments for a paper
-    pub async fn get_attachments(db: &DatabaseConnection, paper_id: i64) -> Result<Vec<Attachment>> {
+    pub async fn get_attachments(
+        db: &DatabaseConnection,
+        paper_id: i64,
+    ) -> Result<Vec<Attachment>> {
         let attachments = attachment::Entity::find()
             .filter(attachment::Column::PaperId.eq(paper_id))
             .all(db)
@@ -357,6 +427,36 @@ impl PaperRepository {
             .map_err(|e| AppError::generic(format!("Failed to get attachments: {}", e)))?;
 
         Ok(attachments.into_iter().map(Attachment::from).collect())
+    }
+
+    /// Get all attachments for multiple papers (batch query for N+1 optimization)
+    /// Returns a HashMap mapping paper_id to its attachments
+    pub async fn get_attachments_batch(
+        db: &DatabaseConnection,
+        paper_ids: &[i64],
+    ) -> Result<std::collections::HashMap<i64, Vec<Attachment>>> {
+        use std::collections::HashMap;
+
+        if paper_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let attachments = attachment::Entity::find()
+            .filter(attachment::Column::PaperId.is_in(paper_ids.to_vec()))
+            .all(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to get attachments batch: {}", e)))?;
+
+        let mut result: HashMap<i64, Vec<Attachment>> = HashMap::new();
+        for attachment in attachments {
+            let paper_id = attachment.paper_id;
+            result
+                .entry(paper_id)
+                .or_default()
+                .push(Attachment::from(attachment));
+        }
+
+        Ok(result)
     }
 
     /// Find PDF attachment for a paper
@@ -389,6 +489,9 @@ impl PaperRepository {
             .await
             .map_err(|e| AppError::generic(format!("Failed to remove attachment: {}", e)))?;
 
+        // Decrement attachment count
+        Self::update_attachment_count(db, paper_id, -1).await?;
+
         // Update paper's updated_at
         Self::touch_paper(db, paper_id).await?;
 
@@ -401,12 +504,29 @@ impl PaperRepository {
         paper_id: i64,
         file_name: &str,
     ) -> Result<()> {
+        // Count how many will be deleted
+        let count = attachment::Entity::find()
+            .filter(attachment::Column::PaperId.eq(paper_id))
+            .filter(attachment::Column::FileName.eq(file_name))
+            .count(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to count attachments: {}", e)))?
+            as i32;
+
+        if count == 0 {
+            return Ok(());
+        }
+
+        // Delete attachments
         attachment::Entity::delete_many()
             .filter(attachment::Column::PaperId.eq(paper_id))
             .filter(attachment::Column::FileName.eq(file_name))
             .exec(db)
             .await
             .map_err(|e| AppError::generic(format!("Failed to remove attachment: {}", e)))?;
+
+        // Decrement attachment count
+        Self::update_attachment_count(db, paper_id, -(count)).await?;
 
         // Update paper's updated_at
         Self::touch_paper(db, paper_id).await?;
@@ -430,6 +550,62 @@ impl PaperRepository {
         }
 
         Ok(())
+    }
+
+    /// Increment/decrement attachment count atomically
+    /// Use raw SQL for atomicity
+    pub async fn update_attachment_count(
+        db: &DatabaseConnection,
+        paper_id: i64,
+        delta: i32,
+    ) -> Result<()> {
+        let sql = if delta >= 0 {
+            format!(
+                "UPDATE paper SET attachment_count = attachment_count + {} WHERE id = {}",
+                delta, paper_id
+            )
+        } else {
+            format!(
+                "UPDATE paper SET attachment_count = MAX(0, attachment_count - {}) WHERE id = {}",
+                delta.abs(),
+                paper_id
+            )
+        };
+
+        db.execute_unprepared(&sql)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to update attachment count: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// Recalculate attachment count from attachment table (for data repair)
+    pub async fn recalculate_attachment_count(
+        db: &DatabaseConnection,
+        paper_id: i64,
+    ) -> Result<i32> {
+        let count: i32 = attachment::Entity::find()
+            .filter(attachment::Column::PaperId.eq(paper_id))
+            .count(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to count attachments: {}", e)))?
+            as i32;
+
+        let paper = paper::Entity::find_by_id(paper_id)
+            .one(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to find paper: {}", e)))?
+            .ok_or_else(|| AppError::not_found("Paper", paper_id.to_string()))?;
+
+        let mut paper: paper::ActiveModel = paper.into();
+        paper.attachment_count = Set(count);
+        paper.updated_at = Set(chrono::Utc::now());
+        paper
+            .update(db)
+            .await
+            .map_err(|e| AppError::generic(format!("Failed to update attachment count: {}", e)))?;
+
+        Ok(count)
     }
 
     // ==================== Author operations ====================
@@ -464,6 +640,7 @@ impl PaperRepository {
         db: &DatabaseConnection,
         attachment: crate::models::Attachment,
     ) -> Result<Attachment> {
+        let paper_id = attachment.paper_id;
         let new_attachment = attachment::ActiveModel {
             paper_id: Set(attachment.paper_id),
             file_name: Set(attachment.file_name),
@@ -477,6 +654,9 @@ impl PaperRepository {
             .insert(db)
             .await
             .map_err(|e| AppError::generic(format!("Failed to add attachment: {}", e)))?;
+
+        // Increment attachment count
+        Self::update_attachment_count(db, paper_id, 1).await?;
 
         Ok(Attachment::from(result))
     }

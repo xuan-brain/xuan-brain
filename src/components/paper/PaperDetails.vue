@@ -3,7 +3,7 @@
   import { invokeCommand } from '@/lib/tauri';
   import { computed, ref, watch } from 'vue';
 
-  const { t } = useI18n();
+  useI18n();
 
   interface Label {
     id: string;
@@ -50,6 +50,10 @@
     attachment_count: number;
     created_at?: string;
     updated_at?: string;
+    // New fields for Zotero import support
+    publisher?: string;
+    issn?: string;
+    language?: string;
   }
 
   interface Props {
@@ -88,6 +92,9 @@
     notes: '',
     read_status: 'unread',
     category_id: undefined,
+    publisher: '',
+    issn: '',
+    language: '',
   });
 
   // Tree data for category select
@@ -142,6 +149,9 @@
         notes: details.value.notes || '',
         read_status: details.value.read_status || 'unread',
         category_id: details.value.category_id,
+        publisher: details.value.publisher || '',
+        issn: details.value.issn || '',
+        language: details.value.language || '',
       };
     } catch (error) {
       console.error('Failed to load paper details:', error);
@@ -250,6 +260,9 @@
         notes: details.value.notes || '',
         read_status: details.value.read_status || 'unread',
         category_id: details.value.category_id,
+        publisher: details.value.publisher || '',
+        issn: details.value.issn || '',
+        language: details.value.language || '',
       };
     }
     isEditing.value = false;
@@ -276,6 +289,9 @@
         abstract_text: editForm.value.abstract_text,
         notes: editForm.value.notes,
         read_status: editForm.value.read_status,
+        publisher: editForm.value.publisher,
+        issn: editForm.value.issn,
+        language: editForm.value.language,
       });
 
       // Update category if changed
@@ -470,6 +486,18 @@
               <a :href="details.url" target="_blank" class="link">{{ details.url }}</a>
             </td>
           </tr>
+          <tr v-if="details.publisher">
+            <td class="prop-label">Publisher</td>
+            <td class="prop-value">{{ details.publisher }}</td>
+          </tr>
+          <tr v-if="details.issn">
+            <td class="prop-label">ISSN</td>
+            <td class="prop-value">{{ details.issn }}</td>
+          </tr>
+          <tr v-if="details.language">
+            <td class="prop-label">Language</td>
+            <td class="prop-value">{{ details.language }}</td>
+          </tr>
           <tr v-if="details.attachments?.length">
             <td class="prop-label">Files</td>
             <td class="prop-value">
@@ -638,6 +666,38 @@
               variant="outlined"
               :disabled="actionLoading"
               density="compact"
+            />
+          </v-col>
+        </v-row>
+
+        <!-- New fields for Zotero import support -->
+        <v-row dense>
+          <v-col cols="6">
+            <v-text-field
+              v-model="editForm.publisher"
+              label="Publisher"
+              variant="outlined"
+              :disabled="actionLoading"
+              density="compact"
+            />
+          </v-col>
+          <v-col cols="3">
+            <v-text-field
+              v-model="editForm.issn"
+              label="ISSN"
+              variant="outlined"
+              :disabled="actionLoading"
+              density="compact"
+            />
+          </v-col>
+          <v-col cols="3">
+            <v-text-field
+              v-model="editForm.language"
+              label="Language"
+              variant="outlined"
+              :disabled="actionLoading"
+              density="compact"
+              placeholder="e.g., en, zh"
             />
           </v-col>
         </v-row>

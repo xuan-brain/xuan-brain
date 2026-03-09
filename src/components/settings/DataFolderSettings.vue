@@ -72,6 +72,19 @@ const dbMigrationReport = ref<DbMigrationReport | null>(null);
 const dbMigrating = ref(false);
 const showDbMigrationDialog = ref(false);
 
+// Clear data state (dev mode only)
+const isDev = import.meta.env.DEV;
+const showClearDataDialog = ref(false);
+const clearingData = ref(false);
+const clearDataResult = ref<ClearDataResult | null>(null);
+
+interface ClearDataResult {
+  papers_deleted: number;
+  labels_deleted: number;
+  files_deleted: number;
+  errors: string[];
+}
+
 // Event listener
 let unlisten: UnlistenFn | null = null;
 
@@ -251,6 +264,32 @@ function closeDbMigrationDialog() {
   if (dbMigrationReport.value && dbMigrationReport.value.errors.length === 0) {
     dbMigrationReport.value = null;
   }
+}
+
+// Clear all data function (dev mode only)
+async function confirmClearData() {
+  clearingData.value = true;
+  clearDataResult.value = null;
+
+  try {
+    clearDataResult.value = await invokeCommand<ClearDataResult>("clear_all_data_command");
+    console.info("Clear data result:", clearDataResult.value);
+  } catch (error) {
+    console.error("Failed to clear data:", error);
+    clearDataResult.value = {
+      papers_deleted: 0,
+      labels_deleted: 0,
+      files_deleted: 0,
+      errors: [String(error)],
+    };
+  } finally {
+    clearingData.value = false;
+  }
+}
+
+function closeClearDataDialog() {
+  showClearDataDialog.value = false;
+  clearDataResult.value = null;
 }
 
 // Lifecycle
@@ -459,6 +498,32 @@ onUnmounted(() => {
             </p>
           </div>
         </div>
+
+        <!-- Clear All Data (Dev Mode Only) -->
+        <template v-if="isDev">
+          <v-divider class="my-4" />
+
+          <div class="setting-section">
+            <div class="setting-label">
+              <v-icon class="mr-2" color="error">mdi-delete-sweep</v-icon>
+              <span>{{ t("settings.clearAllData") }}</span>
+              <v-chip size="x-small" color="warning" class="ml-2">DEV</v-chip>
+            </div>
+            <div class="mt-2">
+              <p class="text-body-2 text-medium-emphasis mb-3">
+                {{ t("settings.clearAllDataDescription") }}
+              </p>
+              <v-btn
+                color="error"
+                variant="outlined"
+                @click="showClearDataDialog = true"
+              >
+                <v-icon start>mdi-delete-forever</v-icon>
+                {{ t("settings.clearAllData") }}
+              </v-btn>
+            </div>
+          </div>
+        </template>
       </div>
     </v-card-text>
 
@@ -598,6 +663,116 @@ onUnmounted(() => {
         <v-card-actions v-if="!dbMigrating && dbMigrationReport">
           <v-spacer />
           <v-btn color="primary" variant="flat" @click="closeDbMigrationDialog">
+            {{ t("dialog.close") }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Clear All Data Dialog (Dev Mode Only) -->
+    <v-dialog v-model="showClearDataDialog" max-width="500" persistent>
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon start color="error">mdi-alert-circle</v-icon>
+          {{ t("settings.clearDataConfirmTitle") }}
+        </v-card-title>
+
+        <v-card-text>
+          <!-- Confirmation view -->
+          <div v-if="!clearDataResult && !clearingData">
+            <v-alert type="warning" class="mb-4">
+              {{ t("settings.clearAllDataWarning") }}
+            </v-alert>
+
+            <p class="text-body-2 mb-3">{{ t("settings.clearDataWillDelete") }}</p>
+            <ul class="text-body-2 ml-4 mb-3">
+              <li>{{ t("settings.papers") }}</li>
+              <li>{{ t("settings.labels") }}</li>
+              <li>{{ t("settings.attachments") }}</li>
+              <li>{{ t("settings.clearDataRelations") }}</li>
+            </ul>
+
+            <p class="text-body-2 text-success">
+              <v-icon size="small" color="success">mdi-check-circle</v-icon>
+              {{ t("settings.clearDataWillKeep") }}
+            </p>
+          </div>
+
+          <!-- Clearing in progress -->
+          <div v-else-if="clearingData" class="text-center py-8">
+            <v-progress-circular indeterminate size="64" color="error" class="mb-4" />
+            <p class="text-h6">{{ t("settings.clearingData") }}</p>
+          </div>
+
+          <!-- Result view -->
+          <div v-else-if="clearDataResult">
+            <v-alert
+              :type="clearDataResult.errors.length > 0 ? 'warning' : 'success'"
+              class="mb-4"
+            >
+              {{ clearDataResult.errors.length > 0 ? t("settings.clearDataCompletedErrors") : t("settings.clearDataCompleted") }}
+            </v-alert>
+
+            <v-list density="compact">
+              <v-list-item>
+                <v-list-item-title>{{ t("settings.papers") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ clearDataResult.papers_deleted }}</v-chip>
+                </template>
+              </v-list-item>
+              <v-list-item>
+                <v-list-item-title>{{ t("settings.labels") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ clearDataResult.labels_deleted }}</v-chip>
+                </template>
+              </v-list-item>
+              <v-list-item>
+                <v-list-item-title>{{ t("settings.attachments") }}</v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="small">{{ clearDataResult.files_deleted }}</v-chip>
+                </template>
+              </v-list-item>
+            </v-list>
+
+            <v-alert
+              v-if="clearDataResult.errors.length > 0"
+              type="error"
+              density="compact"
+              class="mt-3"
+            >
+              <p class="font-weight-bold mb-1">{{ t("settings.migrationErrors") }}</p>
+              <div v-for="(error, i) in clearDataResult.errors" :key="i" class="text-caption">
+                {{ error }}
+              </div>
+            </v-alert>
+          </div>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <!-- Cancel button (before clearing) -->
+          <v-btn
+            v-if="!clearDataResult && !clearingData"
+            @click="closeClearDataDialog"
+          >
+            {{ t("dialog.cancel") }}
+          </v-btn>
+          <!-- Confirm clear button -->
+          <v-btn
+            v-if="!clearDataResult && !clearingData"
+            color="error"
+            :loading="clearingData"
+            @click="confirmClearData"
+          >
+            <v-icon start>mdi-delete-forever</v-icon>
+            {{ t("settings.clearDataConfirm") }}
+          </v-btn>
+          <!-- Close button (after clearing) -->
+          <v-btn
+            v-if="clearDataResult && !clearingData"
+            color="primary"
+            @click="closeClearDataDialog"
+          >
             {{ t("dialog.close") }}
           </v-btn>
         </v-card-actions>

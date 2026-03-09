@@ -23,7 +23,8 @@ pub enum DoiError {
 pub struct DoiMetadata {
     pub doi: String,
     pub title: String,
-    pub authors: Vec<String>,
+    /// Structured author names (given/family separated)
+    pub authors: Vec<DoiAuthor>,
     pub publication_year: Option<String>,
     pub journal_name: Option<String>,
     pub volume: Option<String>,
@@ -32,6 +33,44 @@ pub struct DoiMetadata {
     pub publisher: Option<String>,
     pub url: Option<String>,
     pub abstract_text: Option<String>,
+}
+
+/// Author name from DOI (Crossref) with separated given/family names
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DoiAuthor {
+    /// Given name / First name
+    pub given: Option<String>,
+    /// Family name / Last name
+    pub family: Option<String>,
+    /// Full name (for display, computed from given + family)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub full_name: Option<String>,
+}
+
+impl DoiAuthor {
+    /// Create from Crossref author data
+    pub fn from_crossref(given: Option<String>, family: Option<String>, name: Option<String>) -> Self {
+        if let Some(full) = name {
+            // Some authors (organizations, etc.) only have a single name field
+            Self {
+                given: Some(full.clone()),
+                family: None,
+                full_name: Some(full),
+            }
+        } else {
+            let full_name = match (&given, &family) {
+                (Some(g), Some(f)) => Some(format!("{} {}", g, f)),
+                (Some(g), None) => Some(g.clone()),
+                (None, Some(f)) => Some(f.clone()),
+                (None, None) => None,
+            };
+            Self {
+                given,
+                family,
+                full_name,
+            }
+        }
+    }
 }
 
 /// Helper type to deserialize title from either string or array of strings
@@ -111,20 +150,11 @@ impl CrossrefWork {
             .and_then(|t| t.into_string())
             .ok_or_else(|| DoiError::ParseError("Title not found".to_string()))?;
 
+        // Convert authors to structured format (keeping given/family separate)
         let authors = self
             .author
             .into_iter()
-            .map(|a| {
-                if let Some(name) = a.name {
-                    return name;
-                }
-                match (a.given_name, a.family_name) {
-                    (Some(given), Some(family)) => format!("{} {}", given, family),
-                    (Some(given), None) => given,
-                    (None, Some(family)) => family,
-                    (None, None) => "Unknown".to_string(),
-                }
-            })
+            .map(|a| DoiAuthor::from_crossref(a.given_name, a.family_name, a.name))
             .collect();
 
         // Extract publication year from published date
@@ -232,9 +262,14 @@ mod tests {
         assert!(!metadata.title.is_empty(), "Title should not be empty");
         assert!(!metadata.authors.is_empty(), "Authors should not be empty");
 
+        let author_names: Vec<&str> = metadata
+            .authors
+            .iter()
+            .filter_map(|a| a.full_name.as_deref())
+            .collect();
         println!("DOI: {}", metadata.doi);
         println!("Title: {}", metadata.title);
-        println!("Authors: {}", metadata.authors.join(", "));
+        println!("Authors: {}", author_names.join(", "));
         println!("Year: {:?}", metadata.publication_year);
         println!("Journal: {:?}", metadata.journal_name);
         println!("Publisher: {:?}", metadata.publisher);
@@ -259,7 +294,13 @@ mod tests {
                 println!("Title: {}", metadata.title);
                 println!("Authors ({}):", metadata.authors.len());
                 for (i, author) in metadata.authors.iter().enumerate() {
-                    println!("  {}. {}", i + 1, author);
+                    println!(
+                        "  {}. {} (given: {:?}, family: {:?})",
+                        i + 1,
+                        author.full_name.as_deref().unwrap_or("Unknown"),
+                        author.given,
+                        author.family
+                    );
                 }
                 println!("Publication Year: {:?}", metadata.publication_year);
                 println!("Journal Name: {:?}", metadata.journal_name);

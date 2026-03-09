@@ -14,7 +14,7 @@ pub mod clipping;  // clipping must come after comment
 
 // Explicit exports to avoid ambiguity between modules
 pub use attachment::Attachment;
-pub use author::{Author, CreateAuthor};
+pub use author::{Author, AuthorNameParser, AuthorNameParts, CreateAuthor};
 pub use category::{Category, CategoryNode, CreateCategory, UpdateCategory};
 pub use comment::Comment;
 pub use keyword::{CreateKeyword, Keyword};

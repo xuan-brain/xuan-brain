@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
+  import { Channel } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { open } from '@tauri-apps/plugin-dialog';
@@ -33,6 +34,34 @@
     labels: Label[];
     attachment_count?: number;
     attachments?: Attachment[];
+  }
+
+  // Lightweight DTO for paper list - optimized for fast serialization
+  interface PaperListDto {
+    id: string;
+    title: string;
+    publication_year?: number;
+    journal_name?: string;
+    conference_name?: string;
+    authors: string[];
+    attachment_count: number;
+    // NOTE: attachments intentionally excluded - load on demand
+    // NOTE: labels excluded - not displayed in table view
+  }
+
+  interface PaperBatchDto {
+    papers: PaperListDto[];
+    batch_index: number;
+    is_last: boolean;
+    loaded_count: number;
+    total: number;
+  }
+
+  interface StreamInitDto {
+    first_batch: PaperListDto[];
+    total: number;
+    first_batch_count: number;
+    has_more: boolean;
   }
 
   interface PaperDetail {
@@ -74,12 +103,17 @@
 
   // State
   const loading = ref(false);
-  const papers = ref<PaperDto[]>([]);
+  const loadingProgress = reactive({
+    loaded: 0,
+    total: 0,
+    isStreaming: false,
+  });
+  const papers = ref<(PaperDto | PaperListDto)[]>([]);
 
   // Table ref
 
   // Expand configuration
-  const expandRowIds = ref<number[]>([]);
+  const expandRowIds = ref<string[]>([]);
 
   const expandConfig = computed<VxeTablePropTypes.ExpandConfig>(() => ({
     showIcon: true,
@@ -88,21 +122,15 @@
     accordion: true, // 手风琴模式：展开一行时其他行自动折叠
     visibleMethod: ({ row }) => {
       // 只对有附件的行显示展开图标
-      return ((row as PaperDto).attachment_count ?? 0) > 0;
+      const paper = row as PaperDto | PaperListDto;
+      return (paper.attachment_count ?? 0) > 0;
     },
-    toggleMethod({ expanded, row }) {
-      const paper = row as PaperDto;
-      if (expanded) {
-        if ((paper.attachment_count ?? 0) === 0) {
-          return false; // 没有附件，禁止展开
-        }
-        return true;
-      } else {
-        if ((paper.attachment_count ?? 0) === 0) {
-          return false; // 没有附件，禁止展开
-        }
-        return true; // 有附件，允许展开
+    toggleMethod({ row }) {
+      const paper = row as PaperDto | PaperListDto;
+      if ((paper.attachment_count ?? 0) === 0) {
+        return false; // 没有附件，禁止展开
       }
+      return true;
     },
   }));
 
@@ -263,28 +291,106 @@
 
   // Load papers from backend based on current view
   async function loadPapers() {
+    const perfStart = performance.now();
+    console.info('[PERF] Starting loadPapers (stream mode)');
     loading.value = true;
-    try {
-      let data: PaperDto[];
 
+    // Reset progress
+    loadingProgress.loaded = 0;
+    loadingProgress.total = 0;
+    loadingProgress.isStreaming = false;
+
+    // Clear existing papers
+    papers.value = [];
+
+    try {
       if (props.currentView === 'trash') {
-        // Load deleted papers
-        data = await invokeCommand<PaperDto[]>('get_deleted_papers');
+        // Load deleted papers (no streaming for trash)
+        const data = await invokeCommand<PaperDto[]>('get_deleted_papers');
+        papers.value = data;
+        loading.value = false;
       } else if (props.categoryId) {
-        // Load papers for specific category
-        data = await invokeCommand<PaperDto[]>('get_papers_by_category', {
+        // Load papers for specific category (no streaming for category)
+        const data = await invokeCommand<PaperDto[]>('get_papers_by_category', {
           categoryId: props.categoryId,
         });
+        papers.value = data;
+        loading.value = false;
       } else {
-        // Load all papers (library view)
-        data = await invokeCommand<PaperDto[]>('get_all_papers');
+        // Load all papers using hybrid mode:
+        // 1. First batch returned synchronously for immediate display
+        // 2. Remaining batches streamed via Channel
+
+        console.info('[PERF] Step A - Start loading all papers');
+
+        // Set up Channel for remaining batches BEFORE calling command
+        const t_channel = performance.now();
+        const channel = new Channel<PaperBatchDto>();
+        console.info(
+          `[PERF] Step B - Channel created: ${(performance.now() - t_channel).toFixed(2)}ms`
+        );
+
+        channel.onmessage = (data) => {
+          const t_msg = performance.now();
+          // Append papers from channel
+          papers.value.push(...data.papers);
+          console.info(
+            `[PERF] Channel msg received: batch=${data.batch_index}, papers=${data.papers.length}, append_time=${(performance.now() - t_msg).toFixed(2)}ms`
+          );
+
+          // Update progress
+          loadingProgress.loaded = data.loaded_count;
+          loadingProgress.total = data.total;
+          loadingProgress.isStreaming = !data.is_last;
+
+          if (data.is_last) {
+            loadingProgress.isStreaming = false;
+            console.info(
+              `[PERF] All papers streamed: total=${data.total}, batches=${data.batch_index + 1}, loaded=${data.loaded_count}`
+            );
+          }
+        };
+
+        // Mark as streaming mode
+        loadingProgress.isStreaming = true;
+
+        // Invoke command - first batch returned synchronously
+        const t_invoke = performance.now();
+        console.info('[PERF] Step C - Invoking stream_all_papers command...');
+        const result = await invokeCommand<StreamInitDto>('stream_all_papers', { channel });
+        console.info(
+          `[PERF] Step D - Command returned: ${(performance.now() - t_invoke).toFixed(2)}ms, first_batch_count=${result.first_batch_count}`
+        );
+
+        // Immediately display first batch
+        const t_assign = performance.now();
+        papers.value = result.first_batch;
+        loadingProgress.loaded = result.first_batch_count;
+        loadingProgress.total = result.total;
+
+        console.info(
+          `[PERF] Step E - First batch assigned to reactive: ${(performance.now() - t_assign).toFixed(2)}ms`
+        );
+
+        console.info(
+          `[PERF] Step F - First batch displayed (sync): ${result.first_batch_count} papers in ${(performance.now() - perfStart).toFixed(2)}ms`
+        );
+
+        // Hide loading overlay - UI is now interactive
+        loading.value = false;
+
+        // If no more data, stop streaming indicator
+        if (!result.has_more) {
+          loadingProgress.isStreaming = false;
+        }
       }
 
-      papers.value = data;
+      const totalEnd = performance.now();
+      console.info(`[PERF] loadPapers completed: ${(totalEnd - perfStart).toFixed(2)}ms`);
     } catch (error) {
       console.error('Failed to load papers:', error);
-    } finally {
       loading.value = false;
+      loadingProgress.isStreaming = false;
     }
   }
 
@@ -381,13 +487,18 @@
     }
   }
 
-  // Handle expand row toggle
-  function handleToggleExpandChange({ row }: { row: any }) {
-    const index = expandRowIds.value.indexOf(row.id);
+  // Store for loaded attachments (lazy loading)
+  const loadedAttachments = ref<Map<string, Attachment[]>>(new Map());
+  const loadingAttachments = ref<Set<string>>(new Set());
+
+  // Handle expand row toggle - load attachments on demand
+  async function handleToggleExpandChange({ row }: { row: any }) {
+    const paper = row as PaperDto;
+    const index = expandRowIds.value.indexOf(paper.id);
 
     console.info(
       'Toggle expand clicked for row:',
-      row.id,
+      paper.id,
       'current expanded rows:',
       expandRowIds.value
     );
@@ -395,18 +506,29 @@
     if (index > -1) {
       // Collapse
       expandRowIds.value.splice(index, 1);
-      console.info('Collapsed row:', row.id);
+      console.info('Collapsed row:', paper.id);
     } else {
-      // Expand - attachments are already loaded from backend
-      expandRowIds.value.push(row.id);
-      console.info(
-        'Expanded row:',
-        row.id,
-        'attachment_count:',
-        row.attachment_count,
-        'attachments:',
-        row.attachments?.length || 0
-      );
+      // Expand - load attachments on demand if not already loaded
+      if ((paper.attachment_count ?? 0) > 0 && !loadedAttachments.value.has(paper.id)) {
+        loadingAttachments.value.add(paper.id);
+        try {
+          const attachments = await invokeCommand<Attachment[]>('get_attachments', {
+            paperId: paper.id,
+          });
+          loadedAttachments.value.set(paper.id, attachments);
+          paper.attachments = attachments;
+          console.info('Loaded attachments for paper:', paper.id, 'count:', attachments.length);
+        } catch (error) {
+          console.error('Failed to load attachments:', error);
+          paper.attachments = [];
+        } finally {
+          loadingAttachments.value.delete(paper.id);
+        }
+      } else {
+        // Already loaded, just expand
+        expandRowIds.value.push(paper.id);
+        console.info('Expanded row:', paper.id, 'attachment_count:', paper.attachment_count);
+      }
     }
   }
 
@@ -491,9 +613,11 @@
 
       <vxe-table
         ref="tableRef"
+        id="paper-list-table"
         :data="papers"
         :expand-config="expandConfig"
         :column-config="{ resizable: true }"
+        :custom-config="{ enabled: true, storage: true }"
         :menu-config="contextMenuConfig"
         :sort-config="{
           trigger: 'cell',
@@ -506,6 +630,8 @@
         }"
         :row-config="{ isCurrent: true, isHover: true, keyField: 'id' }"
         :cell-config="{ height: 32 }"
+        :scroll-y="{ enabled: false }"
+        :scroll-x="{ enabled: false }"
         :style="{
           '--vxe-ui-table-row-current-background-color': 'rgba(var(--v-theme-primary), 0.2)',
           '--vxe-ui-table-row-hover-current-background-color': 'rgba(var(--v-theme-primary), 0.3)',
@@ -525,7 +651,19 @@
         <vxe-column type="expand" width="40" fixed="left">
           <template #content="{ row }">
             <div class="expand-row-content">
-              <div v-if="row.attachments && row.attachments.length > 0" class="attachments-list">
+              <!-- Loading state -->
+              <div
+                v-if="loadingAttachments.has(row.id) && !loadedAttachments.has(row.id)"
+                class="loading-attachments"
+              >
+                <v-progress-circular indeterminate size="small" class="mr-2" />
+                <span class="text-caption">Loading attachments...</span>
+              </div>
+              <!-- Loaded attachments -->
+              <div
+                v-else-if="row.attachments && row.attachments.length > 0"
+                class="attachments-list"
+              >
                 <div class="attachments-header">
                   <v-icon size="small" class="mr-2">mdi-paperclip</v-icon>
                   <span class="text-subtitle-2">Attachments ({{ row.attachments.length }})</span>
@@ -552,6 +690,7 @@
                   </v-list-item>
                 </v-list>
               </div>
+              <!-- No attachments -->
               <div v-else class="no-attachments">
                 <v-icon size="small" class="mr-2">mdi-information</v-icon>
                 <span class="text-caption">No attachments</span>
@@ -583,25 +722,26 @@
         <vxe-column field="publication_year" title="Year" width="80" sortable />
 
         <!-- Journal column -->
-        <vxe-column field="journal_name" title="Journal" width="20%" sortable show-overflow />
-
-        <!-- Labels column -->
-        <vxe-column field="labels" title="Labels" width="15%" show-overflow>
-          <template #default="{ row }">
-            <v-chip
-              v-if="row.labels && row.labels.length > 0"
-              size="x-small"
-              :color="row.labels[0].color"
-              class="mr-1"
-            >
-              {{ row.labels[0].name }}
-            </v-chip>
-            <v-chip v-if="row.labels && row.labels.length > 1" size="x-small">
-              +{{ row.labels.length - 1 }}
-            </v-chip>
-          </template>
-        </vxe-column>
+        <vxe-column field="journal_name" title="Journal" width="35%" sortable show-overflow />
       </vxe-table>
+
+      <!-- Streaming progress indicator -->
+      <div v-if="loadingProgress.isStreaming" class="streaming-progress">
+        <v-progress-linear
+          :model-value="(loadingProgress.loaded / loadingProgress.total) * 100"
+          color="primary"
+          height="4"
+          striped
+        />
+        <span class="text-caption ml-2">
+          {{
+            t('paper.loadingProgress', {
+              loaded: loadingProgress.loaded,
+              total: loadingProgress.total,
+            })
+          }}
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -640,6 +780,19 @@
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 100;
+  }
+
+  .streaming-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding: 4px 16px;
+    background-color: rgba(var(--v-theme-surface), 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    z-index: 50;
   }
 
   .text-truncate {

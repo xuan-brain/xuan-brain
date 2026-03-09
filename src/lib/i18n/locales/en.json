@@ -10,6 +10,7 @@
     "clips": "Clips",
     "writing": "Writing",
     "subscriptions": "Subscriptions",
+    "import": "Import",
     "settings": "Settings",
     "user": "User",
     "system": "System",
@@ -42,6 +43,9 @@
     "source": "Journal/Conference",
     "year": "Year",
     "labels": "Labels"
+  },
+  "paper": {
+    "loadingProgress": "Loading {loaded}/{total}"
   },
   "theme": {
     "darkMode": "Dark Mode",
@@ -125,6 +129,7 @@
     "arxiv": "arXiv",
     "pubmed": "PubMed",
     "importPdf": "Import PDF",
+    "pdfDescription": "Import PDF file from your computer",
     "importByDoi": "Import Paper by DOI",
     "doiDescription": "Enter DOI (Digital Object Identifier) to import the paper.",
     "doiPlaceholder": "e.g., 10.1038/nature12373",
@@ -137,7 +142,36 @@
     "doiRequired": "DOI is required",
     "arxivRequired": "arXiv ID is required",
     "pmidRequired": "PMID is required",
-    "import": "Import"
+    "import": "Import",
+    "importFromZotero": "Import from Zotero",
+    "zoteroDescription": "Import papers and PDFs from Zotero RDF export"
+  },
+  "zotero": {
+    "title": "Import from Zotero",
+    "selectRdfFile": "Select Zotero RDF File",
+    "browseFiles": "Browse Files",
+    "clickToBrowse": "Click to browse or drag and drop",
+    "import": "Import",
+    "importCompleted": "Import Completed",
+    "imported": "imported",
+    "skipped": "skipped (duplicates)",
+    "failed": "failed",
+    "moreErrors": "... and {count} more errors",
+    "errors": "Errors",
+    "importedPapers": "Imported Papers",
+    "info": "Export your Zotero library as RDF format, then select the .rdf file here. PDF attachments in the same folder will be imported automatically.",
+    "importing": "Importing",
+    "processing": "Processing...",
+    "preparing": "Preparing..."
+  },
+  "welcome": {
+    "title": "Welcome to Xuan Brain",
+    "description": "Your library is currently empty. Start importing papers to build your personal knowledge base!",
+    "zoteroTip": "If you previously used Zotero to manage your papers, you can directly import Zotero's RDF export file to quickly migrate your library.",
+    "dontShowAgain": "Don't show this again",
+    "later": "Later",
+    "importZotero": "Import from Zotero",
+    "otherImport": "Other Import Methods"
   },
   "settings": {
     "appearance": "Appearance",
@@ -208,7 +242,18 @@
     "keywords": "Keywords",
     "labels": "Labels",
     "categories": "Categories",
-    "attachments": "Attachments"
+    "attachments": "Attachments",
+    "clearAllData": "Clear All Data",
+    "clearAllDataDescription": "Clear all papers, labels, and attachment data. This feature is for development testing only.",
+    "clearAllDataWarning": "This action will permanently delete data and cannot be undone!",
+    "clearDataConfirmTitle": "Confirm Clear All Data",
+    "clearDataWillDelete": "The following data will be deleted:",
+    "clearDataRelations": "All relations",
+    "clearDataWillKeep": "Category data will be preserved",
+    "clearingData": "Clearing data...",
+    "clearDataConfirm": "Confirm Clear",
+    "clearDataCompleted": "Data cleared successfully!",
+    "clearDataCompletedErrors": "Data cleared with some errors"
   },
   "clips": {
     "title": "Web Clips",

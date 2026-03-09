@@ -5,7 +5,7 @@ use tauri::AppHandle;
 use tracing::info;
 
 use crate::axum::routes::create_router;
-use crate::axum::state::AppState;
+use crate::axum::state::{AppState, SelectedCategoryState};
 use crate::database::DatabaseConnection;
 use crate::sys::dirs::AppDirs;
 
@@ -42,12 +42,13 @@ pub fn start_axum_server_with_handle(
     db: Arc<DatabaseConnection>,
     app_dirs: AppDirs,
     app_handle: AppHandle,
+    selected_category: SelectedCategoryState,
 ) {
     let addr: SocketAddr = format!("{}:{}", DEFAULT_HOST, DEFAULT_PORT)
         .parse()
         .expect("Invalid API server address");
 
-    let state = AppState::new_with_handle(db, app_dirs, app_handle);
+    let state = AppState::new_with_selected_category(db, app_dirs, app_handle, selected_category);
     let app = create_router(state);
 
     info!("Starting Axum API server on {}", addr);

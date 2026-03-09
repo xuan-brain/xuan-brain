@@ -55,6 +55,9 @@ pub async fn update_paper_details(
             read_status: payload.read_status,
             notes: payload.notes,
             attachment_path: None,
+            publisher: payload.publisher,
+            issn: payload.issn,
+            language: payload.language,
         },
     )
     .await?;
@@ -226,4 +229,34 @@ pub async fn remove_paper_label(
         .show();
 
     Ok(())
+}
+
+/// Repair attachment_count for all papers (development utility)
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn repair_attachment_counts(
+    db: State<'_, Arc<DatabaseConnection>>,
+) -> Result<u64> {
+    use sea_orm::ConnectionTrait;
+
+    info!("Repairing attachment counts for all papers");
+
+    // Use raw SQL to update all attachment counts at once
+    let result = db
+        .execute_unprepared(
+            r#"
+            UPDATE paper
+            SET attachment_count = (
+                SELECT COUNT(*)
+                FROM attachment
+                WHERE attachment.paper_id = paper.id
+            )
+            "#,
+        )
+        .await
+        .map_err(|e| AppError::generic(format!("Failed to repair attachment counts: {}", e)))?;
+
+    let rows_affected = result.rows_affected();
+    info!("Repair complete: {} papers updated", rows_affected);
+    Ok(rows_affected)
 }

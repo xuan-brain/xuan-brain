@@ -27,6 +27,12 @@ pub struct Paper {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    // New fields for Zotero import support
+    pub publisher: Option<String>,
+    pub issn: Option<String>,
+    pub language: Option<String>,
+    /// Denormalized field for performance optimization
+    pub attachment_count: i32,
     #[serde(default)]
     pub attachments: Vec<Attachment>,
     #[serde(default)]
@@ -82,6 +88,10 @@ pub struct CreatePaper {
     pub pages: Option<String>,
     pub url: Option<String>,
     pub attachment_path: Option<String>,
+    // New fields for Zotero import support
+    pub publisher: Option<String>,
+    pub issn: Option<String>,
+    pub language: Option<String>,
 }
 
 /// DTO for updating paper details
@@ -101,6 +111,10 @@ pub struct UpdatePaper {
     pub read_status: Option<String>,
     pub notes: Option<String>,
     pub attachment_path: Option<String>,
+    // New fields for Zotero import support
+    pub publisher: Option<String>,
+    pub issn: Option<String>,
+    pub language: Option<String>,
 }
 
 impl Paper {
@@ -127,6 +141,10 @@ impl Paper {
             created_at: now,
             updated_at: now,
             deleted_at: None,
+            publisher: None,
+            issn: None,
+            language: None,
+            attachment_count: 0,
             attachments: Vec::new(),
             labels: Vec::new(),
             authors: Vec::new(),
@@ -162,6 +180,10 @@ impl From<CreatePaper> for Paper {
             created_at: now,
             updated_at: now,
             deleted_at: None,
+            publisher: create.publisher,
+            issn: create.issn,
+            language: create.language,
+            attachment_count: 0,
             attachments: Vec::new(),
             labels: Vec::new(),
             authors: Vec::new(),
@@ -192,6 +214,10 @@ impl From<paper::Model> for Paper {
             created_at: model.created_at,
             updated_at: model.updated_at,
             deleted_at: model.deleted_at,
+            publisher: model.publisher,
+            issn: model.issn,
+            language: model.language,
+            attachment_count: model.attachment_count,
             attachments: Vec::new(),
             labels: Vec::new(),
             authors: Vec::new(),

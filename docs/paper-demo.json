@@ -1,0 +1,63 @@
+{
+  "creators": [
+    {
+      "firstName": "Hongjun",
+      "lastName": "Zhu",
+      "creatorType": "author"
+    },
+    {
+      "firstName": "Wanjun",
+      "lastName": "Wang",
+      "creatorType": "author"
+    },
+    {
+      "firstName": "Chunyan",
+      "lastName": "Ma",
+      "creatorType": "author"
+    },
+    {
+      "firstName": "Rongtao",
+      "lastName": "Hou",
+      "creatorType": "author"
+    }
+  ],
+  "attachments": [
+    {
+      "title": "Snapshot",
+      "url": "https://www.mdpi.com/1424-8220/26/5/1683",
+      "mimeType": "text/html"
+    }
+  ],
+  "tags": [
+    {
+      "tag": "automotive vision systems"
+    },
+    {
+      "tag": "super-resolution"
+    },
+    {
+      "tag": "multi-scale feature extractor"
+    },
+    {
+      "tag": "feature fusion"
+    },
+    {
+      "tag": "automotive sensors"
+    },
+    {
+      "tag": "autonomous driving"
+    }
+  ],
+  "title": "VMESR: Variable Mamba-Enhanced Super-Resolution for Real-Time Road Scene Understanding with Automotive Vision Sensors",
+  "publicationTitle": "Sensors",
+  "volume": "26",
+  "issue": "5",
+  "pages": "1683",
+  "publisher": "Multidisciplinary Digital Publishing Institute",
+  "date": "2026/1",
+  "DOI": "10.3390/s26051683",
+  "ISSN": "1424-8220",
+  "url": "https://www.mdpi.com/1424-8220/26/5/1683",
+  "abstractNote": "Automotive vision systems depend critically on front-view cameras, whose image quality frequently degrades under adverse conditions such as rain, fog, low illumination, and rapid motion. To address this challenge, we propose VMESR, a variable mamba-enhanced super-resolution network that integrates a selective state-space model into a lightweight super-resolution architecture. By serializing 2D feature maps and applying variable-depth mamba blocks, VMESR captures long-range dependencies with linear complexity. A multi-scale feature extractor, enhanced residual modules equipped with a convolutional block attention module, and dense fusion connections work together to improve the recovery of high-frequency details. Extensive experiments demonstrate that VMESR achieves competitive performance in both objective metrics and perceptual quality compared to state-of-the-art methods, while significantly reducing parameter counts and computational cost. VMESR provides a practical balance between efficiency and reconstructive accuracy, offering a deployable super-resolution solution for embedded automotive sensors and enhancing the robustness of autonomous driving perception pipelines.",
+  "language": "en"
+}

@@ -7,7 +7,7 @@
     selectedId?: string | null;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props>(), {
     clippings: () => [],
     selectedId: null,
   });

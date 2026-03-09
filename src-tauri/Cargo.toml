@@ -1,6 +1,6 @@
 [package]
 name = "xuan-brain"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 description = "A Tauri App"
 
@@ -59,6 +59,8 @@ tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 urlencoding = "2.1"
+# Zotero RDF parser
+zotero-rdf = { git = "https://github.com/spartajet/zotero-rdf.git", branch = "dev" }
 # OpenAPI / Swagger
 utoipa = { version = "5", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }

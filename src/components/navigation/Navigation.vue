@@ -5,7 +5,8 @@
   import CategoryTree from '@/components/navigation/CategoryTree.vue';
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
-  import { onMounted, ref } from 'vue';
+  import { onMounted, onUnmounted, ref } from 'vue';
+  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
   const { t } = useI18n();
 
@@ -92,7 +93,7 @@
   }
 
   // Handle label click
-  function handleLabelClick(_: string) {
+  function handleLabelClick(_labelId: string) {
     activeNavItem.value = 'library';
     // TODO: Filter by label
     emit('viewChange', 'library');
@@ -182,9 +183,25 @@
 
   // Get color display value from color key
 
+  // Event listener cleanup
+  let unlistenCategoryRefresh: UnlistenFn | null = null;
+
   // Initialize on mount
-  onMounted(() => {
+  onMounted(async () => {
     loadLabels();
+
+    // Listen for category:refresh event from backend
+    unlistenCategoryRefresh = await listen('category:refresh', () => {
+      console.info('Received category:refresh event, refreshing category tree');
+      categoryTreeRef.value?.loadCategories();
+    });
+  });
+
+  // Cleanup on unmount
+  onUnmounted(() => {
+    if (unlistenCategoryRefresh) {
+      unlistenCategoryRefresh();
+    }
   });
 </script>
 
@@ -297,7 +314,7 @@
               :style="{ backgroundColor: color }"
               :title="key"
               @click="handleUpdateTagColor(key)"
-            />
+            ></div>
           </div>
         </v-list-item>
       </v-list>
@@ -400,6 +417,25 @@
     flex-wrap: wrap;
     gap: 6px;
     padding: 0 12px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .tags-chips::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .tags-chips::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .tags-chips::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+  }
+
+  .tags-chips::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
   }
 
   .tag-chip {

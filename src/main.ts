@@ -12,6 +12,11 @@ import 'vuetify/styles';
 import VxeTable from 'vxe-table';
 import 'vxe-table/lib/style.css';
 
+// VxePC UI (for vxe-pager component)
+// VxePCUI includes all components including vxe-pager
+import VxePCUI from 'vxe-pc-ui';
+import 'vxe-pc-ui/lib/style.css';
+
 // Register VxeTable plugins (optional, for additional features)
 // Note: loading functionality is built-in, no separate plugin needed for v4
 
@@ -21,8 +26,9 @@ import { useAppStore } from './stores/useAppStore';
 
 const app = createApp(App);
 
-// Register VxeTable globally
+// Register VxeTable and VxePC UI globally
 app.use(VxeTable);
+app.use(VxePCUI);
 
 // Pinia with persist plugin
 const pinia = createPinia();

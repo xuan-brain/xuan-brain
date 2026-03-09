@@ -1,12 +1,13 @@
 <script setup lang="ts">
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
-  import { Channel } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { open } from '@tauri-apps/plugin-dialog';
   import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
   import type { VxeTablePropTypes } from 'vxe-table';
+  // 显式导入 vxe-pager 组件
+  import VxePager from 'vxe-pc-ui/lib/pager';
   import PaperToolbar from './PaperToolbar.vue';
 
   const { t } = useI18n();
@@ -31,37 +32,13 @@
     authors: string[];
     publication_year?: number;
     journal_name?: string;
+    conference_name?: string;
     labels: Label[];
     attachment_count?: number;
     attachments?: Attachment[];
-  }
-
-  // Lightweight DTO for paper list - optimized for fast serialization
-  interface PaperListDto {
-    id: string;
-    title: string;
-    publication_year?: number;
-    journal_name?: string;
-    conference_name?: string;
-    authors: string[];
-    attachment_count: number;
-    // NOTE: attachments intentionally excluded - load on demand
-    // NOTE: labels excluded - not displayed in table view
-  }
-
-  interface PaperBatchDto {
-    papers: PaperListDto[];
-    batch_index: number;
-    is_last: boolean;
-    loaded_count: number;
-    total: number;
-  }
-
-  interface StreamInitDto {
-    first_batch: PaperListDto[];
-    total: number;
-    first_batch_count: number;
-    has_more: boolean;
+    publisher?: string | null;
+    issn?: string | null;
+    language?: string | null;
   }
 
   interface PaperDetail {
@@ -103,12 +80,16 @@
 
   // State
   const loading = ref(false);
-  const loadingProgress = reactive({
-    loaded: 0,
+  const papers = ref<PaperDto[]>([]);
+
+  // 分页配置
+  const pageConfig = reactive({
+    currentPage: 1,
+    pageSize: 50,
     total: 0,
-    isStreaming: false,
   });
-  const papers = ref<(PaperDto | PaperListDto)[]>([]);
+
+  const pageSizes = [20, 50, 100, 200]; // 可选的每页条数
 
   // Table ref
 
@@ -122,11 +103,11 @@
     accordion: true, // 手风琴模式：展开一行时其他行自动折叠
     visibleMethod: ({ row }) => {
       // 只对有附件的行显示展开图标
-      const paper = row as PaperDto | PaperListDto;
+      const paper = row as PaperDto;
       return (paper.attachment_count ?? 0) > 0;
     },
     toggleMethod({ row }) {
-      const paper = row as PaperDto | PaperListDto;
+      const paper = row as PaperDto;
       if ((paper.attachment_count ?? 0) === 0) {
         return false; // 没有附件，禁止展开
       }
@@ -292,97 +273,49 @@
   // Load papers from backend based on current view
   async function loadPapers() {
     const perfStart = performance.now();
-    console.info('[PERF] Starting loadPapers (stream mode)');
+    console.info('[PERF] Starting loadPapers (pagination mode)');
     loading.value = true;
-
-    // Reset progress
-    loadingProgress.loaded = 0;
-    loadingProgress.total = 0;
-    loadingProgress.isStreaming = false;
 
     // Clear existing papers
     papers.value = [];
 
     try {
       if (props.currentView === 'trash') {
-        // Load deleted papers (no streaming for trash)
+        // Load deleted papers (no pagination for trash)
         const data = await invokeCommand<PaperDto[]>('get_deleted_papers');
         papers.value = data;
+        pageConfig.total = data.length;
         loading.value = false;
       } else if (props.categoryId) {
-        // Load papers for specific category (no streaming for category)
+        // Load papers for specific category (no pagination for category)
         const data = await invokeCommand<PaperDto[]>('get_papers_by_category', {
           categoryId: props.categoryId,
         });
         papers.value = data;
+        pageConfig.total = data.length;
         loading.value = false;
       } else {
-        // Load all papers using hybrid mode:
-        // 1. First batch returned synchronously for immediate display
-        // 2. Remaining batches streamed via Channel
+        // Load all papers with pagination
+        const offset = (pageConfig.currentPage - 1) * pageConfig.pageSize;
 
-        console.info('[PERF] Step A - Start loading all papers');
+        const data = await invokeCommand<{
+          papers: PaperDto[];
+          total: number;
+          offset: number;
+          limit: number;
+          has_more: boolean;
+        }>('get_papers_paginated', {
+          offset: offset,
+          limit: pageConfig.pageSize,
+        });
 
-        // Set up Channel for remaining batches BEFORE calling command
-        const t_channel = performance.now();
-        const channel = new Channel<PaperBatchDto>();
-        console.info(
-          `[PERF] Step B - Channel created: ${(performance.now() - t_channel).toFixed(2)}ms`
-        );
-
-        channel.onmessage = (data) => {
-          const t_msg = performance.now();
-          // Append papers from channel
-          papers.value.push(...data.papers);
-          console.info(
-            `[PERF] Channel msg received: batch=${data.batch_index}, papers=${data.papers.length}, append_time=${(performance.now() - t_msg).toFixed(2)}ms`
-          );
-
-          // Update progress
-          loadingProgress.loaded = data.loaded_count;
-          loadingProgress.total = data.total;
-          loadingProgress.isStreaming = !data.is_last;
-
-          if (data.is_last) {
-            loadingProgress.isStreaming = false;
-            console.info(
-              `[PERF] All papers streamed: total=${data.total}, batches=${data.batch_index + 1}, loaded=${data.loaded_count}`
-            );
-          }
-        };
-
-        // Mark as streaming mode
-        loadingProgress.isStreaming = true;
-
-        // Invoke command - first batch returned synchronously
-        const t_invoke = performance.now();
-        console.info('[PERF] Step C - Invoking stream_all_papers command...');
-        const result = await invokeCommand<StreamInitDto>('stream_all_papers', { channel });
-        console.info(
-          `[PERF] Step D - Command returned: ${(performance.now() - t_invoke).toFixed(2)}ms, first_batch_count=${result.first_batch_count}`
-        );
-
-        // Immediately display first batch
-        const t_assign = performance.now();
-        papers.value = result.first_batch;
-        loadingProgress.loaded = result.first_batch_count;
-        loadingProgress.total = result.total;
-
-        console.info(
-          `[PERF] Step E - First batch assigned to reactive: ${(performance.now() - t_assign).toFixed(2)}ms`
-        );
-
-        console.info(
-          `[PERF] Step F - First batch displayed (sync): ${result.first_batch_count} papers in ${(performance.now() - perfStart).toFixed(2)}ms`
-        );
-
-        // Hide loading overlay - UI is now interactive
+        papers.value = data.papers;
+        pageConfig.total = data.total;
         loading.value = false;
 
-        // If no more data, stop streaming indicator
-        if (!result.has_more) {
-          loadingProgress.isStreaming = false;
-        }
+        console.info(
+          `[PERF] Pagination loaded: ${data.papers.length} papers, total=${data.total}, page=${pageConfig.currentPage}`
+        );
       }
 
       const totalEnd = performance.now();
@@ -390,8 +323,13 @@
     } catch (error) {
       console.error('Failed to load papers:', error);
       loading.value = false;
-      loadingProgress.isStreaming = false;
     }
+  }
+
+  // 分页事件处理：页码或每页条数变化
+  function handlePageChange(params: { currentPage: number; pageSize: number }) {
+    // v-model 会自动更新值，这里只需要触发数据加载
+    loadPapers();
   }
 
   // // Handle row click - emit paper selection
@@ -551,20 +489,22 @@
     return 'mdi-file';
   }
 
-  // Watch category ID changes
+  // Watch category ID changes - reset pagination to first page
   watch(
     () => props.categoryId,
     () => {
+      pageConfig.currentPage = 1;
       loadPapers();
     }
   );
 
-  // Watch current view changes
+  // Watch current view changes - reset pagination to first page
   watch(
     () => props.currentView,
     () => {
       // Clear expanded rows when view changes
       expandRowIds.value = [];
+      pageConfig.currentPage = 1;
       loadPapers();
     }
   );
@@ -611,136 +551,133 @@
         <v-progress-circular indeterminate size="48" />
       </div>
 
-      <vxe-table
-        ref="tableRef"
-        id="paper-list-table"
-        :data="papers"
-        :expand-config="expandConfig"
-        :column-config="{ resizable: true }"
-        :custom-config="{ enabled: true, storage: true }"
-        :menu-config="contextMenuConfig"
-        :sort-config="{
-          trigger: 'cell',
-          defaultSort: sortConfig.defaultSort.field
-            ? {
-                field: sortConfig.defaultSort.field,
-                order: sortConfig.defaultSort.order,
-              }
-            : undefined,
-        }"
-        :row-config="{ isCurrent: true, isHover: true, keyField: 'id' }"
-        :cell-config="{ height: 32 }"
-        :scroll-y="{ enabled: false }"
-        :scroll-x="{ enabled: false }"
-        :style="{
-          '--vxe-ui-table-row-current-background-color': 'rgba(var(--v-theme-primary), 0.2)',
-          '--vxe-ui-table-row-hover-current-background-color': 'rgba(var(--v-theme-primary), 0.3)',
-        }"
-        height="100%"
-        stripe
-        border
-        size="mini"
-        @cell-click="cellClickEvent"
-        @cell-dblclick="cellDblclickEvent"
-        @sort-change="handleSortChange"
-        @toggle-expand-change="handleToggleExpandChange"
-        @menu-click="handleContextMenuClick"
-        @menu-visible="handleContextMenuVisible"
-      >
-        <!-- Expand column (only for papers with attachments) -->
-        <vxe-column type="expand" width="40" fixed="left">
-          <template #content="{ row }">
-            <div class="expand-row-content">
-              <!-- Loading state -->
-              <div
-                v-if="loadingAttachments.has(row.id) && !loadedAttachments.has(row.id)"
-                class="loading-attachments"
-              >
-                <v-progress-circular indeterminate size="small" class="mr-2" />
-                <span class="text-caption">Loading attachments...</span>
-              </div>
-              <!-- Loaded attachments -->
-              <div
-                v-else-if="row.attachments && row.attachments.length > 0"
-                class="attachments-list"
-              >
-                <div class="attachments-header">
-                  <v-icon size="small" class="mr-2">mdi-paperclip</v-icon>
-                  <span class="text-subtitle-2">Attachments ({{ row.attachments.length }})</span>
+      <div class="table-wrapper">
+        <vxe-table
+          ref="tableRef"
+          id="paper-list-table"
+          :data="papers"
+          :expand-config="expandConfig"
+          :column-config="{ resizable: true }"
+          :custom-config="{ enabled: true, storage: true }"
+          :menu-config="contextMenuConfig"
+          :sort-config="{
+            trigger: 'cell',
+            defaultSort: sortConfig.defaultSort.field
+              ? {
+                  field: sortConfig.defaultSort.field,
+                  order: sortConfig.defaultSort.order,
+                }
+              : undefined,
+          }"
+          :row-config="{ isCurrent: true, isHover: true, keyField: 'id' }"
+          :cell-config="{ height: 32 }"
+          :scroll-y="{ enabled: false }"
+          :scroll-x="{ enabled: false }"
+          :style="{
+            '--vxe-ui-table-row-current-background-color': 'rgba(var(--v-theme-primary), 0.2)',
+            '--vxe-ui-table-row-hover-current-background-color':
+              'rgba(var(--v-theme-primary), 0.3)',
+          }"
+          height="100%"
+          stripe
+          border
+          size="mini"
+          @cell-click="cellClickEvent"
+          @cell-dblclick="cellDblclickEvent"
+          @sort-change="handleSortChange"
+          @toggle-expand-change="handleToggleExpandChange"
+          @menu-click="handleContextMenuClick"
+          @menu-visible="handleContextMenuVisible"
+        >
+          <!-- Expand column (only for papers with attachments) -->
+          <vxe-column type="expand" width="40" fixed="left">
+            <template #content="{ row }">
+              <div class="expand-row-content">
+                <!-- Loading state -->
+                <div
+                  v-if="loadingAttachments.has(row.id) && !loadedAttachments.has(row.id)"
+                  class="loading-attachments"
+                >
+                  <v-progress-circular indeterminate size="small" class="mr-2" />
+                  <span class="text-caption">Loading attachments...</span>
                 </div>
-                <v-list density="compact" class="attachments-list-items">
-                  <v-list-item
-                    v-for="attachment in row.attachments"
-                    :key="attachment.id"
-                    class="attachment-item"
-                  >
-                    <template #prepend>
-                      <v-icon :icon="getFileIcon(attachment.file_type)" size="small" />
-                    </template>
-                    <v-list-item-title>
-                      {{ attachment.file_name || 'Unnamed file' }}
-                    </v-list-item-title>
-                    <v-list-item-subtitle v-if="attachment.file_type">
-                      {{ attachment.file_type }}
-                      <span v-if="attachment.created_at">
-                        •
-                        {{ new Date(attachment.created_at).toLocaleDateString() }}
-                      </span>
-                    </v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
+                <!-- Loaded attachments -->
+                <div
+                  v-else-if="row.attachments && row.attachments.length > 0"
+                  class="attachments-list"
+                >
+                  <div class="attachments-header">
+                    <v-icon size="small" class="mr-2">mdi-paperclip</v-icon>
+                    <span class="text-subtitle-2">Attachments ({{ row.attachments.length }})</span>
+                  </div>
+                  <v-list density="compact" class="attachments-list-items">
+                    <v-list-item
+                      v-for="attachment in row.attachments"
+                      :key="attachment.id"
+                      class="attachment-item"
+                    >
+                      <template #prepend>
+                        <v-icon :icon="getFileIcon(attachment.file_type)" size="small" />
+                      </template>
+                      <v-list-item-title>
+                        {{ attachment.file_name || 'Unnamed file' }}
+                      </v-list-item-title>
+                      <v-list-item-subtitle v-if="attachment.file_type">
+                        {{ attachment.file_type }}
+                        <span v-if="attachment.created_at">
+                          •
+                          {{ new Date(attachment.created_at).toLocaleDateString() }}
+                        </span>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </div>
+                <!-- No attachments -->
+                <div v-else class="no-attachments">
+                  <v-icon size="small" class="mr-2">mdi-information</v-icon>
+                  <span class="text-caption">No attachments</span>
+                </div>
               </div>
-              <!-- No attachments -->
-              <div v-else class="no-attachments">
-                <v-icon size="small" class="mr-2">mdi-information</v-icon>
-                <span class="text-caption">No attachments</span>
-              </div>
-            </div>
-          </template>
-        </vxe-column>
+            </template>
+          </vxe-column>
 
-        <!-- Title column -->
-        <vxe-column field="title" title="Title" min-width="200" sortable show-overflow>
-          <template #default="{ row }">
-            <span class="text-truncate">{{ row.title }}</span>
-          </template>
-        </vxe-column>
+          <!-- Title column -->
+          <vxe-column field="title" title="Title" min-width="200" sortable show-overflow>
+            <template #default="{ row }">
+              <span class="text-truncate">{{ row.title }}</span>
+            </template>
+          </vxe-column>
 
-        <!-- Authors column -->
-        <vxe-column field="authors" title="Authors" width="15%" show-overflow>
-          <template #default="{ row }">
-            <v-chip v-if="row.authors && row.authors.length > 0" size="x-small" class="mr-1">
-              {{ row.authors[0] }}
-            </v-chip>
-            <v-chip v-if="row.authors && row.authors.length > 1" size="x-small">
-              +{{ row.authors.length - 1 }}
-            </v-chip>
-          </template>
-        </vxe-column>
+          <!-- Authors column -->
+          <vxe-column field="authors" title="Authors" width="15%" show-overflow>
+            <template #default="{ row }">
+              <v-chip v-if="row.authors && row.authors.length > 0" size="x-small" class="mr-1">
+                {{ row.authors[0] }}
+              </v-chip>
+              <v-chip v-if="row.authors && row.authors.length > 1" size="x-small">
+                +{{ row.authors.length - 1 }}
+              </v-chip>
+            </template>
+          </vxe-column>
 
-        <!-- Year column -->
-        <vxe-column field="publication_year" title="Year" width="80" sortable />
+          <!-- Year column -->
+          <vxe-column field="publication_year" title="Year" width="80" sortable />
 
-        <!-- Journal column -->
-        <vxe-column field="journal_name" title="Journal" width="35%" sortable show-overflow />
-      </vxe-table>
+          <!-- Journal column -->
+          <vxe-column field="journal_name" title="Journal" width="35%" sortable show-overflow />
+        </vxe-table>
+      </div>
 
-      <!-- Streaming progress indicator -->
-      <div v-if="loadingProgress.isStreaming" class="streaming-progress">
-        <v-progress-linear
-          :model-value="(loadingProgress.loaded / loadingProgress.total) * 100"
-          color="primary"
-          height="4"
-          striped
+      <!-- 分页组件 -->
+      <div class="pagination-container">
+        <VxePager
+          v-model:current-page="pageConfig.currentPage"
+          v-model:page-size="pageConfig.pageSize"
+          :total="pageConfig.total"
+          :page-sizes="pageSizes"
+          :layouts="['PrevPage', 'Number', 'NextPage', 'Sizes', 'Total']"
+          @page-change="handlePageChange"
         />
-        <span class="text-caption ml-2">
-          {{
-            t('paper.loadingProgress', {
-              loaded: loadingProgress.loaded,
-              total: loadingProgress.total,
-            })
-          }}
-        </span>
       </div>
     </div>
   </div>
@@ -765,8 +702,15 @@
 
   .table-container {
     flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     position: relative;
+  }
+
+  .table-wrapper {
+    flex: 1;
+    overflow: hidden;
   }
 
   .loading-overlay {
@@ -782,17 +726,14 @@
     z-index: 100;
   }
 
-  .streaming-progress {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+  /* 分页样式 */
+  .pagination-container {
     display: flex;
-    align-items: center;
-    padding: 4px 16px;
-    background-color: rgba(var(--v-theme-surface), 0.95);
+    justify-content: flex-end;
+    padding: 12px 16px;
+    background: rgb(var(--v-theme-surface));
     border-top: 1px solid rgba(255, 255, 255, 0.12);
-    z-index: 50;
+    flex-shrink: 0;
   }
 
   .text-truncate {

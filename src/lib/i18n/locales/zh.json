@@ -156,7 +156,20 @@
     "pmidRequired": "PMID 不能为空",
     "import": "导入",
     "importFromZotero": "从 Zotero 导入",
-    "zoteroDescription": "从 Zotero RDF 导出文件导入文献和 PDF"
+    "zoteroDescription": "从 Zotero RDF 导出文件导入文献和 PDF",
+    "search": "搜索"
+  },
+  "search": {
+    "title": "搜索文献",
+    "placeholder": "搜索标题、摘要、标签或附件...",
+    "results": "个结果",
+    "noResults": "未找到文献",
+    "searching": "搜索中...",
+    "score": "相关性",
+    "rebuildIndex": "重建索引",
+    "indexing": "索引中...",
+    "indexEmptyWarning": "搜索索引为空。点击标题栏的重建按钮以启用全文搜索。",
+    "indexEmptyHint": "搜索未返回结果。索引可能为空 - 请尝试重建索引。"
   },
   "zotero": {
     "title": "从 Zotero 导入",

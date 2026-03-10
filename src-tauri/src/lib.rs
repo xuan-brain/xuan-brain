@@ -35,7 +35,10 @@ use crate::command::paper::{
     repair_attachment_counts, restore_paper, save_pdf_blob, save_pdf_with_annotations,
     stream_all_papers, update_paper_category, update_paper_details,
 };
-use crate::command::search_command::{search_papers, search_papers_with_score};
+use crate::command::search_command::{
+    check_fts_index_status, debug_fts_query, get_fts_sample, get_search_suggestions,
+    rebuild_search_index, search_papers, search_papers_fts,
+};
 use crate::axum::state::SelectedCategoryState;
 use crate::database::connection::init_sqlite_connection;
 use crate::database::DatabaseConnection;
@@ -207,7 +210,12 @@ pub fn run() -> Result<()> {
             save_app_config,
             // Search commands
             search_papers,
-            search_papers_with_score,
+            search_papers_fts,
+            get_search_suggestions,
+            rebuild_search_index,
+            check_fts_index_status,
+            get_fts_sample,
+            debug_fts_query,
             // Data folder commands
             get_data_folder_info_command,
             get_default_data_folder,

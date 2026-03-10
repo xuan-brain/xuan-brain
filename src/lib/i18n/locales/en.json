@@ -156,7 +156,20 @@
     "pmidRequired": "PMID is required",
     "import": "Import",
     "importFromZotero": "Import from Zotero",
-    "zoteroDescription": "Import papers and PDFs from Zotero RDF export"
+    "zoteroDescription": "Import papers and PDFs from Zotero RDF export",
+    "search": "Search"
+  },
+  "search": {
+    "title": "Search Papers",
+    "placeholder": "Search by title, abstract, labels, or attachments...",
+    "results": "results",
+    "noResults": "No papers found",
+    "searching": "Searching...",
+    "score": "Score",
+    "rebuildIndex": "Rebuild Index",
+    "indexing": "Indexing...",
+    "indexEmptyWarning": "Search index is empty. Click the rebuild button in the header to enable full-text search.",
+    "indexEmptyHint": "Search returned no results. The index may be empty - try rebuilding it."
   },
   "zotero": {
     "title": "Import from Zotero",

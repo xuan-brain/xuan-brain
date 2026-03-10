@@ -36,8 +36,8 @@ use crate::command::paper::{
     stream_all_papers, update_paper_category, update_paper_details,
 };
 use crate::command::search_command::{
-    check_fts_index_status, debug_fts_query, get_fts_sample, get_search_suggestions,
-    rebuild_search_index, search_papers, search_papers_fts,
+    add_search_history, check_fts_index_status, clear_search_history, debug_fts_query, delete_search_history,
+    get_fts_sample, get_search_history, get_search_suggestions, rebuild_search_index, search_papers, search_papers_fts,
 };
 use crate::axum::state::SelectedCategoryState;
 use crate::database::connection::init_sqlite_connection;
@@ -216,6 +216,11 @@ pub fn run() -> Result<()> {
             check_fts_index_status,
             get_fts_sample,
             debug_fts_query,
+            // Search history commands
+            add_search_history,
+            get_search_history,
+            clear_search_history,
+            delete_search_history,
             // Data folder commands
             get_data_folder_info_command,
             get_default_data_folder,

@@ -169,7 +169,10 @@
     "rebuildIndex": "重建索引",
     "indexing": "索引中...",
     "indexEmptyWarning": "搜索索引为空。点击标题栏的重建按钮以启用全文搜索。",
-    "indexEmptyHint": "搜索未返回结果。索引可能为空 - 请尝试重建索引。"
+    "indexEmptyHint": "搜索未返回结果。索引可能为空 - 请尝试重建索引。",
+    "history": "最近搜索",
+    "clearHistory": "清空历史",
+    "noHistory": "暂无搜索历史"
   },
   "zotero": {
     "title": "从 Zotero 导入",

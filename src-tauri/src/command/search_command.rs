@@ -226,3 +226,91 @@ pub async fn debug_fts_query(
 
     Ok((fts_query, titles.len(), titles))
 }
+
+// ==========================================
+// Search History Commands
+// ==========================================
+
+use crate::database::entities::search_history;
+use crate::repository::SearchHistoryRepository;
+
+/// Search history entry DTO
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SearchHistoryDto {
+    pub id: String,
+    pub query: String,
+    pub created_at: String,
+}
+
+impl From<search_history::Model> for SearchHistoryDto {
+    fn from(model: search_history::Model) -> Self {
+        SearchHistoryDto {
+            id: model.id.to_string(),
+            query: model.query,
+            created_at: model.created_at.to_rfc3339(),
+        }
+    }
+}
+/// Add a search query to history
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn add_search_history(
+    db: State<'_, Arc<DatabaseConnection>>,
+    query: String,
+) -> Result<SearchHistoryDto> {
+    info!("Adding search history: '{}'", query);
+
+    let query = query.trim();
+    if query.is_empty() {
+        return Err(crate::sys::error::AppError::validation(
+            "query",
+            "Search query cannot be empty",
+        ));
+    }
+
+    let result = SearchHistoryRepository::add(&db, &query).await?;
+
+    Ok(SearchHistoryDto::from(result))
+}
+/// Get recent search history
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn get_search_history(
+    db: State<'_, Arc<DatabaseConnection>>,
+    limit: Option<i32>,
+) -> Result<Vec<SearchHistoryDto>> {
+    info!("Getting search history with limit: {:?}", limit);
+
+    let limit = limit.unwrap_or(20);
+    let history = SearchHistoryRepository::get_recent(&db, limit as u64).await?;
+
+    let dtos: Vec<SearchHistoryDto> = history.into_iter().map(SearchHistoryDto::from).collect();
+
+    info!("Found {} search history entries", dtos.len());
+    Ok(dtos)
+}
+/// Clear all search history
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn clear_search_history(db: State<'_, Arc<DatabaseConnection>>) -> Result<()> {
+    info!("Clearing all search history");
+
+    SearchHistoryRepository::clear(&db).await?;
+
+    info!("Search history cleared successfully");
+    Ok(())
+}
+/// Delete a specific search history entry
+#[tauri::command]
+#[instrument(skip(db))]
+pub async fn delete_search_history(
+    db: State<'_, Arc<DatabaseConnection>>,
+    id: i64,
+) -> Result<()> {
+    info!("Deleting search history entry with id: {}", id);
+
+    SearchHistoryRepository::delete_by_id(&db, id).await?;
+
+    info!("Search history entry deleted successfully");
+    Ok(())
+}

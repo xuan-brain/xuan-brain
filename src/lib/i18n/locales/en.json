@@ -169,7 +169,9 @@
     "rebuildIndex": "Rebuild Index",
     "indexing": "Indexing...",
     "indexEmptyWarning": "Search index is empty. Click the rebuild button in the header to enable full-text search.",
-    "indexEmptyHint": "Search returned no results. The index may be empty - try rebuilding it."
+    "indexEmptyHint": "Search returned no results. The index may be empty - try rebuilding it.",
+    "history": "Recent Searches",
+    "clearHistory": "Clear History"
   },
   "zotero": {
     "title": "Import from Zotero",

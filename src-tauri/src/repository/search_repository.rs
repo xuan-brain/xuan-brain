@@ -37,36 +37,76 @@ impl SearchRepository {
         // Sanitize query by removing potential SQL injection
         let sanitized_query = query.replace('\\', "\\\\").replace('"', "\\\"");
 
-        // For trigram tokenizer, simply use the raw query without special handling
-        // Trigram automatically handles both Chinese and English by creating 3-character slices
-        // No quotes needed - let FTS5 handle it directly
-        let fts_query = sanitized_query.clone();
+        // Check if query contains Chinese characters
+        let has_chinese = sanitized_query.chars().any(|c| {
+            let code = c as u32;
+            (0x4E00..=0x9FFF).contains(&code)
+                || (0x3400..=0x4DBF).contains(&code)
+                || (0x20000..=0x2A6DF).contains(&code)
+        });
 
-        info!("FTS search processed query: '{}'", fts_query);
+        // Count Chinese characters (trigram needs at least 3 chars to work effectively)
+        let chinese_char_count = sanitized_query
+            .chars()
+            .filter(|c| {
+                let code = *c as u32;
+                (0x4E00..=0x9FFF).contains(&code)
+                    || (0x3400..=0x4DBF).contains(&code)
+                    || (0x20000..=0x2A6DF).contains(&code)
+            })
+            .count();
 
-        // Build FTS5 query with BM25 scoring
-        // Use subquery approach for better FTS5 external content support
-        let sql = format!(
-            r#"
-            SELECT
-                p.id, p.title, p.abstract_text, p.doi, p.publication_year,
-                p.publication_date, p.journal_name, p.conference_name, p.volume,
-                p.issue, p.pages, p.url, p.citation_count, p.read_status,
-                p.notes, p.attachment_path, p.created_at, p.updated_at,
-                p.deleted_at, p.publisher, p.issn, p.language, p.attachment_count,
-                fts.score
-            FROM paper p
-            INNER JOIN (
-                SELECT paper_id, -bm25(paper_fts) AS score
-                FROM paper_fts
-                WHERE paper_fts MATCH '{}'
-            ) fts ON p.id = fts.paper_id
-            WHERE p.deleted_at IS NULL
-            ORDER BY fts.score DESC
-            LIMIT {}
-            "#,
-            fts_query, limit
-        );
+        // For short Chinese queries (< 3 chars), use LIKE instead of FTS
+        // Trigram tokenizer needs at least 3 characters to generate tokens
+        let use_like_search = has_chinese && chinese_char_count < 3;
+
+        info!("FTS search - has_chinese: {}, chinese_char_count: {}, use_like_search: {}",
+             has_chinese, chinese_char_count, use_like_search);
+
+        let sql = if use_like_search {
+            // Use LIKE for short Chinese queries
+            format!(
+                r#"
+                SELECT
+                    p.id, p.title, p.abstract_text, p.doi, p.publication_year,
+                    p.publication_date, p.journal_name, p.conference_name, p.volume,
+                    p.issue, p.pages, p.url, p.citation_count, p.read_status,
+                    p.notes, p.attachment_path, p.created_at, p.updated_at,
+                    p.deleted_at, p.publisher, p.issn, p.language, p.attachment_count,
+                    50.0 AS score
+                FROM paper p
+                WHERE p.deleted_at IS NULL
+                    AND (p.title LIKE '%{}%' OR p.abstract_text LIKE '%{}%')
+                ORDER BY p.updated_at DESC
+                LIMIT {}
+                "#,
+                sanitized_query, sanitized_query, limit
+            )
+        } else {
+            // Build FTS5 query with BM25 scoring
+            // Use subquery approach for better FTS5 external content support
+            format!(
+                r#"
+                SELECT
+                    p.id, p.title, p.abstract_text, p.doi, p.publication_year,
+                    p.publication_date, p.journal_name, p.conference_name, p.volume,
+                    p.issue, p.pages, p.url, p.citation_count, p.read_status,
+                    p.notes, p.attachment_path, p.created_at, p.updated_at,
+                    p.deleted_at, p.publisher, p.issn, p.language, p.attachment_count,
+                    fts.score
+                FROM paper p
+                INNER JOIN (
+                    SELECT paper_id, -bm25(paper_fts) AS score
+                    FROM paper_fts
+                    WHERE paper_fts MATCH '{}'
+                ) fts ON p.id = fts.paper_id
+                WHERE p.deleted_at IS NULL
+                ORDER BY fts.score DESC
+                LIMIT {}
+                "#,
+                sanitized_query, limit
+            )
+        };
 
         // Execute query using sqlx directly through SeaORM's connection
         let sqlx_rows: Vec<SqliteRow> = match db.get_database_backend() {

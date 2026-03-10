@@ -8,6 +8,7 @@ mod m20240307_000001_split_author_name;
 mod m20250307_000002_add_paper_fields;
 mod m20250308_000001_add_attachment_count;
 mod m20250309_000001_add_fts5_search;
+mod m20250310_000001_update_fts5_tokenizer;
 
 #[allow(unused_imports)]
 pub use m20240101_000001_initial::Migration as InitialMigration;
@@ -30,6 +31,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250307_000002_add_paper_fields::Migration),
             Box::new(m20250308_000001_add_attachment_count::Migration),
             Box::new(m20250309_000001_add_fts5_search::Migration),
+            Box::new(m20250310_000001_update_fts5_tokenizer::Migration),
         ]
     }
 }

@@ -37,28 +37,10 @@ impl SearchRepository {
         // Sanitize query by removing potential SQL injection
         let sanitized_query = query.replace('\\', "\\\\").replace('"', "\\\"");
 
-        // For Chinese text, we need to handle it differently
-        // unicode61 tokenizer treats each Chinese character as a separate token
-        // Chinese characters should NOT be quoted in FTS5 queries
-        let fts_query = if Self::contains_chinese(&sanitized_query) {
-            // Split Chinese characters and join with OR for better matching
-            let chars: Vec<String> = sanitized_query
-                .chars()
-                .filter(|c| !c.is_whitespace())
-                .map(|c| c.to_string())
-                .collect();
-            if chars.len() > 1 {
-                // FTS5 OR query syntax for Chinese: term1 OR term2 OR term3
-                // No quotes around Chinese characters
-                chars.join(" OR ")
-            } else {
-                // Single Chinese character - no quotes
-                sanitized_query.clone()
-            }
-        } else {
-            // For non-Chinese, use the original query (phrase search)
-            format!("\"{}\"", sanitized_query)
-        };
+        // For trigram tokenizer, simply use the raw query without special handling
+        // Trigram automatically handles both Chinese and English by creating 3-character slices
+        // No quotes needed - let FTS5 handle it directly
+        let fts_query = sanitized_query.clone();
 
         info!("FTS search processed query: '{}'", fts_query);
 
@@ -366,21 +348,8 @@ impl SearchRepository {
         let normalized = 100.0 * (-raw_score / SCALE).exp() / (1.0 + (-raw_score / SCALE).exp());
         normalized.clamp(0.0, 100.0)
     }
-
-    /// Check if a string contains Chinese characters
-    pub fn contains_chinese(s: &str) -> bool {
-        s.chars().any(|c| {
-            // Chinese characters are in the range:
-            // CJK Unified Ideographs: U+4E00 to U+9FFF
-            // CJK Extension A: U+3400 to U+4DBF
-            // CJK Extension B: U+20000 to U+2A6DF
-            let code = c as u32;
-            (0x4E00..=0x9FFF).contains(&code)
-                || (0x3400..=0x4DBF).contains(&code)
-                || (0x20000..=0x2A6DF).contains(&code)
-        })
-    }
 }
+
 
 #[cfg(test)]
 mod tests {

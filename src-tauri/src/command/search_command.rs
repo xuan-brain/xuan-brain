@@ -191,23 +191,9 @@ pub async fn debug_fts_query(
 
     let sanitized_query = query.replace('\\', "\\\\").replace('"', "\\\"");
 
-    // Build the FTS query (same logic as SearchRepository)
-    let fts_query = if crate::repository::search_repository::SearchRepository::contains_chinese(&sanitized_query) {
-        let chars: Vec<String> = sanitized_query
-            .chars()
-            .filter(|c| !c.is_whitespace())
-            .map(|c| c.to_string())
-            .collect();
-        if chars.len() > 1 {
-            // Chinese characters - no quotes, join with OR
-            chars.join(" OR ")
-        } else {
-            // Single Chinese character - no quotes
-            sanitized_query.clone()
-        }
-    } else {
-        format!("\"{}\"", sanitized_query)
-    };
+    // For trigram tokenizer, simply use the raw query without special handling
+    // Trigram automatically handles both Chinese and English by creating 3-character slices
+    let fts_query = sanitized_query.clone();
 
     info!("Debug FTS processed query: '{}'", fts_query);
 

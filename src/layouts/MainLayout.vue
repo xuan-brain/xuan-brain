@@ -1,7 +1,7 @@
 <script setup lang="ts">
-  import Navigation from '@/components/navigation/Navigation.vue';
-  import WelcomeImportDialog from '@/components/dialogs/WelcomeImportDialog.vue';
   import ImportZoteroDialog from '@/components/dialogs/ImportZoteroDialog.vue';
+  import WelcomeImportDialog from '@/components/dialogs/WelcomeImportDialog.vue';
+  import Navigation from '@/components/navigation/Navigation.vue';
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
   import { computed, onMounted, onUnmounted, ref } from 'vue';
@@ -250,10 +250,7 @@
     />
 
     <!-- Zotero import dialog -->
-    <ImportZoteroDialog
-      v-model="showZoteroDialog"
-      @success="handleZoteroImportSuccess"
-    />
+    <ImportZoteroDialog v-model="showZoteroDialog" @success="handleZoteroImportSuccess" />
   </div>
 </template>
 

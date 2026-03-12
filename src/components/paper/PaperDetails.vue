@@ -393,7 +393,13 @@
           <v-icon start size="x-small">mdi-folder</v-icon>
           {{ details.category_name }}
         </v-chip>
-        <v-chip v-else size="small" variant="outlined" class="clickable" @click="addingCategory = true">
+        <v-chip
+          v-else
+          size="small"
+          variant="outlined"
+          class="clickable"
+          @click="addingCategory = true"
+        >
           <v-icon start size="x-small">mdi-plus</v-icon>
           Category
         </v-chip>
@@ -402,7 +408,13 @@
         <v-chip
           v-if="details.read_status"
           size="small"
-          :color="details.read_status === 'read' ? 'success' : details.read_status === 'reading' ? 'primary' : 'default'"
+          :color="
+            details.read_status === 'read'
+              ? 'success'
+              : details.read_status === 'reading'
+                ? 'primary'
+                : 'default'
+          "
         >
           {{ details.read_status }}
         </v-chip>
@@ -433,7 +445,16 @@
             @update:model-value="handleAddLabel"
           />
         </template>
-        <v-chip v-else size="small" variant="outlined" class="clickable" @click="addingLabel = true; loadLabels()">
+        <v-chip
+          v-else
+          size="small"
+          variant="outlined"
+          class="clickable"
+          @click="
+            addingLabel = true;
+            loadLabels();
+          "
+        >
           <v-icon start size="x-small">mdi-tag-plus</v-icon>
           Tag
         </v-chip>
@@ -470,14 +491,16 @@
             <td class="prop-label">Volume</td>
             <td class="prop-value">
               <span v-if="details.volume">{{ details.volume }}</span>
-              <span v-if="details.issue"> ({{ details.issue }})</span>
+              <span v-if="details.issue">({{ details.issue }})</span>
               <span v-if="details.pages">, pp.{{ details.pages }}</span>
             </td>
           </tr>
           <tr v-if="details.doi">
             <td class="prop-label">DOI</td>
             <td class="prop-value">
-              <a :href="`https://doi.org/${details.doi}`" target="_blank" class="link">{{ details.doi }}</a>
+              <a :href="`https://doi.org/${details.doi}`" target="_blank" class="link">
+                {{ details.doi }}
+              </a>
             </td>
           </tr>
           <tr v-if="details.url">
@@ -531,8 +554,12 @@
       <!-- Footer -->
       <div class="footer">
         <span>ID: {{ details.id }}</span>
-        <span v-if="details.created_at">Created: {{ new Date(details.created_at).toLocaleDateString() }}</span>
-        <span v-if="details.updated_at">Updated: {{ new Date(details.updated_at).toLocaleDateString() }}</span>
+        <span v-if="details.created_at">
+          Created: {{ new Date(details.created_at).toLocaleDateString() }}
+        </span>
+        <span v-if="details.updated_at">
+          Updated: {{ new Date(details.updated_at).toLocaleDateString() }}
+        </span>
       </div>
     </div>
 

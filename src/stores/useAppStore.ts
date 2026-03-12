@@ -1,5 +1,5 @@
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
 
 export interface Paper {
   id: number;
@@ -37,11 +37,11 @@ export interface GrobidServer {
 }
 
 export const useAppStore = defineStore(
-  "app",
+  'app',
   () => {
     // State
     const isDark = ref(true);
-    const accentColor = ref("#3b82f6");
+    const accentColor = ref('#3b82f6');
     const selectedPaper = ref<Paper | null>(null);
     const selectedLLMProvider = ref<string | null>(null);
     const selectedGrobidServer = ref<string | null>(null);
@@ -49,12 +49,12 @@ export const useAppStore = defineStore(
     const grobidServers = ref<GrobidServer[]>([]);
 
     // Getters
-    const currentTheme = computed(() => (isDark.value ? "dark" : "light"));
+    const currentTheme = computed(() => (isDark.value ? 'dark' : 'light'));
     const currentLLMProvider = computed(() =>
-      llmProviders.value.find((p) => p.id === selectedLLMProvider.value),
+      llmProviders.value.find((p) => p.id === selectedLLMProvider.value)
     );
     const currentGrobidServer = computed(() =>
-      grobidServers.value.find((s) => s.id === selectedGrobidServer.value),
+      grobidServers.value.find((s) => s.id === selectedGrobidServer.value)
     );
 
     // Actions
@@ -87,9 +87,7 @@ export const useAppStore = defineStore(
       // Auto-select default or first provider
       if (!selectedLLMProvider.value && providers.length > 0) {
         const defaultProvider = providers.find((p) => p.is_default);
-        selectedLLMProvider.value = defaultProvider
-          ? defaultProvider.id
-          : providers[0].id;
+        selectedLLMProvider.value = defaultProvider ? defaultProvider.id : providers[0].id;
       }
     }
 
@@ -98,9 +96,7 @@ export const useAppStore = defineStore(
       // Auto-select default or first server
       if (!selectedGrobidServer.value && servers.length > 0) {
         const defaultServer = servers.find((s) => s.is_default);
-        selectedGrobidServer.value = defaultServer
-          ? defaultServer.id
-          : servers[0].id;
+        selectedGrobidServer.value = defaultServer ? defaultServer.id : servers[0].id;
       }
     }
 
@@ -127,14 +123,9 @@ export const useAppStore = defineStore(
   },
   {
     persist: {
-      key: "xuan-brain-app-storage",
+      key: 'xuan-brain-app-storage',
       storage: localStorage,
-      pick: [
-        "isDark",
-        "accentColor",
-        "selectedLLMProvider",
-        "selectedGrobidServer",
-      ],
+      pick: ['isDark', 'accentColor', 'selectedLLMProvider', 'selectedGrobidServer'],
     },
-  },
+  }
 );

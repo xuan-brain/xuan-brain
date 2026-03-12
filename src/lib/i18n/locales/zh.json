@@ -117,12 +117,24 @@
     "adding": "添加中...",
     "saving": "保存中...",
     "deleting": "删除中...",
+    "creatingCategory": "正在创建分类...",
+    "updatingCategory": "正在更新分类...",
+    "deletingCategory": "正在删除分类...",
+    "creatingLabel": "正在创建标签...",
+    "updatingLabel": "正在更新标签...",
+    "deletingLabel": "正在删除标签...",
     "rename": "重命名",
     "restore": "恢复",
     "permanentlyDelete": "彻底删除",
     "confirmPermanentlyDelete": "确定要彻底删除此文档吗？此操作不可恢复。",
     "restoreFailed": "恢复失败",
-    "deleteFailed": "删除失败"
+    "deleteFailed": "删除失败",
+    "categoryCreated": "分类已创建",
+    "categoryUpdated": "分类已更新",
+    "categoryDeleted": "分类已删除",
+    "labelCreated": "标签已创建",
+    "labelUpdated": "标签已更新",
+    "labelDeleted": "标签已删除"
   },
   "toolbar": {
     "doi": "DOI",
@@ -144,7 +156,23 @@
     "pmidRequired": "PMID 不能为空",
     "import": "导入",
     "importFromZotero": "从 Zotero 导入",
-    "zoteroDescription": "从 Zotero RDF 导出文件导入文献和 PDF"
+    "zoteroDescription": "从 Zotero RDF 导出文件导入文献和 PDF",
+    "search": "搜索"
+  },
+  "search": {
+    "title": "搜索文献",
+    "placeholder": "搜索标题、摘要、标签或附件...",
+    "results": "个结果",
+    "noResults": "未找到文献",
+    "searching": "搜索中...",
+    "score": "相关性",
+    "rebuildIndex": "重建索引",
+    "indexing": "索引中...",
+    "indexEmptyWarning": "搜索索引为空。点击标题栏的重建按钮以启用全文搜索。",
+    "indexEmptyHint": "搜索未返回结果。索引可能为空 - 请尝试重建索引。",
+    "history": "最近搜索",
+    "clearHistory": "清空历史",
+    "noHistory": "暂无搜索历史"
   },
   "zotero": {
     "title": "从 Zotero 导入",
@@ -297,5 +325,30 @@
       "edited": "(已编辑)"
     }
   },
-  "duration": "耗时"
+  "duration": "耗时",
+  "notification": {
+    "success": "成功",
+    "info": "信息",
+    "warning": "警告",
+    "error": "错误",
+    "all": "全部",
+    "operationSuccess": "操作成功",
+    "operationFailed": "操作失败",
+    "networkError": "网络连接失败",
+    "saveSuccess": "保存成功",
+    "deleteSuccess": "删除成功",
+    "details": "详情",
+    "copy": "复制",
+    "close": "关闭",
+    "clearHistory": "清空历史",
+    "markAllRead": "全部标为已读",
+    "unread": "未读",
+    "read": "已读",
+    "notificationHistory": "通知历史",
+    "noNotifications": "暂无通知",
+    "justNow": "刚刚",
+    "minutesAgo": "{n} 分钟前",
+    "hoursAgo": "{n} 小时前",
+    "daysAgo": "{n} 天前"
+  }
 }

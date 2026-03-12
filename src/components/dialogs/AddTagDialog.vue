@@ -1,9 +1,11 @@
 <script setup lang="ts">
+  import { useNotification } from '@/composables/useNotification';
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
   import { computed, ref, watch } from 'vue';
 
   const { t } = useI18n();
+  const { showSuccess, showError } = useNotification();
 
   interface Props {
     modelValue: boolean;
@@ -99,6 +101,7 @@
           color: selectedColor.value,
         });
         console.info('Label updated successfully:', name.value.trim());
+        showSuccess(t('dialog.labelUpdated'));
       } else {
         // Create new tag
         await invokeCommand('create_label', {
@@ -106,6 +109,7 @@
           color: selectedColor.value,
         });
         console.info('Label created successfully:', name.value.trim());
+        showSuccess(t('dialog.labelCreated'));
       }
 
       name.value = '';
@@ -115,6 +119,7 @@
       emit('update:modelValue', false);
     } catch (err) {
       error.value = err as string;
+      showError(isEditMode.value ? t('dialog.labelUpdated') + ' 失败' : t('dialog.labelCreated') + ' 失败');
     } finally {
       loading.value = false;
     }

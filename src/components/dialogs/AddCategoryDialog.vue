@@ -1,9 +1,11 @@
 <script setup lang="ts">
+  import { useNotification } from '@/composables/useNotification';
   import { useI18n } from '@/lib/i18n';
   import { invokeCommand } from '@/lib/tauri';
   import { ref, watch } from 'vue';
 
   const { t } = useI18n();
+  const { showSuccess, showError } = useNotification();
 
   interface Props {
     modelValue: boolean;
@@ -60,14 +62,16 @@
         parentId: props.parentId || null,
       });
       console.info('Category created successfully:', name.value.trim());
+      showSuccess(t('dialog.categoryCreated'));
       name.value = '';
       error.value = '';
       emit('categoryCreated');
       emit('update:modelValue', false);
     } catch (err) {
-      // err is an error object with message property
-      error.value =
+      const errorMessage =
         typeof err === 'string' ? err : (err as { message?: string })?.message || String(err);
+      error.value = errorMessage;
+      showError(t('dialog.categoryCreated') + ' 失败');
     } finally {
       loading.value = false;
     }

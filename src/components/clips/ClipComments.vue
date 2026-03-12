@@ -81,9 +81,7 @@
         editingComment.value.id,
         editContent.value.trim()
       );
-      const updatedComments = props.comments.map((c) =>
-        c.id === updated.id ? updated : c
-      );
+      const updatedComments = props.comments.map((c) => (c.id === updated.id ? updated : c));
       emit('commentsUpdated', updatedComments);
       cancelEdit();
     } catch (error) {
@@ -106,9 +104,7 @@
     loading.value = true;
     try {
       await deleteClipComment(props.clipId, commentToDelete.value.id);
-      const updatedComments = props.comments.filter(
-        (c) => c.id !== commentToDelete.value!.id
-      );
+      const updatedComments = props.comments.filter((c) => c.id !== commentToDelete.value!.id);
       emit('commentsUpdated', updatedComments);
       deleteDialogOpen.value = false;
       commentToDelete.value = null;
@@ -160,12 +156,7 @@
 
     <!-- Comments List -->
     <div v-if="comments.length > 0" class="comments-list">
-      <v-card
-        v-for="comment in comments"
-        :key="comment.id"
-        variant="outlined"
-        class="comment-card"
-      >
+      <v-card v-for="comment in comments" :key="comment.id" variant="outlined" class="comment-card">
         <v-card-text class="pa-3">
           <!-- View Mode -->
           <div v-if="editingComment?.id !== comment.id">
@@ -174,7 +165,10 @@
               <span class="text-caption text-grey">
                 {{ formatDate(comment.created_at) }}
               </span>
-              <span v-if="comment.updated_at !== comment.created_at" class="text-caption text-grey ml-2">
+              <span
+                v-if="comment.updated_at !== comment.created_at"
+                class="text-caption text-grey ml-2"
+              >
                 {{ t('clips.clipDetails.edited') }}
               </span>
               <v-spacer />
@@ -208,12 +202,7 @@
               :disabled="loading"
             />
             <div class="edit-actions">
-              <v-btn
-                size="x-small"
-                variant="text"
-                :disabled="loading"
-                @click="cancelEdit"
-              >
+              <v-btn size="x-small" variant="text" :disabled="loading" @click="cancelEdit">
                 {{ t('clips.clipDetails.cancel') }}
               </v-btn>
               <v-btn
@@ -245,7 +234,9 @@
         <v-card-text>{{ t('clips.clipDetails.deleteCommentConfirm') }}</v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteDialogOpen = false">{{ t('clips.clipDetails.cancel') }}</v-btn>
+          <v-btn variant="text" @click="deleteDialogOpen = false">
+            {{ t('clips.clipDetails.cancel') }}
+          </v-btn>
           <v-btn color="error" variant="flat" :loading="loading" @click="handleDelete">
             {{ t('clips.clipDetails.delete') }}
           </v-btn>

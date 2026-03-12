@@ -117,12 +117,24 @@
     "adding": "Adding...",
     "saving": "Saving...",
     "deleting": "Deleting...",
+    "creatingCategory": "Creating category...",
+    "updatingCategory": "Updating category...",
+    "deletingCategory": "Deleting category...",
+    "creatingLabel": "Creating label...",
+    "updatingLabel": "Updating label...",
+    "deletingLabel": "Deleting label...",
     "rename": "Rename",
     "restore": "Restore",
     "permanentlyDelete": "Permanently Delete",
     "confirmPermanentlyDelete": "Are you sure you want to permanently delete this document? This action cannot be undone.",
     "restoreFailed": "Restore Failed",
-    "deleteFailed": "Delete Failed"
+    "deleteFailed": "Delete Failed",
+    "categoryCreated": "Category created",
+    "categoryUpdated": "Category updated",
+    "categoryDeleted": "Category deleted",
+    "labelCreated": "Label created",
+    "labelUpdated": "Label updated",
+    "labelDeleted": "Label deleted"
   },
   "toolbar": {
     "doi": "DOI",
@@ -144,7 +156,22 @@
     "pmidRequired": "PMID is required",
     "import": "Import",
     "importFromZotero": "Import from Zotero",
-    "zoteroDescription": "Import papers and PDFs from Zotero RDF export"
+    "zoteroDescription": "Import papers and PDFs from Zotero RDF export",
+    "search": "Search"
+  },
+  "search": {
+    "title": "Search Papers",
+    "placeholder": "Search by title, abstract, labels, or attachments...",
+    "results": "results",
+    "noResults": "No papers found",
+    "searching": "Searching...",
+    "score": "Score",
+    "rebuildIndex": "Rebuild Index",
+    "indexing": "Indexing...",
+    "indexEmptyWarning": "Search index is empty. Click the rebuild button in the header to enable full-text search.",
+    "indexEmptyHint": "Search returned no results. The index may be empty - try rebuilding it.",
+    "history": "Recent Searches",
+    "clearHistory": "Clear History"
   },
   "zotero": {
     "title": "Import from Zotero",
@@ -297,5 +324,30 @@
       "edited": "(edited)"
     }
   },
-  "duration": "Duration"
+  "duration": "Duration",
+  "notification": {
+    "success": "Success",
+    "info": "Info",
+    "warning": "Warning",
+    "error": "Error",
+    "all": "All",
+    "operationSuccess": "Operation successful",
+    "operationFailed": "Operation failed",
+    "networkError": "Network connection failed",
+    "saveSuccess": "Saved successfully",
+    "deleteSuccess": "Deleted successfully",
+    "details": "Details",
+    "copy": "Copy",
+    "close": "Close",
+    "clearHistory": "Clear History",
+    "markAllRead": "Mark All as Read",
+    "unread": "Unread",
+    "read": "Read",
+    "notificationHistory": "Notification History",
+    "noNotifications": "No notifications",
+    "justNow": "Just now",
+    "minutesAgo": "{n} min ago",
+    "hoursAgo": "{n} hr ago",
+    "daysAgo": "{n} days ago"
+  }
 }

@@ -8,9 +8,13 @@ pub mod label_repository;
 pub mod author_repository;
 pub mod keyword_repository;
 pub mod clipping_repository;
+pub mod search_repository;
+pub mod search_history_repository;
 
 pub use paper_repository::PaperRepository;
 pub use category_repository::{CategoryRepository, TreeNodeData};
 pub use label_repository::LabelRepository;
 pub use author_repository::AuthorRepository;
 pub use clipping_repository::ClippingRepository;
+pub use search_repository::SearchRepository;
+pub use search_history_repository::SearchHistoryRepository;

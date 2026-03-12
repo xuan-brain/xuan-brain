@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
-use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
 use crate::database::DatabaseConnection;
@@ -35,9 +34,9 @@ pub struct ZoteroImportProgress {
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn import_paper_by_doi(
-    app: AppHandle,
+    _app: AppHandle,
     doi: String,
     category_id: Option<String>,
     db: State<'_, Arc<DatabaseConnection>>,
@@ -62,15 +61,6 @@ pub async fn import_paper_by_doi(
             "Paper with DOI {} already exists: {}",
             metadata.doi, existing_paper.title
         );
-        let _ = app
-            .notification()
-            .builder()
-            .title("Paper Already Exists")
-            .body(format!(
-                "Paper '{}' is already in your library",
-                existing_paper.title
-            ))
-            .show();
 
         return Ok(ImportResultDto {
             already_exists: true,
@@ -141,13 +131,6 @@ pub async fn import_paper_by_doi(
         metadata.title, metadata.doi
     );
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Paper Imported")
-        .body(format!("Paper '{}' imported successfully", paper.title))
-        .show();
-
     // Convert DoiAuthor to string for DTO
     let author_names: Vec<String> = metadata
         .authors
@@ -176,9 +159,9 @@ pub async fn import_paper_by_doi(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app_dirs, app))]
+#[instrument(skip(db, app_dirs))]
 pub async fn import_paper_by_arxiv_id(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
     arxiv_id: String,
@@ -207,15 +190,6 @@ pub async fn import_paper_by_arxiv_id(
                 "Paper with DOI {} already exists: {}",
                 doi, existing_paper.title
             );
-            let _ = app
-                .notification()
-                .builder()
-                .title("Paper Already Exists")
-                .body(format!(
-                    "Paper '{}' is already in your library",
-                    existing_paper.title
-                ))
-                .show();
 
             return Ok(ImportResultDto {
                 already_exists: true,
@@ -331,13 +305,6 @@ pub async fn import_paper_by_arxiv_id(
     )
     .await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Paper Imported")
-        .body(format!("Paper '{}' imported successfully", paper.title))
-        .show();
-
     Ok(ImportResultDto {
         already_exists: false,
         message: format!("Paper '{}' imported successfully", paper.title),
@@ -365,9 +332,9 @@ pub async fn import_paper_by_arxiv_id(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn import_paper_by_pmid(
-    app: AppHandle,
+    _app: AppHandle,
     pmid: String,
     category_id: Option<String>,
     db: State<'_, Arc<DatabaseConnection>>,
@@ -397,15 +364,6 @@ pub async fn import_paper_by_pmid(
                 "Paper with DOI {} already exists: {}",
                 doi, existing_paper.title
             );
-            let _ = app
-                .notification()
-                .builder()
-                .title("Paper Already Exists")
-                .body(format!(
-                    "Paper '{}' is already in your library",
-                    existing_paper.title
-                ))
-                .show();
 
             return Ok(ImportResultDto {
                 already_exists: true,
@@ -469,13 +427,6 @@ pub async fn import_paper_by_pmid(
         PaperRepository::set_category(&db, paper_id, Some(cat_id_num)).await?;
     }
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Paper Imported")
-        .body(format!("Paper '{}' imported successfully", paper.title))
-        .show();
-
     // Convert PubmedAuthor to string for DTO
     let author_names: Vec<String> = metadata
         .authors
@@ -504,9 +455,9 @@ pub async fn import_paper_by_pmid(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app_dirs, app))]
+#[instrument(skip(db, app_dirs))]
 pub async fn import_paper_by_pdf(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
     file_path: String,
@@ -576,15 +527,6 @@ pub async fn import_paper_by_pdf(
                 "Paper with DOI {} already exists: {}",
                 doi, existing_paper.title
             );
-            let _ = app
-                .notification()
-                .builder()
-                .title("Paper Already Exists")
-                .body(format!(
-                    "Paper '{}' is already in your library",
-                    existing_paper.title
-                ))
-                .show();
 
             return Ok(ImportResultDto {
                 already_exists: true,
@@ -673,13 +615,6 @@ pub async fn import_paper_by_pdf(
     .await?;
 
     info!("PDF import completed successfully");
-
-    let _ = app
-        .notification()
-        .builder()
-        .title("Paper Imported from PDF")
-        .body(format!("Paper '{}' imported successfully", paper.title))
-        .show();
 
     Ok(ImportResultDto {
         already_exists: false,
@@ -1089,16 +1024,6 @@ pub async fn import_papers_from_zotero_rdf(
         "Zotero RDF import completed: {} imported, {} skipped, {} failed",
         result.imported, result.skipped, result.failed
     );
-
-    let _ = app
-        .notification()
-        .builder()
-        .title("Zotero Import Completed")
-        .body(format!(
-            "Imported {} papers, skipped {} duplicates, failed {}",
-            result.imported, result.skipped, result.failed
-        ))
-        .show();
 
     // Emit paper:imported event to refresh paper list
     let _ = app.emit(

@@ -101,7 +101,7 @@ pub struct PaperDto {
 }
 
 /// Lightweight DTO for paper list view - optimized for fast serialization
-/// Excludes heavy nested objects like attachments (only count is needed)
+/// Uses simple fields instead of nested arrays to minimize serialization overhead
 #[derive(Clone, Serialize)]
 pub struct PaperListDto {
     pub id: String,
@@ -109,9 +109,11 @@ pub struct PaperListDto {
     pub publication_year: Option<i32>,
     pub journal_name: Option<String>,
     pub conference_name: Option<String>,
-    pub authors: Vec<String>,
+    // Single first author name + count instead of full array (much faster serialization)
+    pub first_author: Option<String>,
+    pub author_count: usize,
     pub attachment_count: usize,
-    // NOTE: attachments intentionally excluded - load on demand
+    pub attachments: Vec<AttachmentDto>,
     // NOTE: labels excluded - not displayed in table view
 }
 

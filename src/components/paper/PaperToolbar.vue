@@ -3,18 +3,28 @@
   import { invokeCommand } from '@/lib/tauri';
   import { open } from '@tauri-apps/plugin-dialog';
   import { ref } from 'vue';
+  import SearchDialog from '@/components/dialogs/SearchDialog.vue';
 
   interface Props {
     onRefresh?: () => void;
     selectedCategoryId?: string | null;
+    onPaperSelect?: (paperId: string) => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     onRefresh: undefined,
     selectedCategoryId: null,
+    onPaperSelect: undefined,
   });
 
+  const emit = defineEmits<{
+    paperSelect: [paperId: string];
+  }>();
+
   const { t } = useI18n();
+
+  // Search dialog state
+  const searchDialogOpen = ref(false);
 
   // DOI Dialog states
   const doiDialogOpen = ref(false);
@@ -194,6 +204,16 @@
       console.error('Failed to select PDF:', error);
     }
   }
+
+  // Search dialog handlers
+  function handleSearchClick() {
+    searchDialogOpen.value = true;
+  }
+
+  function handlePaperSelect(paperId: string) {
+    emit('paperSelect', paperId);
+    searchDialogOpen.value = false;
+  }
 </script>
 
 <template>
@@ -231,6 +251,16 @@
         @click="handlePmidButtonClick"
       >
         {{ t('toolbar.pubmed') }}
+      </v-btn>
+      <v-spacer />
+      <v-btn
+        variant="tonal"
+        prepend-icon="mdi-magnify"
+        color="primary"
+        class="toolbar-btn"
+        @click="handleSearchClick"
+      >
+        {{ t('toolbar.search') }}
       </v-btn>
     </div>
   </div>
@@ -346,6 +376,9 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Search Dialog -->
+  <SearchDialog v-model="searchDialogOpen" @paper-select="handlePaperSelect" />
 </template>
 
 <style scoped>

@@ -1,48 +1,48 @@
-import { createRouter, createWebHistory } from "vue-router";
-import MainLayout from "@/layouts/MainLayout.vue";
+import MainLayout from '@/layouts/MainLayout.vue';
+import { createRouter, createWebHistory } from 'vue-router';
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: "/",
+      path: '/',
       component: MainLayout,
-      redirect: "/papers",
+      redirect: '/papers',
       children: [
         {
-          path: "papers",
-          name: "papers",
-          component: () => import("@/pages/PapersPage.vue"),
+          path: 'papers',
+          name: 'papers',
+          component: () => import('@/pages/PapersPage.vue'),
         },
         {
-          path: "papers/:paperId",
-          name: "paper-reader",
-          component: () => import("@/pages/PaperReaderPage.vue"),
+          path: 'papers/:paperId',
+          name: 'paper-reader',
+          component: () => import('@/pages/PaperReaderPage.vue'),
         },
         {
-          path: "clips",
-          name: "clips",
-          component: () => import("@/pages/ClipsPage.vue"),
+          path: 'clips',
+          name: 'clips',
+          component: () => import('@/pages/ClipsPage.vue'),
         },
         {
-          path: "writing",
-          name: "writing",
-          component: () => import("@/pages/WritingPage.vue"),
+          path: 'writing',
+          name: 'writing',
+          component: () => import('@/pages/WritingPage.vue'),
         },
         {
-          path: "subscriptions",
-          name: "subscriptions",
-          component: () => import("@/pages/SubscriptionPage.vue"),
+          path: 'subscriptions',
+          name: 'subscriptions',
+          component: () => import('@/pages/SubscriptionPage.vue'),
         },
         {
-          path: "settings",
-          name: "settings",
-          component: () => import("@/pages/SettingsPage.vue"),
+          path: 'settings',
+          name: 'settings',
+          component: () => import('@/pages/SettingsPage.vue'),
         },
         {
-          path: "import",
-          name: "import",
-          component: () => import("@/pages/ImportPage.vue"),
+          path: 'import',
+          name: 'import',
+          component: () => import('@/pages/ImportPage.vue'),
         },
       ],
     },

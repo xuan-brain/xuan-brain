@@ -3,7 +3,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{AppHandle, State};
-use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 use tracing::{info, instrument};
 
@@ -18,9 +17,9 @@ use super::utils::{base64_decode, base64_encode, calculate_attachment_hash};
 use chrono::Utc;
 
 #[tauri::command]
-#[instrument(skip(db, app_dirs, app))]
+#[instrument(skip(db, app_dirs))]
 pub async fn add_attachment(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     app_dirs: State<'_, AppDirs>,
     paper_id: String,
@@ -28,15 +27,18 @@ pub async fn add_attachment(
 ) -> Result<AttachmentDto> {
     info!("Adding attachment for paper {}: {}", paper_id, file_path);
 
-    let paper_id_num = paper_id.parse::<i64>()
+    let paper_id_num = paper_id
+        .parse::<i64>()
         .map_err(|_| AppError::validation("paper_id", "Invalid paper id format"))?;
 
-    let paper = PaperRepository::find_by_id(&db, paper_id_num).await?
+    let paper = PaperRepository::find_by_id(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
 
-    let hash_string = paper.attachment_path.clone().unwrap_or_else(|| {
-        calculate_attachment_hash(&paper.title)
-    });
+    let hash_string = paper
+        .attachment_path
+        .clone()
+        .unwrap_or_else(|| calculate_attachment_hash(&paper.title));
 
     let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);
     if !target_dir.exists() {
@@ -46,16 +48,20 @@ pub async fn add_attachment(
     }
 
     let source_path = PathBuf::from(&file_path);
-    let file_name = source_path.file_name()
+    let file_name = source_path
+        .file_name()
         .ok_or_else(|| AppError::validation("file_path", "Invalid file path"))?
-        .to_string_lossy().to_string();
+        .to_string_lossy()
+        .to_string();
     let target_path = target_dir.join(&file_name);
 
     std::fs::copy(&source_path, &target_path).map_err(|e| {
         AppError::file_system(target_path.to_string_lossy().to_string(), e.to_string())
     })?;
 
-    let file_type = source_path.extension().map(|s| s.to_string_lossy().to_string());
+    let file_type = source_path
+        .extension()
+        .map(|s| s.to_string_lossy().to_string());
     let file_size = std::fs::metadata(&target_path).ok().map(|m| m.len() as i64);
 
     let attachment = Attachment {
@@ -68,13 +74,6 @@ pub async fn add_attachment(
     };
 
     PaperRepository::add_attachment_model(&db, attachment).await?;
-
-    let _ = app
-        .notification()
-        .builder()
-        .title("Attachment Added")
-        .body("Attachment added successfully")
-        .show();
 
     Ok(AttachmentDto {
         id: String::new(),
@@ -93,18 +92,22 @@ pub async fn get_attachments(
 ) -> Result<Vec<AttachmentDto>> {
     info!("Fetching attachments for paper {}", paper_id);
 
-    let paper_id_num = paper_id.parse::<i64>()
+    let paper_id_num = paper_id
+        .parse::<i64>()
         .map_err(|_| AppError::validation("paper_id", "Invalid paper id format"))?;
 
     let attachments = PaperRepository::get_attachments(&db, paper_id_num).await?;
 
-    Ok(attachments.iter().map(|a| AttachmentDto {
-        id: a.id.to_string(),
-        paper_id: a.paper_id.to_string(),
-        file_name: a.file_name.clone(),
-        file_type: a.file_type.clone(),
-        created_at: Some(a.created_at.to_rfc3339()),
-    }).collect())
+    Ok(attachments
+        .iter()
+        .map(|a| AttachmentDto {
+            id: a.id.to_string(),
+            paper_id: a.paper_id.to_string(),
+            file_name: a.file_name.clone(),
+            file_type: a.file_type.clone(),
+            created_at: Some(a.created_at.to_rfc3339()),
+        })
+        .collect())
 }
 
 #[tauri::command]
@@ -117,15 +120,18 @@ pub async fn open_paper_folder(
 ) -> Result<()> {
     info!("Opening folder for paper {}", paper_id);
 
-    let paper_id_num = paper_id.parse::<i64>()
+    let paper_id_num = paper_id
+        .parse::<i64>()
         .map_err(|_| AppError::validation("paper_id", "Invalid paper id format"))?;
 
-    let paper = PaperRepository::find_by_id(&db, paper_id_num).await?
+    let paper = PaperRepository::find_by_id(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
 
-    let hash_string = paper.attachment_path.clone().unwrap_or_else(|| {
-        calculate_attachment_hash(&paper.title)
-    });
+    let hash_string = paper
+        .attachment_path
+        .clone()
+        .unwrap_or_else(|| calculate_attachment_hash(&paper.title));
 
     let target_dir = PathBuf::from(&app_dirs.files).join(&hash_string);
 
@@ -153,28 +159,40 @@ pub async fn get_pdf_attachment_path(
 ) -> Result<PdfAttachmentInfo> {
     info!("Getting PDF attachment path for paper {}", paper_id);
 
-    let paper_id_num = paper_id.parse::<i64>()
+    let paper_id_num = paper_id
+        .parse::<i64>()
         .map_err(|_| AppError::validation("paper_id", "Invalid paper id format"))?;
 
-    let paper = PaperRepository::find_by_id(&db, paper_id_num).await?
+    let paper = PaperRepository::find_by_id(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
 
-    let hash_string = paper.attachment_path.clone().unwrap_or_else(|| {
-        calculate_attachment_hash(&paper.title)
-    });
+    let hash_string = paper
+        .attachment_path
+        .clone()
+        .unwrap_or_else(|| calculate_attachment_hash(&paper.title));
 
-    let attachment = PaperRepository::find_pdf_attachment(&db, paper_id_num).await?
+    let attachment = PaperRepository::find_pdf_attachment(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
 
     let file_name = attachment.file_name.clone().unwrap_or_else(|| {
-        format!("{}.pdf", paper.title.replace(|c: char| !c.is_alphanumeric() && c != ' ', "_"))
+        format!(
+            "{}.pdf",
+            paper
+                .title
+                .replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
+        )
     });
 
     let files_dir = PathBuf::from(&app_dirs.files);
     let pdf_path = files_dir.join(&hash_string).join(&file_name);
 
     if !pdf_path.exists() {
-        return Err(AppError::not_found("PDF file", format!("hash={}", hash_string)));
+        return Err(AppError::not_found(
+            "PDF file",
+            format!("hash={}", hash_string),
+        ));
     }
 
     Ok(PdfAttachmentInfo {
@@ -218,38 +236,56 @@ pub async fn read_pdf_as_blob(
 ) -> Result<PdfBlobResponse> {
     info!("Reading PDF as blob for paper {}", paper_id);
 
-    let paper_id_num = paper_id.parse::<i64>()
+    let paper_id_num = paper_id
+        .parse::<i64>()
         .map_err(|_| AppError::validation("paper_id", "Invalid paper id format"))?;
 
-    let paper = PaperRepository::find_by_id(&db, paper_id_num).await?
+    let paper = PaperRepository::find_by_id(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
 
-    let hash_string = paper.attachment_path.clone().unwrap_or_else(|| {
-        calculate_attachment_hash(&paper.title)
-    });
+    let hash_string = paper
+        .attachment_path
+        .clone()
+        .unwrap_or_else(|| calculate_attachment_hash(&paper.title));
 
-    let attachment = PaperRepository::find_pdf_attachment(&db, paper_id_num).await?
+    let attachment = PaperRepository::find_pdf_attachment(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
 
     let file_name = attachment.file_name.clone().unwrap_or_else(|| {
-        format!("{}.pdf", paper.title.replace(|c: char| !c.is_alphanumeric() && c != ' ', "_"))
+        format!(
+            "{}.pdf",
+            paper
+                .title
+                .replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
+        )
     });
 
     let files_dir = PathBuf::from(&app_dirs.files);
     let pdf_path = files_dir.join(&hash_string).join(&file_name);
 
     if !pdf_path.exists() {
-        return Err(AppError::not_found("PDF file", format!("hash={}", hash_string)));
+        return Err(AppError::not_found(
+            "PDF file",
+            format!("hash={}", hash_string),
+        ));
     }
 
     let pdf_bytes = std::fs::read(&pdf_path).map_err(|e| {
-        AppError::file_system(pdf_path.to_string_lossy().to_string(), format!("Failed to read PDF file: {}", e))
+        AppError::file_system(
+            pdf_path.to_string_lossy().to_string(),
+            format!("Failed to read PDF file: {}", e),
+        )
     })?;
 
     let size_bytes = pdf_bytes.len();
     let base64_data = base64_encode(&pdf_bytes);
 
-    info!("Successfully read PDF as blob for paper {}: {} bytes", paper_id, size_bytes);
+    info!(
+        "Successfully read PDF as blob for paper {}: {} bytes",
+        paper_id, size_bytes
+    );
 
     Ok(PdfBlobResponse {
         file_name,
@@ -261,9 +297,9 @@ pub async fn read_pdf_as_blob(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app_dirs, base64_data, app))]
+#[instrument(skip(db, app_dirs, base64_data))]
 pub async fn save_pdf_blob(
-    app: AppHandle,
+    _app: AppHandle,
     paper_id: String,
     base64_data: String,
     db: State<'_, Arc<DatabaseConnection>>,
@@ -271,21 +307,30 @@ pub async fn save_pdf_blob(
 ) -> Result<PdfSaveResponse> {
     info!("Saving PDF blob for paper {}", paper_id);
 
-    let paper_id_num = paper_id.parse::<i64>()
+    let paper_id_num = paper_id
+        .parse::<i64>()
         .map_err(|_| AppError::validation("paper_id", "Invalid paper id format"))?;
 
-    let paper = PaperRepository::find_by_id(&db, paper_id_num).await?
+    let paper = PaperRepository::find_by_id(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
 
-    let hash_string = paper.attachment_path.clone().unwrap_or_else(|| {
-        calculate_attachment_hash(&paper.title)
-    });
+    let hash_string = paper
+        .attachment_path
+        .clone()
+        .unwrap_or_else(|| calculate_attachment_hash(&paper.title));
 
-    let attachment = PaperRepository::find_pdf_attachment(&db, paper_id_num).await?
+    let attachment = PaperRepository::find_pdf_attachment(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
 
     let file_name = attachment.file_name.clone().unwrap_or_else(|| {
-        format!("{}.pdf", paper.title.replace(|c: char| !c.is_alphanumeric() && c != ' ', "_"))
+        format!(
+            "{}.pdf",
+            paper
+                .title
+                .replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
+        )
     });
 
     let pdf_bytes = base64_decode(&base64_data).map_err(|e| {
@@ -307,27 +352,26 @@ pub async fn save_pdf_blob(
         AppError::file_system(pdf_path.to_string_lossy().to_string(), e.to_string())
     })?;
 
-    info!("Successfully saved PDF blob for paper {}: {} bytes", paper_id, size_bytes);
-
-    let _ = app
-        .notification()
-        .builder()
-        .title("PDF Saved")
-        .body("PDF saved successfully")
-        .show();
+    info!(
+        "Successfully saved PDF blob for paper {}: {} bytes",
+        paper_id, size_bytes
+    );
 
     Ok(PdfSaveResponse {
         success: true,
         file_path: pdf_path.to_string_lossy().to_string(),
         size_bytes,
-        message: format!("PDF saved successfully: {} ({} bytes)", file_name, size_bytes),
+        message: format!(
+            "PDF saved successfully: {} ({} bytes)",
+            file_name, size_bytes
+        ),
     })
 }
 
 #[tauri::command]
-#[instrument(skip(db, app_dirs, base64_data, app))]
+#[instrument(skip(db, app_dirs, base64_data))]
 pub async fn save_pdf_with_annotations(
-    app: AppHandle,
+    _app: AppHandle,
     paper_id: String,
     base64_data: String,
     annotations_json: Option<String>,
@@ -336,21 +380,30 @@ pub async fn save_pdf_with_annotations(
 ) -> Result<PdfSaveResponse> {
     info!("Saving PDF blob with annotations for paper {}", paper_id);
 
-    let paper_id_num = paper_id.parse::<i64>()
+    let paper_id_num = paper_id
+        .parse::<i64>()
         .map_err(|_| AppError::validation("paper_id", "Invalid paper id format"))?;
 
-    let paper = PaperRepository::find_by_id(&db, paper_id_num).await?
+    let paper = PaperRepository::find_by_id(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("Paper", paper_id.clone()))?;
 
-    let hash_string = paper.attachment_path.clone().unwrap_or_else(|| {
-        calculate_attachment_hash(&paper.title)
-    });
+    let hash_string = paper
+        .attachment_path
+        .clone()
+        .unwrap_or_else(|| calculate_attachment_hash(&paper.title));
 
-    let attachment = PaperRepository::find_pdf_attachment(&db, paper_id_num).await?
+    let attachment = PaperRepository::find_pdf_attachment(&db, paper_id_num)
+        .await?
         .ok_or_else(|| AppError::not_found("PDF attachment", format!("paper_id={}", paper_id)))?;
 
     let file_name = attachment.file_name.clone().unwrap_or_else(|| {
-        format!("{}.pdf", paper.title.replace(|c: char| !c.is_alphanumeric() && c != ' ', "_"))
+        format!(
+            "{}.pdf",
+            paper
+                .title
+                .replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
+        )
     });
 
     let pdf_bytes = base64_decode(&base64_data).map_err(|e| {
@@ -375,21 +428,20 @@ pub async fn save_pdf_with_annotations(
     if let Some(annotations) = annotations_json {
         let annotations_path = pdf_path.with_extension("json");
         std::fs::write(&annotations_path, &annotations).map_err(|e| {
-            AppError::file_system(annotations_path.to_string_lossy().to_string(), e.to_string())
+            AppError::file_system(
+                annotations_path.to_string_lossy().to_string(),
+                e.to_string(),
+            )
         })?;
-
-        let _ = app
-            .notification()
-            .builder()
-            .title("Annotations Saved")
-            .body("PDF and annotations saved successfully")
-            .show();
 
         return Ok(PdfSaveResponse {
             success: true,
             file_path: pdf_path.to_string_lossy().to_string(),
             size_bytes,
-            message: format!("PDF and annotations saved successfully ({} bytes)", size_bytes),
+            message: format!(
+                "PDF and annotations saved successfully ({} bytes)",
+                size_bytes
+            ),
         });
     }
 
@@ -397,7 +449,10 @@ pub async fn save_pdf_with_annotations(
         success: true,
         file_path: pdf_path.to_string_lossy().to_string(),
         size_bytes,
-        message: format!("PDF saved successfully: {} ({} bytes)", file_name, size_bytes),
+        message: format!(
+            "PDF saved successfully: {} ({} bytes)",
+            file_name, size_bytes
+        ),
     })
 }
 
@@ -410,11 +465,15 @@ pub async fn delete_attachment(
 ) -> Result<()> {
     info!("Deleting attachment {} for paper {}", file_name, paper_id);
 
-    let paper_id_num = paper_id.parse::<i64>()
+    let paper_id_num = paper_id
+        .parse::<i64>()
         .map_err(|_| AppError::validation("paper_id", "Invalid paper id format"))?;
 
     PaperRepository::remove_attachment_by_name(&db, paper_id_num, &file_name).await?;
 
-    info!("Successfully deleted attachment {} for paper {}", file_name, paper_id);
+    info!(
+        "Successfully deleted attachment {} for paper {}",
+        file_name, paper_id
+    );
     Ok(())
 }

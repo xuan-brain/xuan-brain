@@ -1,5 +1,7 @@
 <script setup lang="ts">
   import StatusBar from '@/components/layout/StatusBar.vue';
+  import GlobalErrorDialog from '@/components/notification/GlobalErrorDialog.vue';
+  import NotificationToast from '@/components/notification/NotificationToast.vue';
   import { invokeCommand } from '@/lib/tauri';
   import { useAppStore } from '@/stores/useAppStore';
   import { onMounted, provide, ref, watch } from 'vue';
@@ -49,6 +51,8 @@
   <v-app>
     <router-view />
     <StatusBar />
+    <NotificationToast />
+    <GlobalErrorDialog />
   </v-app>
 </template>
 

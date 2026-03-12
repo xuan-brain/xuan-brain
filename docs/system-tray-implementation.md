@@ -3,22 +3,26 @@
 ## 问题回顾与解决
 
 ### 遇到的问题
+
 ```
 no matching package named `tauri-plugin-tray` found
 ```
 
 ### 解决方案
+
 在 Tauri 2.x 中，系统托盘是**内置功能**，不是独立插件。只需在 `tauri` 核心包中启用相关 features。
 
 ## 最终实现
 
 ### 1️⃣ 依赖配置 (Cargo.toml)
+
 ```toml
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png", "image-ico"] }
 ```
 
 ### 2️⃣ 代码实现 (lib.rs)
+
 ```rust
 use tauri::{
     menu::{Menu, MenuItem},
@@ -52,6 +56,7 @@ let _tray = TrayIconBuilder::new()
 ```
 
 ### 3️⃣ 配置文件 (tauri.conf.json)
+
 托盘图标完全在代码中创建，**不需要**在配置文件中添加 `trayIcon` 配置。
 
 > ⚠️ **重要**：如果在配置文件中添加 `trayIcon`，会导致出现两个托盘图标！
@@ -68,6 +73,7 @@ let _tray = TrayIconBuilder::new()
 ## 测试步骤 🧪
 
 ### 清理并构建
+
 ```cmd
 cd src-tauri
 cargo clean
@@ -75,12 +81,14 @@ cargo build
 ```
 
 ### 运行应用
+
 ```cmd
 cd ..
 yarn tauri dev
 ```
 
 ### 验证功能
+
 1. ✅ 应用启动后托盘显示图标
 2. ✅ 点击窗口 X 按钮，窗口隐藏但托盘图标仍在
 3. ✅ 左键单击托盘图标，窗口重新显示
@@ -89,12 +97,12 @@ yarn tauri dev
 
 ## 文档索引 📚
 
-| 文档 | 说明 |
-|------|------|
+| 文档                     | 说明                   |
+| ------------------------ | ---------------------- |
 | `system-tray-feature.md` | 功能详细说明和技术实现 |
-| `system-tray-testing.md` | 完整的测试指南 |
-| `system-tray-fix.md` | 问题排查和修复指南 |
-| `system-tray-summary.md` | 快速参考和配置总结 |
+| `system-tray-testing.md` | 完整的测试指南         |
+| `system-tray-fix.md`     | 问题排查和修复指南     |
+| `system-tray-summary.md` | 快速参考和配置总结     |
 
 ## 关键要点 💡
 
@@ -105,15 +113,16 @@ yarn tauri dev
 
 ## 平台支持 🖥️
 
-| 平台 | 状态 | 说明 |
-|------|------|------|
-| Windows | ✅ | 完全支持，左键切换，右键菜单 |
-| macOS | ✅ | 完全支持，菜单栏图标 |
-| Linux | ✅ | 取决于桌面环境的托盘支持 |
+| 平台    | 状态 | 说明                         |
+| ------- | ---- | ---------------------------- |
+| Windows | ✅   | 完全支持，左键切换，右键菜单 |
+| macOS   | ✅   | 完全支持，菜单栏图标         |
+| Linux   | ✅   | 取决于桌面环境的托盘支持     |
 
 ## 下一步建议 🚀
 
 如果想进一步增强功能，可以考虑：
+
 - 添加托盘通知
 - 动态更新托盘图标
 - 添加快捷键支持

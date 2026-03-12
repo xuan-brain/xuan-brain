@@ -19,7 +19,6 @@
     "core:window:allow-unminimize",
     "core:webview:allow-create-webview-window",
     "dialog:allow-message",
-    "tracing:allow-log",
-    "notification:default"
+    "tracing:allow-log"
   ]
 }

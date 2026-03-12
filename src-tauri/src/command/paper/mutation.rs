@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use tauri::{AppHandle, State};
-use tauri_plugin_notification::NotificationExt;
 use tracing::{info, instrument};
 
 use crate::database::DatabaseConnection;
@@ -26,9 +25,9 @@ pub async fn migrate_abstract_field(
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn update_paper_details(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     payload: UpdatePaperDto,
 ) -> Result<()> {
@@ -62,20 +61,13 @@ pub async fn update_paper_details(
     )
     .await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Paper Updated")
-        .body(format!("Paper '{}' updated successfully", payload.title))
-        .show();
-
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn delete_paper(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     id: String,
 ) -> Result<()> {
@@ -86,20 +78,13 @@ pub async fn delete_paper(
 
     PaperRepository::soft_delete(&db, id_num).await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Paper Deleted")
-        .body("Paper moved to trash")
-        .show();
-
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn restore_paper(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     id: String,
 ) -> Result<()> {
@@ -110,20 +95,13 @@ pub async fn restore_paper(
 
     PaperRepository::restore(&db, id_num).await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Paper Restored")
-        .body("Paper restored from trash successfully")
-        .show();
-
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn permanently_delete_paper(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     id: String,
 ) -> Result<()> {
@@ -134,20 +112,13 @@ pub async fn permanently_delete_paper(
 
     PaperRepository::delete(&db, id_num).await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Paper Deleted Permanently")
-        .body("Paper permanently deleted successfully")
-        .show();
-
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn update_paper_category(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     paper_id: String,
     category_id: Option<String>,
@@ -167,20 +138,13 @@ pub async fn update_paper_category(
 
     PaperRepository::set_category(&db, paper_id_num, category_id_num).await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Paper Category Updated")
-        .body("Paper category updated successfully")
-        .show();
-
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn add_paper_label(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     paper_id: String,
     label_id: String,
@@ -194,20 +158,13 @@ pub async fn add_paper_label(
 
     LabelRepository::add_to_paper(&db, paper_id_num, label_id_num).await?;
 
-    let _ = app
-        .notification()
-        .builder()
-        .title("Label Added")
-        .body("Label added to paper successfully")
-        .show();
-
     Ok(())
 }
 
 #[tauri::command]
-#[instrument(skip(db, app))]
+#[instrument(skip(db))]
 pub async fn remove_paper_label(
-    app: AppHandle,
+    _app: AppHandle,
     db: State<'_, Arc<DatabaseConnection>>,
     paper_id: String,
     label_id: String,
@@ -220,13 +177,6 @@ pub async fn remove_paper_label(
         .map_err(|_| AppError::validation("label_id", "Invalid id format"))?;
 
     LabelRepository::remove_from_paper(&db, paper_id_num, label_id_num).await?;
-
-    let _ = app
-        .notification()
-        .builder()
-        .title("Label Removed")
-        .body("Label removed from paper successfully")
-        .show();
 
     Ok(())
 }

@@ -15,7 +15,7 @@ pub mod paper_author;
 pub mod paper_category;
 pub mod paper_keyword;
 pub mod paper_label;
-
+pub mod search_history;
 #[allow(unused_imports)]
 pub use attachment::Entity as Attachment;
 #[allow(unused_imports)]
@@ -42,3 +42,4 @@ pub use paper_category::Entity as PaperCategory;
 pub use paper_keyword::Entity as PaperKeyword;
 #[allow(unused_imports)]
 pub use paper_label::Entity as PaperLabel;
+

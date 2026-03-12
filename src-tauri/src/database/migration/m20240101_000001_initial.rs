@@ -58,7 +58,8 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Author::Name).text().not_null())
+                    .col(ColumnDef::new(Author::FirstName).text().not_null())
+                    .col(ColumnDef::new(Author::LastName).text())
                     .col(ColumnDef::new(Author::Affiliation).text())
                     .col(ColumnDef::new(Author::Email).text())
                     .col(ColumnDef::new(Author::CreatedAt).text().not_null())
@@ -620,7 +621,8 @@ pub enum Paper {
 enum Author {
     Table,
     Id,
-    Name,
+    FirstName,
+    LastName,
     Affiliation,
     Email,
     CreatedAt,
